@@ -1,0 +1,149 @@
+// Microsoft Visual C++ generated resource script.
+//
+#include "resource.h"
+
+#define APSTUDIO_READONLY_SYMBOLS
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 2 resource.
+//
+#include "afxres.h"
+
+/////////////////////////////////////////////////////////////////////////////
+#undef APSTUDIO_READONLY_SYMBOLS
+
+/////////////////////////////////////////////////////////////////////////////
+// English (United States) resources
+
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENU)
+LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
+#pragma code_page(1252)
+
+#ifdef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// TEXTINCLUDE
+//
+
+1 TEXTINCLUDE 
+BEGIN
+    "resource.h\0"
+END
+
+2 TEXTINCLUDE 
+BEGIN
+    "#include ""afxres.h""\r\n"
+    "\0"
+END
+
+3 TEXTINCLUDE 
+BEGIN
+    "\r\n"
+    "\0"
+END
+
+#endif    // APSTUDIO_INVOKED
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Dialog
+//
+
+IDD_DIALOG1 DIALOGEX 0, 0, 231, 121
+STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+FONT 8, "MS Sans Serif", 0, 0, 0x0
+BEGIN
+    PUSHBUTTON      "OK",IDC_OK,105,98,55,15
+    PUSHBUTTON      "Cancel",IDC_CANCEL,168,98,55,15
+    CONTROL         "Enable Null Frames",IDC_NULLFRAMES,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,11,77,10
+    CONTROL         "Always Suggest RGB for Output",IDC_SUGGEST,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,31,117,10
+    CONTROL         "Use Multithreading",IDC_MULTI,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,51,75,10
+    CONTROL         "Prevent Upsampling When Decoding",IDC_NOUPSAMPLE,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,72,129,10
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// DESIGNINFO
+//
+
+#ifdef APSTUDIO_INVOKED
+GUIDELINES DESIGNINFO
+BEGIN
+    IDD_DIALOG1, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        BOTTOMMARGIN, 113
+    END
+END
+#endif    // APSTUDIO_INVOKED
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Version
+//
+
+VS_VERSION_INFO VERSIONINFO
+ FILEVERSION 1,0,0,0
+ PRODUCTVERSION 1,0,0,0
+ FILEFLAGSMASK 0x3fL
+#ifdef _DEBUG
+ FILEFLAGS 0x1L
+#else
+ FILEFLAGS 0x0L
+#endif
+ FILEOS 0x40004L
+ FILETYPE 0x2L
+ FILESUBTYPE 0x0L
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "040904b0"
+        BEGIN
+            VALUE "CompanyName", " "
+            VALUE "FileDescription", "Yeti"
+            VALUE "FileVersion", "1.0.0.0"
+            VALUE "InternalName", "Yeti"
+            VALUE "LegalCopyright", "Copyright © 2010"
+            VALUE "OriginalFilename", "yeti.dll"
+            VALUE "ProductName", "Yeti"
+            VALUE "ProductVersion", "1.0.0.0"
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x409, 1200
+    END
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// String Table
+//
+
+STRINGTABLE
+BEGIN
+    IDS_TIP_NULLFRAMES      "When a frame is identical to the preceding frame, it can be replaced with a nullframe. This indicates that the program reading the video should simply reuse the previous frame. Nullframes can increase compression and speed, but there may be a few editing programs that do no handle them well; disable nullframes if you notice the wrong frame being displayed during still sections of a video."
+    IDS_TIP_SUGGEST         "If this enabled, Yeti will always attempt to decode video to RGB, unless explicitly asked otherwise. If a program will not accept video compressed with Yeti, this may fix the problem."
+    IDS_TIP_MULTI           "Use multiple threads to compress/decompress video; this can improve speed on systems that have multiple processors.\nSingle processor systems should leave this disabled."
+    IDS_TIP_NOUPSAMPLE      "This will force the codec to decode video as the same colorspace it is stored as internally. This can improve performance and prevent rounding errors, but may not be compatible with certain programs."
+END
+
+#endif    // English (United States) resources
+/////////////////////////////////////////////////////////////////////////////
+
+
+
+#ifndef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 3 resource.
+//
+
+
+/////////////////////////////////////////////////////////////////////////////
+#endif    // not APSTUDIO_INVOKED
+

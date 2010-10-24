@@ -42,19 +42,6 @@ static const unsigned char dist_restore[]={0,2,4,6,8,10,12,14,16,18,20,22,24,26,
 
 namespace zero {
 
-	/*unsigned __int64 cputime(){
-	unsigned __int64 c_time;
-	__asm {
-	xor eax,eax
-	xor	edx,edx
-	lea ebx,c_time
-	RDTSC
-	mov [ebx],eax
-	mov	[ebx+4],edx
-	}
-	return c_time;
-	}*/
-
 	// This performs a modified Run Length Encoding on a byte stream.
 	// Only runs of 0 values are encoded, all other values are ignored.
 	// The 'level' parameter tells how many 0's must be read before it

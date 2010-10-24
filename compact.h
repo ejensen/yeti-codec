@@ -3,8 +3,8 @@
 #ifndef _YETI_COMPRESSION 
 #define _YETI_COMPRESSION 
 
-class CompressClass {
-
+class CompressClass 
+{
 public:
 	unsigned int * _pProbRanges;		// Byte probability range table
 	unsigned int _scale;				// Used to replace some multiply/divides with binary shifts,

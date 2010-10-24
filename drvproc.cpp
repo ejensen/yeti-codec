@@ -1,6 +1,5 @@
 // shamelessly stolen from Ben Rudiak-Gould huffyuv source code
 
-
 #include "yeti.h"
 
 

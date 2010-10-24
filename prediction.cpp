@@ -14,7 +14,7 @@
 inline int median(int x,int y,int z ) {
 	int i = (x<=y)?x:y;	//i=min(x,y);
 	int j = (x>=y)?x:y;	//j=max(x,y);
-	i = (i>=z)?i:z;	//i=max(i,z);
+	i = (i>=z)?i:z;	   //i=max(i,z);
 	return  (i<=j)?i:j;	//j=min(i,j);
 }
 
@@ -776,119 +776,6 @@ void enlarge_res(const unsigned char * src, unsigned char * dst, unsigned char *
 		}
 	}
 }
-
-/*
-
-void BlockPredict( const unsigned char * source, unsigned char * dest, const unsigned int stride, const unsigned int length, int mode){
-dest[0]=source[0];
-for ( unsigned int a=1;a<stride+1;a++){
-dest[a]=source[a]-source[a-1];
-}
-
-if ( mode ) {
-a--;
-dest[a]=source[a]-source[0];
-a++;
-}
-for ( ;a<length;a++){
-dest[a]=source[a]-median(source[a-1],source[a-stride],source[a-1]+source[a-stride]-source[a-stride-1]);
-}
-}
-
-void YUY2_MedianRestore( unsigned char * src,unsigned char * ending, int stride){
-unsigned char * row_end = src+stride+8;
-src+=4;
-while ( src < row_end ){
-src[0]+=src[-2];
-src[1]+=src[-3];
-src[2]+=src[0];
-src[3]+=src[-1];
-src+=4;
-}
-while ( src < ending ){
-unsigned char x,y,z;
-x=src[-2];
-y=src[-stride];
-z=-src[-stride-2];
-z+=x;
-z+=y;
-src[0]+=median(x,y,z);
-
-x=src[-3];
-y=src[-stride+1];
-z=-src[-stride-3];
-z+=x;
-z+=y;
-src[1]+=median(x,y,z);
-
-x=src[0];
-y=src[-stride+2];
-z=-src[-stride];
-z+=x;
-z+=y;
-src[2]+=median(x,y,z);
-
-x=src[-1];
-y=src[-stride+3];
-z=-src[-stride-1];
-z+=x;
-z+=y;
-src[3]+=median(x,y,z);
-
-src+=4;
-}
-}
-
-void MedianPredictYUY2( const unsigned char * src,unsigned char * dst,const unsigned char * const ending, int stride){
-const unsigned char * row_end = src+stride+8;
-dst[0]=src[0];
-dst[1]=src[1];
-dst[2]=src[2];
-dst[3]=src[3];
-src+=4;
-dst+=4;
-while ( src < row_end ){
-dst[0]=src[0]-src[-2];
-dst[1]=src[1]-src[-3];
-dst[2]=src[2]-src[0];
-dst[3]=src[3]-src[-1];
-src+=4;
-dst+=4;
-}
-while ( src < ending ){
-unsigned char x,y,z;
-x=src[-2];
-y=src[-stride];
-z=-src[-stride-2];
-z+=x;
-z+=y;
-dst[0]=src[0]-median(x,y,z);
-
-x=src[-3];
-y=src[-stride+1];
-z=-src[-stride-3];
-z+=x;
-z+=y;
-dst[1]=src[1]-median(x,y,z);
-
-x=src[0];
-y=src[-stride+2];
-z=-src[-stride];
-z+=x;
-z+=y;
-dst[2]=src[2]-median(x,y,z);
-
-x=src[-1];
-y=src[-stride+3];
-z=-src[-stride-1];
-z+=x;
-z+=y;
-dst[3]=src[3]-median(x,y,z);
-src+=4;
-dst+=4;
-}
-}
-*/
 
 void MMX_Predict_YUY2(const unsigned char * src,unsigned char * dest,const unsigned int width,const unsigned height,int SSE,int lum){
 

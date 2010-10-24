@@ -49,7 +49,6 @@ CodecInst::CodecInst()
    memcpy((void*)&_info_a.cObj,&_cObj,sizeof(_cObj));
    memcpy((void*)&_info_b.cObj,&_cObj,sizeof(_cObj));
    memcpy((void*)&_info_c.cObj,&_cObj,sizeof(_cObj));
-
 }
 
 HMODULE hmoduleHuffYUY=0;
@@ -91,10 +90,9 @@ HWND CreateTooltip(HWND hwnd)
 
 struct { UINT item; UINT tip; } item2tip[] = 
 {
-   { IDC_NULLFRAMES,	IDS_TIP_NULLFRAMES	},
-   { IDC_SUGGEST,		IDS_TIP_SUGGEST		},
-   { IDC_MULTI,		IDS_TIP_MULTI		}, 
-   { IDC_NOUPSAMPLE,	IDS_TIP_NOUPSAMPLE},
+   { IDC_NULLFRAMES,	IDS_TIP_NULLFRAMES },
+   { IDC_MULTI,		IDS_TIP_MULTI	 }, 
+   { IDC_REDUCED,	   IDS_TIP_REDUCED },
    { 0,0 }
 };
 
@@ -141,29 +139,22 @@ static BOOL CALLBACK ConfigureDialogProc(HWND hwndDlg, UINT uMsg, WPARAM wParam,
    if (uMsg == WM_INITDIALOG)
    {
       CheckDlgButton(hwndDlg, IDC_NULLFRAMES,GetPrivateProfileInt("settings", "nullframes", false, "yeti.ini") ? BST_CHECKED : BST_UNCHECKED);
-      CheckDlgButton(hwndDlg, IDC_SUGGEST,GetPrivateProfileInt("settings", "suggest", false, "yeti.ini") ? BST_CHECKED : BST_UNCHECKED);
       CheckDlgButton(hwndDlg, IDC_MULTI,GetPrivateProfileInt("settings", "multithreading", false, "yeti.ini") ? BST_CHECKED : BST_UNCHECKED);
-      int upsample = GetPrivateProfileInt("settings", "noupsample", false, "yeti.ini");
-      CheckDlgButton(hwndDlg, IDC_NOUPSAMPLE, upsample? BST_CHECKED : BST_UNCHECKED);
-      HWND suggest = GetDlgItem(hwndDlg, IDC_SUGGEST);
-      Button_Enable(suggest,!upsample);
+      CheckDlgButton(hwndDlg, IDC_REDUCED,GetPrivateProfileInt("settings", "reduced", false, "yeti.ini") ? BST_CHECKED : BST_UNCHECKED);
       HWND hwndTip = CreateTooltip(hwndDlg);
       for (int l=0; item2tip[l].item; l++ )
       {
          AddTooltip(hwndTip, GetDlgItem(hwndDlg, item2tip[l].item),	item2tip[l].tip);
       }
-      SendMessage(hwndTip, TTM_SETMAXTIPWIDTH, 0, (LPARAM)(INT)350);	// ah well this is totally wrong but works
+      SendMessage(hwndTip, TTM_SETMAXTIPWIDTH, 0, (LPARAM)(INT)350);	//TODO: Change
    } 
    else if (uMsg == WM_COMMAND) 
    {
-      HWND suggest = GetDlgItem(hwndDlg, IDC_SUGGEST);
-      Button_Enable(suggest,IsDlgButtonChecked(hwndDlg, IDC_NOUPSAMPLE) != BST_CHECKED);
       if (LOWORD(wParam)==IDC_OK)
       {
          WritePrivateProfileString("settings", "nullframes",(IsDlgButtonChecked(hwndDlg, IDC_NULLFRAMES) == BST_CHECKED) ? "1" : NULL, "yeti.ini");
-         WritePrivateProfileString("settings", "suggest",(IsDlgButtonChecked(hwndDlg, IDC_SUGGEST) == BST_CHECKED) ? "1" : NULL, "yeti.ini");
          WritePrivateProfileString("settings", "multithreading",(IsDlgButtonChecked(hwndDlg, IDC_MULTI) == BST_CHECKED) ? "1" : NULL, "yeti.ini");
-         WritePrivateProfileString("settings", "noupsample",(IsDlgButtonChecked(hwndDlg, IDC_NOUPSAMPLE) == BST_CHECKED) ? "1" : NULL, "yeti.ini");
+         WritePrivateProfileString("settings", "reduced",(IsDlgButtonChecked(hwndDlg, IDC_REDUCED) == BST_CHECKED) ? "1" : NULL, "yeti.ini");
 
          EndDialog(hwndDlg, 0);
       } 
@@ -171,10 +162,6 @@ static BOOL CALLBACK ConfigureDialogProc(HWND hwndDlg, UINT uMsg, WPARAM wParam,
       {
          EndDialog(hwndDlg, 0);
       } 
-      else if ( LOWORD(wParam)==IDC_EMAIL )
-      {
-         ShellExecute(NULL, "open", "http://lags.leetcode.net/codec.html", NULL, NULL, SW_SHOW);
-      }
    } 
    else if ( uMsg == WM_CLOSE )
    {
@@ -248,41 +235,35 @@ DWORD CodecInst::GetState(LPVOID pv, DWORD dwSize)
 {
    if ( pv == NULL )
    {
-      return 5*sizeof(int);
+      return 3*sizeof(int);
    } 
-   else if ( dwSize < 5*sizeof(int) )
+   else if ( dwSize < 3*sizeof(int) )
    {
       return ICERR_BADSIZE;
    }
 
    int * state = (int*)pv;
    state[0]=GetPrivateProfileInt("settings", "nullframes", false, "yeti.ini");
-   state[1]=GetPrivateProfileInt("settings", "suggest", false, "yeti.ini");
-   state[2]=GetPrivateProfileInt("settings", "multithreading", false, "yeti.ini");
-   state[3]=GetPrivateProfileInt("settings", "noupsample", false, "yeti.ini");
-   state[4]=GetPrivateProfileInt("settings", "lossy_option", 1, "yeti.ini");
+   state[1]=GetPrivateProfileInt("settings", "multithreading", false, "yeti.ini");
+   state[2]=GetPrivateProfileInt("settings", "reduced", false, "yeti.ini");
    return 0;
 }
 
 DWORD CodecInst::SetState(LPVOID pv, DWORD dwSize) 
 {
-   if ( dwSize < 5*sizeof(int))
+   if ( dwSize < 3*sizeof(int))
    {
-      return 5*sizeof(int);
+      return 3*sizeof(int);
    }
    int * state = (int*)pv;
    char str[] = {0,0,0,0};
    str[0]='0'+state[0];
    WritePrivateProfileString("settings", "nullframes",str, "yeti.ini");
    str[0]='0'+state[1];
-   WritePrivateProfileString("settings", "suggest",str, "yeti.ini");
-   str[0]='0'+state[2];
    WritePrivateProfileString("settings", "multithreading",str, "yeti.ini");
-   str[0]='0'+state[3];
-   WritePrivateProfileString("settings", "noupsample",str, "yeti.ini");
-   str[0]='0'+state[4];
-   WritePrivateProfileString("settings", "lossy_option",str, "yeti.ini");
-   return 5*sizeof(int);
+   str[0]='0'+state[2];
+   WritePrivateProfileString("settings", "reduced",str, "yeti.ini");
+   return 3*sizeof(int);
 }
 
 // test for MMX, SSE, and SSE2 support
@@ -405,7 +386,7 @@ DWORD CodecInst::CompressGetFormat(LPBITMAPINFOHEADER lpbiIn, LPBITMAPINFOHEADER
    lpbiOut->biPlanes = 1;
    lpbiOut->biCompression = FOURCC_YETI;
 
-   if ( lpbiIn->biBitCount != 24 )
+   if ( lpbiIn->biBitCount != 24 ) // TODO: optimize
    {
       lpbiOut->biSizeImage = lpbiIn->biWidth * lpbiIn->biHeight * lpbiIn->biBitCount/8;
    } 
@@ -416,7 +397,7 @@ DWORD CodecInst::CompressGetFormat(LPBITMAPINFOHEADER lpbiIn, LPBITMAPINFOHEADER
 
    lpbiOut->biBitCount = lpbiIn->biBitCount;
 
-   //*(UINT32*)(&lpbiOut[1])= 0; //TODO: Change?
+   *(UINT32*)(&lpbiOut[1])= _reduced ? REDUCED_RES : ARITH_YV12;
    return (DWORD)ICERR_OK;
 }
 

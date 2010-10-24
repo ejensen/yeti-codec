@@ -17,6 +17,7 @@ DWORD CodecInst::CompressBegin(LPBITMAPINFOHEADER lpbiIn, LPBITMAPINFOHEADER lpb
 
    _nullframes = GetPrivateProfileInt("settings", "nullframes", false, "yeti.ini")>0;
    _multithreading = GetPrivateProfileInt("settings", "multithreading", false, "yeti.ini")>0;
+   _reduced = GetPrivateProfileInt("settings", "reduced", false, "yeti.ini")>0;
 
    if ( int error = CompressQuery(lpbiIn,lpbiOut) != ICERR_OK )
    {
@@ -582,13 +583,13 @@ int CodecInst::CompressLossy(ICCOMPRESS * icinfo )
 
    _pIn = _pLossy_buffer;
 
-   if ( !_reduced ) //TODO:Optimize
+   if ( _reduced ) //TODO:Optimize
    {
-      ret_val = CompressYV12(icinfo);
+      ret_val = CompressReduced(icinfo);
    } 
    else
    {
-      ret_val = CompressReduced(icinfo);
+      ret_val = CompressYV12(icinfo);
    }
    //_pIn=stored_in;
    return ret_val;

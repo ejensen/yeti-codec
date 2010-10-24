@@ -50,16 +50,15 @@ END
 // Dialog
 //
 
-IDD_DIALOG1 DIALOGEX 0, 0, 231, 121
+IDD_SETTINGS_DIALOG DIALOGEX 0, 0, 231, 121
 STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
 FONT 8, "MS Sans Serif", 0, 0, 0x0
 BEGIN
     PUSHBUTTON      "OK",IDC_OK,105,98,55,15
     PUSHBUTTON      "Cancel",IDC_CANCEL,168,98,55,15
     CONTROL         "Enable Null Frames",IDC_NULLFRAMES,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,11,77,10
-    CONTROL         "Always Suggest RGB for Output",IDC_SUGGEST,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,31,117,10
-    CONTROL         "Use Multithreading",IDC_MULTI,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,51,75,10
-    CONTROL         "Prevent Upsampling When Decoding",IDC_NOUPSAMPLE,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,72,129,10
+    CONTROL         "Use Multithreading",IDC_MULTI,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,31,75,10
+    CONTROL         "Reduce Resolution",IDC_REDUCED,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,51,77,10
 END
 
 
@@ -71,7 +70,7 @@ END
 #ifdef APSTUDIO_INVOKED
 GUIDELINES DESIGNINFO
 BEGIN
-    IDD_DIALOG1, DIALOG
+    IDD_SETTINGS_DIALOG, DIALOG
     BEGIN
         LEFTMARGIN, 7
         BOTTOMMARGIN, 113
@@ -127,9 +126,8 @@ END
 STRINGTABLE
 BEGIN
     IDS_TIP_NULLFRAMES      "When a frame is identical to the preceding frame, it can be replaced with a nullframe. This indicates that the program reading the video should simply reuse the previous frame. Nullframes can increase compression and speed, but there may be a few editing programs that do no handle them well; disable nullframes if you notice the wrong frame being displayed during still sections of a video."
-    IDS_TIP_SUGGEST         "If this enabled, Yeti will always attempt to decode video to RGB, unless explicitly asked otherwise. If a program will not accept video compressed with Yeti, this may fix the problem."
     IDS_TIP_MULTI           "Use multiple threads to compress/decompress video; this can improve speed on systems that have multiple processors.\nSingle processor systems should leave this disabled."
-    IDS_TIP_NOUPSAMPLE      "This will force the codec to decode video as the same colorspace it is stored as internally. This can improve performance and prevent rounding errors, but may not be compatible with certain programs."
+    IDS_TIP_REDUCED         "Reduce resolution in half.\nThis can greatly reduce file size and encoding time."
 END
 
 #endif    // English (United States) resources

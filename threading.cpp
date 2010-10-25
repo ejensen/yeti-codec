@@ -63,7 +63,7 @@ DWORD WINAPI encode_worker_thread( LPVOID i )
       {
          unsigned char * padded = dst;
          unsigned char * stripped = buffer;
-         for ( unsigned int y=0;y<height;y++)
+         for ( unsigned int y=0; y<height; y++)
          {
             memcpy(stripped+y*width,padded+y*stride,width);
          }
@@ -137,14 +137,29 @@ int CodecInst::InitThreads( int encode )
    use_format=YV12;
 
    _info_a.width=_width;
-   _info_b.width=_width/2;
+   if ( use_format > YUY2 )
+   {
+      _info_b.width=_width;
+   } 
+   else 
+   {
+      _info_b.width=_width/2;
+   }
    _info_c.width=_width;
 
    _info_a.height=_height;
-   _info_b.height=_height/2;
+   if ( use_format != YV12 )
+   {
+      _info_b.height=_height;
+   } 
+   else 
+   {
+      _info_b.height=_height/2;
+   }
+
    _info_c.height=_height;
 
-   if ( _reduced )
+   if ( _reduced ) //TODO: Right?
    {
       _info_a.width=_width/2;
       _info_a.height=_height/2;
@@ -187,13 +202,13 @@ int CodecInst::InitThreads( int encode )
       || !(_info_a.buffer=(unsigned char *)lag_aligned_malloc(_info_a.buffer,buffer_a,16,"Info_a.buffer"))
       || !(_info_b.buffer=(unsigned char *)lag_aligned_malloc(_info_b.buffer,buffer_b,16,"Info_b.buffer")) )
    {
-         _info_a.cObj.FreeCompressBuffers();
-         _info_b.cObj.FreeCompressBuffers();
-         lag_aligned_free(_info_a.buffer,"Info_a.buffer");
-         lag_aligned_free(_info_b.buffer,"Info_b.buffer");
-         _info_a.thread=NULL;
-         _info_b.thread=NULL;
-         return ICERR_MEMORY;
+      _info_a.cObj.FreeCompressBuffers();
+      _info_b.cObj.FreeCompressBuffers();
+      lag_aligned_free(_info_a.buffer,"Info_a.buffer");
+      lag_aligned_free(_info_b.buffer,"Info_b.buffer");
+      _info_a.thread=NULL;
+      _info_b.thread=NULL;
+      return ICERR_MEMORY;
    } 
    else 
    { 
@@ -202,16 +217,16 @@ int CodecInst::InitThreads( int encode )
          if ( !_info_c.cObj.InitCompressBuffers( buffer_a ) 
             || !(_info_c.buffer=(unsigned char *)lag_aligned_malloc(_info_c.buffer,buffer_a,16,"Info_c.buffer")))
          {
-               _info_a.cObj.FreeCompressBuffers();
-               _info_b.cObj.FreeCompressBuffers();
-               _info_c.cObj.FreeCompressBuffers();
-               lag_aligned_free(_info_a.buffer,"Info_a.buffer");
-               lag_aligned_free(_info_b.buffer,"Info_b.buffer");
-               lag_aligned_free(_info_c.buffer,"Info_c.buffer");
-               _info_a.thread=NULL;
-               _info_b.thread=NULL;
-               _info_c.thread=NULL;
-               return ICERR_MEMORY;
+            _info_a.cObj.FreeCompressBuffers();
+            _info_b.cObj.FreeCompressBuffers();
+            _info_c.cObj.FreeCompressBuffers();
+            lag_aligned_free(_info_a.buffer,"Info_a.buffer");
+            lag_aligned_free(_info_b.buffer,"Info_b.buffer");
+            lag_aligned_free(_info_c.buffer,"Info_c.buffer");
+            _info_a.thread=NULL;
+            _info_b.thread=NULL;
+            _info_c.thread=NULL;
+            return ICERR_MEMORY;
          }
          if ( encode )
          {

@@ -107,7 +107,6 @@ inline void CodecInst::uncompact_macro( const unsigned char * _in, unsigned char
 }
 
 // Decompress a YV12 keyframe
-
 void CodecInst::ArithYV12Decompress()
 {
    unsigned char * dst = _pOut;
@@ -130,7 +129,7 @@ void CodecInst::ArithYV12Decompress()
    if ( !_multithreading )
    {
       ASM_BlockRestore(dst,_width,_width*_height,0);
-      ASM_BlockRestore(dst+_width*_height,_width/2,_width*_height/4,0); //TODO: optimize
+      ASM_BlockRestore(dst+_width*_height,_width/2,_width*_height/4,0);
    }
 
    unsigned int length = _width * _height * YV12 / 8;
@@ -232,7 +231,7 @@ void CodecInst::ReduceResDecompress()
 // handed off to other functions based on the frame type.
 DWORD CodecInst::Decompress(ICDECOMPRESS* icinfo, DWORD dwSize) 
 {
-#ifndef YETI_RELEASE
+#ifdef _DEBUG
    try 
    {
 #endif
@@ -260,7 +259,7 @@ DWORD CodecInst::Decompress(ICDECOMPRESS* icinfo, DWORD dwSize)
    if ( !(fpuword & _PC_53) || (fpuword & _MCW_RC) )
    {
       _controlfp(_PC_53 | _RC_NEAR,_MCW_PC | _MCW_RC);
-#ifndef YETI_RELEASE
+#ifdef _DEBUG
       static bool firsttime=true;
       if ( firsttime )
       {
@@ -278,7 +277,7 @@ DWORD CodecInst::Decompress(ICDECOMPRESS* icinfo, DWORD dwSize)
       ReduceResDecompress();
       break;
    default:
-#ifndef YETI_RELEASE
+#ifdef _DEBUG
       char emsg[128];
       sprintf_s(emsg,128,"Unrecognized frame type: %d",_pIn[0]);
       MessageBox (HWND_DESKTOP, emsg, "Error", MB_OK | MB_ICONEXCLAMATION);
@@ -293,7 +292,7 @@ DWORD CodecInst::Decompress(ICDECOMPRESS* icinfo, DWORD dwSize)
    }
 
    return return_code;
-#ifndef YETI_RELEASE
+#ifdef _DEBUG
    } 
    catch ( ... )
    {

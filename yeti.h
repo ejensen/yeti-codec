@@ -14,9 +14,7 @@
 #include <assert.h>
 #include <stdio.h>
 
-#define YETI_RELEASE		// if this is a version to release, disables all debugging info 
-
-#ifndef YETI_RELEASE
+#ifdef _DEBUG
 #define TRY_CATCH_FUNC			// enables try/catch macro
 #define bang(str) MessageBox(HWND_DESKTOP, str, "Error", MB_OK | MB_ICONEXCLAMATION)
 #else
@@ -48,7 +46,7 @@ inline void * lag_aligned_malloc( void *ptr, int size, int align, char *str )
    {
       try
       {
-#ifndef YETI_RELEASE
+#ifdef _DEBUG
          char msg[128];
          sprintf_s(msg,128,"Buffer '%s' is not null, attempting to free it...",str);
          MessageBox (HWND_DESKTOP, msg, "Error", MB_OK | MB_ICONEXCLAMATION);
@@ -57,7 +55,7 @@ inline void * lag_aligned_malloc( void *ptr, int size, int align, char *str )
       } 
       catch ( ... )
       {
-#ifndef YETI_RELEASE
+#ifdef _DEBUG
          char msg[256];
          sprintf_s(msg,128,"An exception occurred when attempting to free non-null buffer '%s' in lag_aligned_malloc",str);
          MessageBox (HWND_DESKTOP, msg, "Error", MB_OK | MB_ICONEXCLAMATION);
@@ -67,7 +65,7 @@ inline void * lag_aligned_malloc( void *ptr, int size, int align, char *str )
    return _aligned_malloc(size,align);
 }
 
-#ifdef YETI_RELEASE
+#ifndef _DEBUG
 #define lag_aligned_free(ptr, str) { \
    if ( ptr ){ \
    try {\
@@ -76,7 +74,7 @@ inline void * lag_aligned_malloc( void *ptr, int size, int align, char *str )
    } \
    ptr=NULL;\
 }
-#else 
+#else
 #define lag_aligned_free(ptr, str) { \
    if ( ptr ){ \
    try { _aligned_free(ptr); } catch ( ... ){\

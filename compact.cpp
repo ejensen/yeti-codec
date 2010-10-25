@@ -58,7 +58,7 @@ void CompressClass::scaleprob(unsigned int length)
    {
       _pProbRanges[1]+=newlen;
       newlen=0;
-#ifndef YETI_RELEASE
+#ifdef _DEBUG
       MessageBox (HWND_DESKTOP, "Newlen is less than 0", "Error", MB_OK | MB_ICONEXCLAMATION);
 #endif
    }
@@ -280,7 +280,7 @@ void CompressClass::uncompact( const unsigned char * in, unsigned char * out, co
       } 
       else 
       {
-#ifndef YETI_RELEASE
+#ifdef _DEBUG
          if ( in[0] )
          {
             char msg[128];

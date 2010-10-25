@@ -285,6 +285,7 @@
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Release64|Win32'">huffyuv_a.obj</Outputs>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">huffyuv_a.obj</Outputs>
     </CustomBuild>
+    <None Include="Yeti.inf" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="resource.h" />

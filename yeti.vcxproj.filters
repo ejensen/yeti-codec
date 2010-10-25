@@ -21,6 +21,7 @@
       <Filter>Resources</Filter>
     </None>
     <None Include="huffyuv.def" />
+    <None Include="Yeti.inf" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="compact.h">

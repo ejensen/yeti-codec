@@ -8,10 +8,9 @@
 
 #define return_error() return ICERR_BADFORMAT;//{ char msg[256];sprintf(msg,"Returning error on line %d", __LINE__);MessageBox (HWND_DESKTOP, msg, "Error", MB_OK | MB_ICONEXCLAMATION); return ICERR_BADFORMAT; }
 
-
 CodecInst::CodecInst()
 {
-#ifndef YETI_RELEASE
+#ifdef _DEBUG
    if ( _started == 0x1337)
    {
       char msg[128];
@@ -35,7 +34,6 @@ CodecInst::CodecInst()
    _cObj._pProbRanges=NULL;
    _cObj._pBytecounts=NULL;
    _cObj._pBuffer=NULL;
-   //	cObj.header=NULL;
 
    _multithreading=0;
    _info_a.source=NULL;
@@ -397,7 +395,7 @@ DWORD CodecInst::CompressGetFormat(LPBITMAPINFOHEADER lpbiIn, LPBITMAPINFOHEADER
 
    lpbiOut->biBitCount = lpbiIn->biBitCount;
 
-   *(UINT32*)(&lpbiOut[1])= _reduced ? REDUCED_RES : ARITH_YV12;
+   *(UINT32*)(&lpbiOut[1])= _reduced ? REDUCED_RES : ARITH_YV12; //Change?
    return (DWORD)ICERR_OK;
 }
 
@@ -415,14 +413,14 @@ DWORD CodecInst::GetInfo(ICINFO* icinfo, DWORD dwSize)
       return 0;
    }
 
-   icinfo->dwSize          = sizeof(ICINFO);
-   icinfo->fccType         = ICTYPE_VIDEO;
-   icinfo->fccHandler		= FOURCC_YETI;
-   icinfo->dwFlags			= VIDCF_FASTTEMPORALC; //VIDCF_TEMPORAL;
+   icinfo->dwSize       = sizeof(ICINFO);
+   icinfo->fccType      = ICTYPE_VIDEO;
+   icinfo->fccHandler	= FOURCC_YETI;
+   icinfo->dwFlags		= VIDCF_FASTTEMPORALC; //VIDCF_TEMPORAL;
    icinfo->dwVersion		= 0x00010000;
    icinfo->dwVersionICM	= ICVERSION;
-   memcpy(icinfo->szName,L"Yeti",sizeof(L"Yeti"));
-   memcpy(icinfo->szDescription,L"Yeti lossless codec",sizeof(L"Yeti lossless codec"));
+   memcpy(icinfo->szName, L"Yeti", sizeof(L"Yeti"));
+   memcpy(icinfo->szDescription, L"Yeti lossless codec", sizeof(L"Yeti lossless codec"));
 
    return sizeof(ICINFO);
 }
@@ -464,8 +462,6 @@ DWORD CodecInst::DecompressQuery(const LPBITMAPINFOHEADER lpbiIn, const LPBITMAP
       return (DWORD)ICERR_OK;
    }
 
-   bool noupsample = GetPrivateProfileInt("settings", "noupsample", false, "yeti.ini")>0;
-
    //char msg[128];
    //char fcc[4];
    //*(unsigned int*)(&fcc[0])=lpbiOut->biCompression;
@@ -487,15 +483,6 @@ DWORD CodecInst::DecompressQuery(const LPBITMAPINFOHEADER lpbiIn, const LPBITMAP
    if ( lpbiOut->biBitCount < 12 )
    {
       return (DWORD)ICERR_BADFORMAT;
-   }
-
-   if ( noupsample )
-   {
-      // make sure no colorspace conversion is being done
-      if ( lpbiOut->biBitCount != 12 )
-      {
-         return (DWORD)ICERR_BADFORMAT;
-      }
    }
 
    // check for invalid widths/heights
@@ -549,8 +536,6 @@ DWORD CodecInst::DecompressGetFormat(const LPBITMAPINFOHEADER lpbiIn, LPBITMAPIN
    *lpbiOut = *lpbiIn;
    lpbiOut->biSize = sizeof(BITMAPINFOHEADER);
    lpbiOut->biPlanes = 1;
-
-   int suggest = GetPrivateProfileInt("settings", "noupsample", false, "yeti.ini")?0:GetPrivateProfileInt("settings", "suggest", false, "yeti.ini");
 
    lpbiOut->biBitCount=12;
    lpbiOut->biCompression = FOURCC_YV12;

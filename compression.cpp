@@ -643,15 +643,7 @@ DWORD CodecInst::Compress(ICCOMPRESS* icinfo, DWORD dwSize)
       *icinfo->lpckid = 'cd';
    }
 
-   int ret_val;
-   if ( _reduced )
-   {
-      ret_val = CompressReduced(icinfo);
-   } 
-   else
-   {
-      ret_val = CompressLossy(icinfo);
-   }
+   int ret_val = CompressLossy(icinfo);
 
    //if ( _nullframes ){
    memcpy( _pPrev, _pIn, _length); // TODO: Optimize

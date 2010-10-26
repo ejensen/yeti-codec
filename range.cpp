@@ -14,7 +14,6 @@
 
 // Compress a byte stream using range coding. The frequency table
 // "prob_ranges" will previously have been set up by the calcProb function
-
 unsigned int CompressClass::encode( const unsigned char * in, unsigned char * out, const unsigned int length)
 {
    unsigned int low = 0;

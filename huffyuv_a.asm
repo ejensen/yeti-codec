@@ -253,204 +253,204 @@ YUV_SHIFT	MACRO	mmb,mma,uyvy	; clobbers mm4,5
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-MEDIAN_PREDICT_PROC	MACRO	procname,uyvy
-
-	PUBLIC	C _&procname
-
-;void __cdecl mmx_MedianPredict(
-;	[esp+ 4] unsigned char* src,
-;	[esp+ 8] unsigned char* dst,
-;	[esp+12] unsigned char* src_end,
-;	[esp+16] int stride);
-
-_&procname	PROC
-
-	push	ebp
-	mov	ebp,esp
-	push	edi
-	push	esi
-	push	ebx
-
-	; do the first row
-	mov	esi,[ebp+4+4]
-	mov	edi,[ebp+8+4]
-	mov	ebx,[ebp+16+4]
-	lea	ecx,[ebx+esi+8]
-	neg	ebx
-
-	pxor	mm2,mm2
-	movq	mm3,[esi]	; for use in next loop
-
-loop0:
-	movq	mm0,[esi]
-	YUV_SHIFT	mm2,mm0,uyvy
-	add	esi,8
-	movq	mm1,mm0
-	psubb	mm1,mm2
-	movq	[edi],mm1
-	movq	mm2,mm0
-	add	edi,8
-	cmp	esi,ecx
-	jb	loop0
-
-	mov	ecx,[ebp+8+4]	; recopy first group of four, just for consistency with other compression methods
-	movd	dword ptr [ecx],mm3
-
-	; do the remaining rows
-	mov	ecx,[ebp+12+4]
-	; mm2,3 are already initialized from previous loop
-
-	align	32
-
-	; pixel arrangement:
-	;    mm3 mm1
-	;    mm2 mm0
-
-loop1:
-	; mm2,3 <- appropriate left and above-left pixels
-	movq	mm0,[esi]
-	movq	mm1,[esi+ebx]
-
-	YUV_SHIFT	mm2,mm0,uyvy	; note: clobbers mm4,5
-	add	esi,8
-	YUV_SHIFT	mm3,mm1,uyvy
-
-	; mm4 <- median of mm1,mm2,(mm1+mm2-mm3)
-
-	movq	mm4,mm2		; (mm2,mm4) <- (min(mm1,mm2),max(mm1,mm2))
-	movq	mm5,mm2		; mm5 <- mm1+mm2-mm3
-	psubusb	mm4,mm1
-	paddb	mm5,mm1
-	psubb	mm2,mm4
-	psubb	mm5,mm3
-	paddb	mm4,mm1
-
-	psubusb	mm2,mm5		; mm2 = max(mm2,mm5)
-	paddb	mm2,mm5
-
-	movq	mm5,mm4		; mm4 = min(mm2,mm4)
-	psubusb	mm5,mm2
-	psubb   mm4,mm5		; now mm4 = median
-
-	; write out the result and loop
-	movq	mm2,mm0
-	movq	mm3,mm1
-	psubb	mm0,mm4
-	movq	[edi],mm0
-	cmp	esi,ecx
-	lea	edi,[edi+8]
-	jb	loop1
-
-	emms
-	pop	ebx
-	pop	esi
-	pop	edi
-	pop	ebp
-	retn
-
-_&procname	ENDP
-
-	ENDM
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-;MEDIAN_PREDICT_PROC	mmx_MedianPredictYUY2,0
-;MEDIAN_PREDICT_PROC	mmx_MedianPredictUYVY,1
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-salc	MACRO		; see http://www.df.lth.se/~john_e/gems/gem0004.html
-	db	0d6h
-	ENDM
-
-MEDIAN_RESTORE	MACRO	ofs1,ofs2,increment
-
-	mov	ah,[esi+&ofs2]
-	mov	ch,[esi+ebx+&ofs1]
-	mov	dh,[esi+ebx+&ofs2]
-	neg	dh		; compute ah+ch-dh
-	mov	cl,ch		; (interleaved) exchange ah,ch if necessary so ah<ch
-	add	dh,ch
-	add	dh,ah
-	sub	cl,ah
-	salc
-	and	cl,al
-	sub	ch,cl
-	add	ah,cl
-	mov	cl,dh		; exchange ch,dh (but toss dh)
-	sub	cl,ch
-	salc
-IF &increment
-	add	esi,&increment
-ENDIF
-	and	cl,al
-	add	ch,cl
-	mov	cl,ch		; exchange ah,ch (but toss ah)
-	sub	cl,ah
-	salc
-	and	cl,al
-	sub	ch,cl		; now ch = median
-	add	[esi+&ofs1-&increment],ch
-
-	ENDM
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-	PUBLIC	C _asm_MedianRestore
-
-;void __cdecl asm_MedianRestore(
-;	[esp+ 4] unsigned char* buf,
-;	[esp+ 8] unsigned char* buf_end,
-;	[esp+12] int stride);
-
-_asm_MedianRestore	PROC
-
-	push	ebp
-	mov	ebp,esp
-	push	esi
-	push	edi
-	push	ebx
-
-	mov	esi,[ebp+4+4]
-	mov	ebx,[ebp+12+4]
-	lea	edi,[esi+ebx+8]
-	add	esi,4
-	neg	ebx
-
-	; process first row (left predict)
-
-loop0:
-	mov	al,[esi-2]
-	mov	ah,[esi-3]
-	mov	dl,[esi]
-	mov	dh,[esi-1]
-	add	dl,al
-	add	[esi+1],ah
-	mov	[esi],dl
-	add	[esi+2],dl
-	add	[esi+3],dh
-	add	esi,4
-	cmp	esi,edi
-	jb	loop0
-
-	; process remaining rows
-
-	mov	edi,[ebp+8+4]
-
-	align	32
-loop1:
-	MEDIAN_RESTORE	0,-2,0
-	MEDIAN_RESTORE	1,-3,2
-	cmp	esi,edi
-	jb	loop1
-
-	pop	ebx
-	pop	edi
-	pop	esi
-	pop	ebp
-	retn
-
-_asm_MedianRestore	ENDP
+;MEDIAN_PREDICT_PROC	MACRO	procname,uyvy
+;
+;	PUBLIC	C _&procname
+;
+;;void __cdecl mmx_MedianPredict(
+;;	[esp+ 4] unsigned char* src,
+;;	[esp+ 8] unsigned char* dst,
+;;	[esp+12] unsigned char* src_end,
+;;	[esp+16] int stride);
+;
+;_&procname	PROC
+;
+;	push	ebp
+;	mov	ebp,esp
+;	push	edi
+;	push	esi
+;	push	ebx
+;
+;	; do the first row
+;	mov	esi,[ebp+4+4]
+;	mov	edi,[ebp+8+4]
+;	mov	ebx,[ebp+16+4]
+;	lea	ecx,[ebx+esi+8]
+;	neg	ebx
+;
+;	pxor	mm2,mm2
+;	movq	mm3,[esi]	; for use in next loop
+;
+;loop0:
+;	movq	mm0,[esi]
+;	YUV_SHIFT	mm2,mm0,uyvy
+;	add	esi,8
+;	movq	mm1,mm0
+;	psubb	mm1,mm2
+;	movq	[edi],mm1
+;	movq	mm2,mm0
+;	add	edi,8
+;	cmp	esi,ecx
+;	jb	loop0
+;
+;	mov	ecx,[ebp+8+4]	; recopy first group of four, just for consistency with other compression methods
+;	movd	dword ptr [ecx],mm3
+;
+;	; do the remaining rows
+;	mov	ecx,[ebp+12+4]
+;	; mm2,3 are already initialized from previous loop
+;
+;	align	32
+;
+;	; pixel arrangement:
+;	;    mm3 mm1
+;	;    mm2 mm0
+;
+;loop1:
+;	; mm2,3 <- appropriate left and above-left pixels
+;	movq	mm0,[esi]
+;	movq	mm1,[esi+ebx]
+;
+;	YUV_SHIFT	mm2,mm0,uyvy	; note: clobbers mm4,5
+;	add	esi,8
+;	YUV_SHIFT	mm3,mm1,uyvy
+;
+;	; mm4 <- median of mm1,mm2,(mm1+mm2-mm3)
+;
+;	movq	mm4,mm2		; (mm2,mm4) <- (min(mm1,mm2),max(mm1,mm2))
+;	movq	mm5,mm2		; mm5 <- mm1+mm2-mm3
+;	psubusb	mm4,mm1
+;	paddb	mm5,mm1
+;	psubb	mm2,mm4
+;	psubb	mm5,mm3
+;	paddb	mm4,mm1
+;
+;	psubusb	mm2,mm5		; mm2 = max(mm2,mm5)
+;	paddb	mm2,mm5
+;
+;	movq	mm5,mm4		; mm4 = min(mm2,mm4)
+;	psubusb	mm5,mm2
+;	psubb   mm4,mm5		; now mm4 = median
+;
+;	; write out the result and loop
+;	movq	mm2,mm0
+;	movq	mm3,mm1
+;	psubb	mm0,mm4
+;	movq	[edi],mm0
+;	cmp	esi,ecx
+;	lea	edi,[edi+8]
+;	jb	loop1
+;
+;	emms
+;	pop	ebx
+;	pop	esi
+;	pop	edi
+;	pop	ebp
+;	retn
+;
+;_&procname	ENDP
+;
+;	ENDM
+;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;
+;;MEDIAN_PREDICT_PROC	mmx_MedianPredictYUY2,0
+;;MEDIAN_PREDICT_PROC	mmx_MedianPredictUYVY,1
+;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;
+;salc	MACRO		; see http://www.df.lth.se/~john_e/gems/gem0004.html
+;	db	0d6h
+;	ENDM
+;
+;MEDIAN_RESTORE	MACRO	ofs1,ofs2,increment
+;
+;	mov	ah,[esi+&ofs2]
+;	mov	ch,[esi+ebx+&ofs1]
+;	mov	dh,[esi+ebx+&ofs2]
+;	neg	dh		; compute ah+ch-dh
+;	mov	cl,ch		; (interleaved) exchange ah,ch if necessary so ah<ch
+;	add	dh,ch
+;	add	dh,ah
+;	sub	cl,ah
+;	salc
+;	and	cl,al
+;	sub	ch,cl
+;	add	ah,cl
+;	mov	cl,dh		; exchange ch,dh (but toss dh)
+;	sub	cl,ch
+;	salc
+;IF &increment
+;	add	esi,&increment
+;ENDIF
+;	and	cl,al
+;	add	ch,cl
+;	mov	cl,ch		; exchange ah,ch (but toss ah)
+;	sub	cl,ah
+;	salc
+;	and	cl,al
+;	sub	ch,cl		; now ch = median
+;	add	[esi+&ofs1-&increment],ch
+;
+;	ENDM
+;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;
+;	PUBLIC	C _asm_MedianRestore
+;
+;;void __cdecl asm_MedianRestore(
+;;	[esp+ 4] unsigned char* buf,
+;;	[esp+ 8] unsigned char* buf_end,
+;;	[esp+12] int stride);
+;
+;_asm_MedianRestore	PROC
+;
+;	push	ebp
+;	mov	ebp,esp
+;	push	esi
+;	push	edi
+;	push	ebx
+;
+;	mov	esi,[ebp+4+4]
+;	mov	ebx,[ebp+12+4]
+;	lea	edi,[esi+ebx+8]
+;	add	esi,4
+;	neg	ebx
+;
+;	; process first row (left predict)
+;
+;loop0:
+;	mov	al,[esi-2]
+;	mov	ah,[esi-3]
+;	mov	dl,[esi]
+;	mov	dh,[esi-1]
+;	add	dl,al
+;	add	[esi+1],ah
+;	mov	[esi],dl
+;	add	[esi+2],dl
+;	add	[esi+3],dh
+;	add	esi,4
+;	cmp	esi,edi
+;	jb	loop0
+;
+;	; process remaining rows
+;
+;	mov	edi,[ebp+8+4]
+;
+;	align	32
+;loop1:
+;	MEDIAN_RESTORE	0,-2,0
+;	MEDIAN_RESTORE	1,-3,2
+;	cmp	esi,edi
+;	jb	loop1
+;
+;	pop	ebx
+;	pop	edi
+;	pop	esi
+;	pop	ebp
+;	retn
+;
+;_asm_MedianRestore	ENDP
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 

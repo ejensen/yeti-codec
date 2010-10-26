@@ -55,7 +55,7 @@ LRESULT PASCAL DriverProc(DWORD dwDriverID, HDRVR hDriver, UINT uiMessage, LPARA
 		return (LRESULT)1L;
 
 	case DRV_OPEN:
-		// GAAH! This used to return a pointer to 0xFFFF0000 when lParam==0!
+		// TODO: This used to return a pointer to 0xFFFF0000 when lParam==0!
 		return (LRESULT)(DWORD)(UINT) Open((ICOPEN*) lParam2);
 
 	case DRV_CLOSE:
@@ -68,7 +68,6 @@ LRESULT PASCAL DriverProc(DWORD dwDriverID, HDRVR hDriver, UINT uiMessage, LPARA
 
 		*********************************************************************/
 
-		// cwk
 	case DRV_QUERYCONFIGURE:    // configuration from drivers applet
 		return (LRESULT)1L;
 

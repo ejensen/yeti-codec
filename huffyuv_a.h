@@ -17,10 +17,10 @@ extern "C" {
 
 	void __cdecl mmx_RowAccum(unsigned char* buf, unsigned char* buf_end, int stride);
 	*/
-	void __cdecl mmx_MedianPredictYUY2(const unsigned char* src, unsigned char* dst, const unsigned char* src_end, int stride);
-	void __cdecl mmx_MedianPredictUYVY(const unsigned char* src, unsigned char* dst, const unsigned char* src_end, int stride);
+	//void __cdecl mmx_MedianPredictYUY2(const unsigned char* src, unsigned char* dst, const unsigned char* src_end, int stride);
+	//void __cdecl mmx_MedianPredictUYVY(const unsigned char* src, unsigned char* dst, const unsigned char* src_end, int stride);
 
-	void __cdecl asm_MedianRestore(unsigned char* buf, unsigned char* buf_end, int stride);
+	//void __cdecl asm_MedianRestore(unsigned char* buf, unsigned char* buf_end, int stride);
 
 	/*void __cdecl asm_DecompressHFYU16(const unsigned long* src, unsigned char* dst, unsigned char* dst_end);
 	void __cdecl asm_DecompressHFYU16Delta(const unsigned long* src, unsigned char* dst, unsigned char* dst_end);

@@ -289,14 +289,17 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="convert.h" />
+    <ClInclude Include="fibonacci.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="compact.h" />
     <ClInclude Include="convert_xvid.h" />
     <ClInclude Include="convert_yv12.h" />
     <ClInclude Include="huffyuv_a.h" />
     <ClInclude Include="interface.h" />
+    <ClInclude Include="threading.h" />
     <ClInclude Include="yeti.h" />
     <ClInclude Include="prediction.h" />
+    <ClInclude Include="zerorle.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="compact.cpp" />

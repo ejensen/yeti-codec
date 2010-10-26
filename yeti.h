@@ -90,6 +90,13 @@ inline void * lag_aligned_malloc( void *ptr, int size, int align, char *str )
 // y must be 2^n
 #define align_round(x,y) ((((unsigned int)(x))+(y-1))&(~(y-1)))
 
+#define Half(x) (x>>1)
+#define Fourth(x) (x>>2)
+#define Eighth(x) (x>>3)
+
+#define Double(x) (x<<1)
+#define Quadruple(x) (x<<2)
+
 #include "resource.h"
 #include "compact.h"
 

@@ -2,6 +2,7 @@
 #define _ZERO_RLE
 
 #include "yeti.h"
+#include "zerorle.h"
 #include <stdlib.h>
 #include <memory.h>
 #include <stdio.h>
@@ -50,18 +51,25 @@ namespace zero {
    // This number is then modified so that the run value distribution matches 
    // the byte distribution for the image data, and this number then put into
    // the out byte stream.
-   int RLE(const unsigned char * in, unsigned char * out, const unsigned int length, const int level){
+   int RLE(const unsigned char * in, unsigned char * out, const unsigned int length, const int level)
+   {
       unsigned int a=0;
       int b =0;
       // these loops are spit into 2 parts, one which handles the bulk of the encoding, and
       // one that handles the last couple bytes and thus needs to do bounds checking
 
-      if (level == 1 ){
-         if ( length > 300 ){
-            while (a < length-300){
-               if ( in[a] ){
+      if (level == 1 )
+      {
+         if ( length > 300 )
+         {
+            while (a < length-300)
+            {
+               if ( in[a] )
+               {
                   out[b++]=in[a++];
-               } else {
+               } 
+               else
+               {
                   int d=1;
                   for ( ; !in[a+d] && d <=255; d++);
                   a+=d;
@@ -71,10 +79,14 @@ namespace zero {
                }
             }
          }
-         while (a < length){
-            if ( in[a] ){
+         while (a < length)
+         {
+            if ( in[a] )
+            {
                out[b++]=in[a++];
-            } else {
+            } 
+            else 
+            {
                int d=1;
                for ( ;a+d < length && !in[a+d] && d <=255; d++);
                a+=d;
@@ -83,17 +95,24 @@ namespace zero {
                b+=2;
             }
          }
-      } else if( level == 2 ){
-         if ( length > 300 ){
-            while ( a < length-300){
-               if ( in[a] ) {
+      } else if( level == 2 )
+      {
+         if ( length > 300 )
+         {
+            while ( a < length-300)
+            {
+               if ( in[a] ) 
+               {
                   out[b++]=in[a++];
-               } else if ( in[a+1] ){
+               } else if ( in[a+1] )
+               {
                   out[b]=0;
                   out[b+1]=in[a+1];
                   b+=2;
                   a+=2;
-               } else {
+               } 
+               else 
+               {
                   int d=2;
                   for ( ; !in[a+d] && d<257; d++);
                   a+=d;
@@ -105,15 +124,21 @@ namespace zero {
                }
             }
          }
-         while ( a < length){
-            if ( in[a] ) {
+         while ( a < length)
+         {
+            if ( in[a] )
+            {
                out[b++]=in[a++];
-            } else if ( in[a+1] ){
+            } 
+            else if ( in[a+1] )
+            {
                out[b]=0;
                out[b+1]=in[a+1];
                b+=2;
                a+=2;
-            } else {
+            } 
+            else 
+            {
                int d=2;
                for ( ;a+d < length && !in[a+d]&& d < 257; d++);
                a+=d;
@@ -124,23 +149,34 @@ namespace zero {
                b+=3;
             }
          }
-      } else if ( level == 3 ){
-         if ( length > 300){
-            while ( a < length-300){
-               if ( in[a] ) {
+      } 
+      else if ( level == 3 )
+      {
+         if ( length > 300)
+         {
+            while ( a < length-300)
+            {
+               if ( in[a] ) 
+               {
                   out[b++]=in[a++];
-               } else if ( in[a+1] ){
+               } 
+               else if ( in[a+1] )
+               {
                   out[b]=0;
                   out[b+1]=in[a+1];
                   b+=2;
                   a+=2;
-               } else if ( in[a+2] ){
+               } 
+               else if ( in[a+2] )
+               {
                   out[b]=0;
                   out[b+1]=0;
                   out[b+2]=in[a+2];
                   b+=3;
                   a+=3;
-               } else {
+               } 
+               else 
+               {
                   int d=3;
                   for ( ; !in[a+d]&& d < 258; d++);
                   a+=d;
@@ -153,21 +189,29 @@ namespace zero {
                }
             }
          }
-         while ( a < length){
-            if ( in[a] ) {
+         while ( a < length)
+         {
+            if ( in[a] ) 
+            {
                out[b++]=in[a++];
-            } else if ( in[a+1] ){
+            } 
+            else if ( in[a+1] )
+            {
                out[b]=0;
                out[b+1]=in[a+1];
                b+=2;
                a+=2;
-            } else if ( in[a+2] ){
+            } 
+            else if ( in[a+2] )
+            {
                out[b]=0;
                out[b+1]=0;
                out[b+2]=in[a+2];
                b+=3;
                a+=3;
-            } else {
+            } 
+            else
+            {
                int d=3;
                for ( ;  a+d < length && !in[a+d]&& d < 258; d++);
                a+=d;
@@ -180,12 +224,12 @@ namespace zero {
             }
          }
       }
-
       return b;
    }
 
    // Estimate which 0 run length will result in the shortest byte stream
-   int testRLE(const unsigned char * in, const int length, const int minReduction ){
+   int testRLE(const unsigned char * in, const int length, const int minReduction )
+   {
       int lvl1=0;
       int lvl2=0;
       int lvl3=0;
@@ -193,22 +237,29 @@ namespace zero {
       int l2low[]={0,1,3,3};
       int l3low[]={0,1,2,4};
 
-      for ( int a =0; a < length; a++ ){
-         if ( !in[a] ){
+      for ( int a =0; a < length; a++ )
+      {
+         if ( !in[a] )
+         {
             int b=a;
             a++;
             for ( ; !in[a] && a < length;a++);
             b=a-b;
-            if ( b <= 256 ){
+            if ( b <= 256 )
+            {
                lvl1+=2;
                if ( b < 4){
                   lvl2+=l2low[b];
                   lvl3+=l3low[b];
-               }else {
+               }
+               else
+               {
                   lvl2+=3;
                   lvl3+=4;
                }
-            } else {
+            } 
+            else
+            {
                lvl1+=(b/256+1)*2;
                lvl2+=((b-b/256)/256+1)*3;
                lvl3+=((b-(2*b/256))/256+1)*4;
@@ -220,7 +271,8 @@ namespace zero {
       }
 
       // if RLE compressed extremely well, see if all but the 1st byte are 0 
-      if ( lvl1 < length/128+4 ){
+      if ( lvl1 < length/128+4 )
+      {
          unsigned int val=*(unsigned int*)(in);
          val-=in[0];
          val|=*(unsigned int*)(in+4);
@@ -230,8 +282,10 @@ namespace zero {
          val|=*(unsigned int*)(in+20);
          val|=*(unsigned int*)(in+24);
          val|=*(unsigned int*)(in+28);
-         if ( !val ){
-            if ( !memcmp(in+16,in+32,length-32)){
+         if ( !val )
+         {
+            if ( !memcmp(in+16,in+32,length-32))
+            {
                return -1;
             }
          }
@@ -256,59 +310,86 @@ namespace zero {
    // is considered a 'run', either 1, 2, or 3. Once 'level' zeros have
    // been read in the byte stream, the following byte tells how many more
    // 0 bytes to output.
-   int deRLE(const unsigned char * in, unsigned char * out, const int length, const int level){
+   int deRLE(const unsigned char * in, unsigned char * out, const int length, const int level)
+   {
       int a=0;
       int b=0;
       memset(out,0,length);
-      if ( level == 1 ){
-         while ( b < length){
-            if ( in[a] ){
+      if ( level == 1 )
+      {
+         while ( b < length)
+         {
+            if ( in[a] )
+            {
                out[b++]=in[a++];
-            } else {
+            } 
+            else 
+            {
                b+=distribution_restore(in[a+1])+1;
                a+=2;
             }
          }
-      } else if ( level == 2 ){
-         while ( b < length-1){
-            if ( in[a] ) {
+      } 
+      else if ( level == 2 )
+      {
+         while ( b < length-1)
+         {
+            if ( in[a] ) 
+            {
                out[b++]=in[a++];
-            } else if ( in[a+1] ){
+            } 
+            else if ( in[a+1] )
+            {
                out[b]=0;
                out[b+1]=in[a+1];
                b+=2;
                a+=2;
-            } else {
+            } 
+            else
+            {
                b+=distribution_restore(in[a+2])+2;
                a+=3;
             }
          }
-         if (b < length ){
+         if (b < length )
+         {
             out[b]=in[a];
          }
-      } else if (level==3){
-         while ( b < length-2){
-            if ( in[a] ) {
+      } 
+      else if (level==3)
+      {
+         while ( b < length-2)
+         {
+            if ( in[a] ) 
+            {
                out[b++]=in[a++];
-            } else if ( in[a+1] ){
+            }
+            else if ( in[a+1] )
+            {
                out[b]=0;
                out[b+1]=in[a+1];
                b+=2;
                a+=2;
-            } else if ( in[a+2] ){
+            } 
+            else if ( in[a+2] )
+            {
                out[b]=0;
                out[b+1]=0;
                out[b+2]=in[a+2];
                b+=3;
                a+=3;
-            } else {
+            } 
+            else
+            {
                b+=distribution_restore(in[a+3])+3;
                a+=4;
             }
          }
-         if (b < length ){
+         if (b < length )
+         {
             out[b]=in[a];
-            if (b < length-1 ){
+            if (b < length-1 )
+            {
                out[b+1]=in[a+1];
             }
          }

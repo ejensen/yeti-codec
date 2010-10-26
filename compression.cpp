@@ -113,19 +113,19 @@ int CodecInst::CompressYV12(ICCOMPRESS* icinfo)
 {
    const unsigned int mod = (_SSE2?16:8) - 1;
 
-   const unsigned int hw = _width/2;
-   const unsigned int hh = _height/2;
+   const unsigned int hw = Half(_width);
+   const unsigned int hh = Half(_height);
 
    const unsigned int y_len	= _width*_height;
-   const unsigned int c_len	= y_len/4;
+   const unsigned int c_len	= Fourth(y_len);
    const unsigned int yu_len	= y_len+c_len;
    const unsigned int len		= yu_len+c_len;
 
    const unsigned int y_stride	= align_round(_width,mod+1);
-   const unsigned int c_stride	= align_round(_width/2,mod+1);
+   const unsigned int c_stride	= align_round(hw,mod+1);
 
    const unsigned int ay_len	= y_stride*_height;
-   const unsigned int ac_len	= c_stride*_height/2;
+   const unsigned int ac_len	= c_stride*hh;
    const unsigned int ayu_len	= ay_len+ac_len;
 
    const unsigned char * ysrc;
@@ -137,7 +137,7 @@ int CodecInst::CompressYV12(ICCOMPRESS* icinfo)
    if ( _nullframes )
    {
       // compare in two parts, video is more likely to change in middle than at bottom
-      unsigned int pos = len/2+15;
+      unsigned int pos = Half(len)+15;
       pos&=(~15);
       if (!memcmp(_pIn+pos,_pPrev+pos,len-pos) && !memcmp(_pIn,_pPrev,pos) )
       {
@@ -147,7 +147,7 @@ int CodecInst::CompressYV12(ICCOMPRESS* icinfo)
       }
    }
    //DELTA!!!!
-   unsigned int buffer_size = align_round(_width,32)*_height*_format/8+1024; 
+   unsigned int buffer_size = align_round(_width,32)*_height*Eighth(_format)+1024; 
    for(unsigned int i = 0; i < buffer_size; i++)
    {
       _pDelta[i] = _pIn[i] ^ _pPrev[i];
@@ -155,7 +155,7 @@ int CodecInst::CompressYV12(ICCOMPRESS* icinfo)
 
    //note: chroma has only half the width of luminance, it may need to be aligned separately
 
-   if ( ((_width/2)&mod) == 0 )  // no alignment padding needed
+   if ( ((hw)&mod) == 0 )  // no alignment padding needed
    {
       if ( in_aligned )  // no alignment needed
       {
@@ -251,7 +251,7 @@ int CodecInst::CompressYV12(ICCOMPRESS* icinfo)
       {
          ydest=_pBuffer2;
       }
-      if ( (_width/2)&mod ) // TODO: optimize
+      if ( hw&mod ) // TODO: optimize
       {
          udest=buffer3+ay_len;
          vdest=buffer3+ay_len+ac_len;
@@ -304,11 +304,11 @@ int CodecInst::CompressYV12(ICCOMPRESS* icinfo)
       _info_a.source=ysrc;
       _info_a.dest=_pOut+9;
       _info_a.length=y_len;
-      lag_ResumeThread(_info_a.thread);
+      ForceResumeThread(_info_a.thread);
       _info_b.source=usrc;
       _info_b.dest=_pBuffer2;
       _info_b.length=c_len;
-      lag_ResumeThread(_info_b.thread);
+      ForceResumeThread(_info_b.thread);
 
       unsigned char *vdest=_pBuffer2+ayu_len;
 
@@ -368,24 +368,27 @@ int CodecInst::CompressReduced(ICCOMPRESS *icinfo)
 {
    const unsigned int mod = (_SSE2?16:8);
 
-   const unsigned int ry_stride = align_round(_width/2, mod); // TODO: Optimize
-   const unsigned int rc_stride = align_round(_width/4, mod); // TODO: Optimize
-   const unsigned int ry_size   = ry_stride*_height/2; // TODO: Optimize
-   const unsigned int rc_size   = rc_stride*_height/4; // TODO: Optimize
+   const unsigned int hh = Half(_height);
+   const unsigned int hw = Half(_width);
+
+   const unsigned int ry_stride = align_round(hw, mod);
+   const unsigned int rc_stride = align_round(Fourth(_width), mod);
+   const unsigned int ry_size   = ry_stride*hh;
+   const unsigned int rc_size   = rc_stride*Fourth(_height); // TODO: Optimize
    const unsigned int ryu_size  = ry_size+rc_size;
    const unsigned int y_size    = _width*_height;
-   const unsigned int c_size    = _width*_height/4; // TODO: Optimize
+   const unsigned int c_size    = _width*Fourth(_height); // TODO: Optimize
    const unsigned int yu_size   = y_size+c_size;
-   const unsigned int ry_bytes  = _width*_height/4; // TODO: Optimize
-   const unsigned int rc_bytes  = _width*_height/4/4; 
+   const unsigned int ry_bytes  = _width*Fourth(_height); // TODO: Optimize
+   const unsigned int rc_bytes  = _width*Eighth(_height); 
 
    unsigned char * ysrc = _pBuffer;
    unsigned char * usrc = _pBuffer+ry_size;
    unsigned char * vsrc = _pBuffer+ryu_size;
 
    reduce_res(_pIn,ysrc, _pBuffer2, _width, _height, _SSE2, _SSE);
-   reduce_res(_pIn+y_size, usrc, _pBuffer2, _width/2, _height/2, _SSE2, _SSE); // TODO: Optimize
-   reduce_res(_pIn+yu_size, vsrc, _pBuffer2, _width/2, _height/2, _SSE2, _SSE); // TODO: Optimize
+   reduce_res(_pIn+y_size, usrc, _pBuffer2, hw, hh, _SSE2, _SSE);
+   reduce_res(_pIn+yu_size, vsrc, _pBuffer2, hw, hh, _SSE2, _SSE);
 
    unsigned int size;
 
@@ -408,11 +411,11 @@ int CodecInst::CompressReduced(ICCOMPRESS *icinfo)
          MMX_BlockPredict(vsrc,vdest,rc_stride,rc_size,_SSE,0);
       }
 
-      if ( (_width/2)%mod ) // remove luminance padding TODO: Optimize
+      if ( hw%mod ) // remove luminance padding TODO: Optimize
       {
-         for ( unsigned int y=0;y< _height/2;y++) // TODO: Optimize
+         for ( unsigned int y=0;y< hh;y++) // TODO: Optimize
          {
-            memcpy(ysrc+y*_width/2,ydest+y*ry_stride,_width/2); // TODO: Optimize
+            memcpy(ysrc+y*hw,ydest+y*ry_stride,hw); // TODO: Optimize
          }
       }
       else
@@ -449,11 +452,11 @@ int CodecInst::CompressReduced(ICCOMPRESS *icinfo)
       _info_a.source=ysrc;
       _info_a.dest=_pOut+9;
       _info_a.length=ry_bytes;
-      lag_ResumeThread(_info_a.thread);
+      ForceResumeThread(_info_a.thread);
       _info_b.source=usrc;
       _info_b.dest=_pPrev;
       _info_b.length=rc_bytes;
-      lag_ResumeThread(_info_b.thread);
+      ForceResumeThread(_info_b.thread);
 
       unsigned char *vdest = _pBuffer2;
 

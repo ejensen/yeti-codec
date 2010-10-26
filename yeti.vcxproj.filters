@@ -51,6 +51,15 @@
     <ClInclude Include="convert.h">
       <Filter>Headers</Filter>
     </ClInclude>
+    <ClInclude Include="fibonacci.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="zerorle.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="threading.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="compact.cpp" />

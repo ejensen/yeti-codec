@@ -37,28 +37,15 @@ DWORD WINAPI encode_worker_thread( LPVOID i )
          dst=buffer;
       }
 
-      if ( format != YUY2 )
+      if ( SSE2 )
       {
-         if ( SSE2 )
-         {
-            SSE2_BlockPredict(src,dst,stride,stride*height,(format!=YV12));
-         } 
-         else 
-         {
-            MMX_BlockPredict(src,dst,stride,stride*height,SSE,(format!=YV12));
-         }
+         SSE2_BlockPredict(src,dst,stride,stride*height,(format!=YV12));
       } 
-      else
+      else 
       {
-         if ( SSE2 )
-         {
-            SSE2_Predict_YUY2(src,dst,stride,height,lum);
-         } 
-         else 
-         {
-            MMX_Predict_YUY2(src,dst,stride,height,SSE,lum);
-         }
+         MMX_BlockPredict(src,dst,stride,stride*height,SSE,(format!=YV12));
       }
+
       if ( width!= stride )
       {
          unsigned char * padded = dst;
@@ -100,10 +87,8 @@ DWORD WINAPI decode_worker_thread( LPVOID i )
       height = info->height;
 
       info->cObj.uncompact(src,dest,length);
-      if ( format != YUY2 )
-      {
-         ASM_BlockRestore(dest,width,width*height,format!=YV12);
-      }
+
+      ASM_BlockRestore(dest,width,width*height,format!=YV12);
 
       info->length=0;
       SuspendThread(info->thread);
@@ -148,7 +133,7 @@ int CodecInst::InitThreads( int encode )
    _info_c.width=_width;
 
    _info_a.height=_height;
-   if ( use_format != YV12 )
+   if ( use_format != YV12 ) //TODO: optimize
    {
       _info_b.height=_height;
    } 

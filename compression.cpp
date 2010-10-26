@@ -16,9 +16,9 @@ DWORD CodecInst::CompressBegin(LPBITMAPINFOHEADER lpbiIn, LPBITMAPINFOHEADER lpb
    }
    _started = 0;
 
-   _nullframes = GetPrivateProfileInt("settings", "nullframes", false, "yeti.ini")>0;
-   _multithreading = GetPrivateProfileInt("settings", "multithreading", false, "yeti.ini")>0;
-   _reduced = GetPrivateProfileInt("settings", "reduced", false, "yeti.ini")>0;
+   _nullframes = GetPrivateProfileInt("settings", "nullframes", false, SettingsFile)>0;
+   _multithreading = GetPrivateProfileInt("settings", "multithreading", false, SettingsFile)>0;
+   _reduced = GetPrivateProfileInt("settings", "reduced", false, SettingsFile)>0;
 
    if ( int error = CompressQuery(lpbiIn, lpbiOut) != ICERR_OK )
    {
@@ -383,9 +383,9 @@ int CodecInst::CompressReduced(ICCOMPRESS *icinfo)
    unsigned char * usrc = _pBuffer+ry_size;
    unsigned char * vsrc = _pBuffer+ryu_size;
 
-   reduce_res(_pIn,ysrc, _pBuffer2, _width, _height, _SSE2, _SSE, _MMX);
-   reduce_res(_pIn+y_size, usrc, _pBuffer2, _width/2, _height/2, _SSE2, _SSE, _MMX); // TODO: Optimize
-   reduce_res(_pIn+yu_size, vsrc, _pBuffer2, _width/2, _height/2, _SSE2, _SSE, _MMX); // TODO: Optimize
+   reduce_res(_pIn,ysrc, _pBuffer2, _width, _height, _SSE2, _SSE);
+   reduce_res(_pIn+y_size, usrc, _pBuffer2, _width/2, _height/2, _SSE2, _SSE); // TODO: Optimize
+   reduce_res(_pIn+yu_size, vsrc, _pBuffer2, _width/2, _height/2, _SSE2, _SSE); // TODO: Optimize
 
    unsigned int size;
 

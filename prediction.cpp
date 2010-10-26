@@ -331,9 +331,8 @@ median_restore_block:
    }
 }
 
-
 // halves the resolution and aligns the resulting data
-void reduce_res(const unsigned char * src, unsigned char * dest, unsigned char * buffer, unsigned int width, unsigned int height, const int SSE2, const int SSE, const int MMX)
+void reduce_res(const unsigned char * src, unsigned char * dest, unsigned char * buffer, unsigned int width, unsigned int height, const int SSE2, const int SSE)
 {
    const unsigned char * source;
 
@@ -458,7 +457,6 @@ void reduce_res(const unsigned char * src, unsigned char * dest, unsigned char *
                c = _mm_srli_pi16(c,8);
                c = _mm_add_pi16(c,g);
 
-
                h = _mm_and_si64(d,mask);
                d = _mm_srli_pi16(d,8);
                d = _mm_add_pi16(d,h);
@@ -479,7 +477,7 @@ void reduce_res(const unsigned char * src, unsigned char * dest, unsigned char *
 }
 
 // doubles the resolution
-void enlarge_res(const unsigned char * src, unsigned char * dst, unsigned char * buffer, unsigned int width, unsigned int height, const int SSE2, const int SSE, const int MMX)
+void enlarge_res(const unsigned char * src, unsigned char * dst, unsigned char * buffer, unsigned int width, unsigned int height, const int SSE2, const int SSE)
 {
    const unsigned char * source;
    unsigned char * dest;
@@ -664,199 +662,5 @@ void enlarge_res(const unsigned char * src, unsigned char * dst, unsigned char *
       {
          memcpy(dst+y*width,dest+y*stride,width);
       }
-   }
-}
-
-void MMX_Predict_YUY2(const unsigned char * src,unsigned char * dest,const unsigned int width,const unsigned height,int SSE,int lum)
-{
-   dest[0]=src[0];
-
-   unsigned int a=0;
-   __m64 ta = _mm_setzero_si64();
-
-   if ( lum )
-   {
-      dest[1]=src[1];
-      for (a=2;a<8;a++)
-      {
-         dest[a]=src[a]-src[a-1];
-      }
-      ta = *(__m64*)(src);
-      ta = _mm_srli_si64(ta,7*8);
-   }
-
-   for ( ;a<width+1;a+=8)  // dest bytes width+2 to width+16 will be overwritten with correct values
-   {
-      __m64 x = *(__m64 *)(src+a);
-      __m64 w = x;
-      x = _mm_slli_si64(x,8);
-      x = _mm_or_si64(x,ta);
-      ta = _mm_srli_si64(w,7*8);
-      w = _mm_sub_pi8(w,x);
-      *(__m64 *)(dest+a)=w;
-   }
-
-   for ( a=width+2+lum*2;a<width+8;a++)
-   {
-      unsigned char t = src[a-1];
-      unsigned char u = src[a-width];
-      unsigned char v = t;
-      v+=u;
-      v-=src[a-width-1];
-      dest[a]=src[a]-median(t,u,v);
-   }
-
-   ta = *(__m64 *)(src+width);
-   __m64 tb = *(__m64 *)(src);
-   ta = _mm_srli_si64(ta,7*8);
-   tb = _mm_srli_si64(tb,7*8);
-
-   if ( SSE )
-   {
-      for ( a=width+8;a<width*height;a+=8)
-      {
-         __m64 x = *(__m64 *)(src+a);
-         __m64 w = x;
-         __m64 y = *(__m64 *)(src+a-width);
-         __m64 z;
-
-         x = _mm_slli_si64(x,8);
-         z = _mm_slli_si64(y,8);
-
-         x = _mm_or_si64(x,ta);
-         z = _mm_or_si64(z,tb);
-
-         ta = _mm_srli_si64(w,7*8);
-         tb = _mm_srli_si64(y,7*8);
-
-         z = _mm_sub_pi8(y,z);
-         z = _mm_add_pi8(x,z);
-
-         __m64 i;
-         __m64 j;
-
-         i = _mm_min_pu8(x,y);
-         j = _mm_max_pu8(x,y);
-         i = _mm_max_pu8(i,z);
-         j = _mm_min_pu8(i,j);
-
-         j = _mm_sub_pi8(w,j);
-
-         *(__m64 *)(dest+a)=j;
-      }
-   } 
-   else
-   {
-      for ( a=width+8;a<width*height;a+=8)
-      {
-         __m64 x = *(__m64 *)(src+a);
-         __m64 w = x;
-         __m64 y = *(__m64 *)(src+a-width);
-         __m64 z;
-
-         x = _mm_slli_si64(x,8);
-         z = _mm_slli_si64(y,8);
-
-         x = _mm_or_si64(x,ta);
-         z = _mm_or_si64(z,tb);
-
-         ta = _mm_srli_si64(w,7*8);
-         tb = _mm_srli_si64(y,7*8);
-
-         z = _mm_sub_pi8(y,z);
-         z = _mm_add_pi8(x,z);
-
-         __m64 i;
-         __m64 j;
-
-         i = _mm_sub_pi8(x,_mm_subs_pu8(x,y));//min
-         j = _mm_add_pi8(y,_mm_subs_pu8(x,y));//max
-         i = _mm_add_pi8(z,_mm_subs_pu8(i,z));//max
-         j = _mm_sub_pi8(i,_mm_subs_pu8(i,j));//min
-
-         j = _mm_sub_pi8(w,j);
-
-         *(__m64 *)(dest+a)=j;
-      }
-   }
-
-   _mm_empty();
-}
-
-void SSE2_Predict_YUY2(const unsigned char * src,unsigned char * dest,const unsigned int width,const unsigned height,int lum)
-{
-   dest[0]=src[0];
-
-   unsigned int a=0;
-   __m128i ta = _mm_setzero_si128();
-
-   if ( lum )
-   {
-      dest[1]=src[1];
-      for (a=2;a<16;a++)
-      {
-         dest[a]=src[a]-src[a-1];
-      }
-      ta = *(__m128i*)(src);
-      ta = _mm_srli_si128(ta,15);
-   }
-
-   for ( ;a<width+1;a+=16)  // dest bytes width+2 to width+16 will be overwritten with correct values
-   {
-      __m128i x = *(__m128i *)(src+a);
-      __m128i w = x;
-      x = _mm_slli_si128(x,1);
-      x = _mm_or_si128(x,ta);
-      ta = _mm_srli_si128(w,15);
-      w = _mm_sub_epi8(w,x);
-      *(__m128i *)(dest+a)=w;
-   }
-
-   for ( a=width+2+lum*2;a<width+16;a++)
-   {
-      unsigned char t = src[a-1];
-      unsigned char u = src[a-width];
-      unsigned char v = t;
-      v+=u;
-      v-=src[a-width-1];
-      dest[a]=src[a]-median(t,u,v);
-   }
-
-   ta = *(__m128i *)(src+width);
-   __m128i tb = *(__m128i *)(src);
-   ta = _mm_srli_si128(ta,15);
-   tb = _mm_srli_si128(tb,15);
-
-   for ( a=width+16;a<width*height;a+=16)
-   {
-      __m128i x = *(__m128i *)(src+a);
-      __m128i w = x;
-      __m128i y = *(__m128i *)(src+a-width);
-      __m128i z;
-
-      x = _mm_slli_si128(x,1);
-      z = _mm_slli_si128(y,1);
-
-      x = _mm_or_si128(x,ta);
-      z = _mm_or_si128(z,tb);
-
-      ta = _mm_srli_si128(w,15);
-      tb = _mm_srli_si128(y,15);
-
-      z = _mm_sub_epi8(y,z);
-      z = _mm_add_epi8(x,z);
-
-      __m128i i;
-      __m128i j;
-
-      i = _mm_min_epu8(x,y);
-      j = _mm_max_epu8(x,y);
-      i = _mm_max_epu8(i,z);
-      j = _mm_min_epu8(i,j);
-
-      j = _mm_sub_epi8(w,j);
-
-
-      *(__m128i *)(dest+a)=j;
    }
 }

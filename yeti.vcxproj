@@ -288,9 +288,9 @@
     <None Include="Yeti.inf" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="convert.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="compact.h" />
-    <ClInclude Include="convert.h" />
     <ClInclude Include="convert_xvid.h" />
     <ClInclude Include="convert_yv12.h" />
     <ClInclude Include="huffyuv_a.h" />

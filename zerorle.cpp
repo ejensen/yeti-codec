@@ -50,7 +50,6 @@ namespace zero {
    // This number is then modified so that the run value distribution matches 
    // the byte distribution for the image data, and this number then put into
    // the out byte stream.
-
    int RLE(const unsigned char * in, unsigned char * out, const unsigned int length, const int level){
       unsigned int a=0;
       int b =0;

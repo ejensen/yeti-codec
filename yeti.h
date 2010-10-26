@@ -98,6 +98,8 @@ static const DWORD FOURCC_YUY2 = mmioFOURCC('Y','U','Y','2');
 static const DWORD FOURCC_UYVY = mmioFOURCC('U','Y','V','Y');
 static const DWORD FOURCC_YV12 = mmioFOURCC('Y','V','1','2');
 
+static const char SettingsFile[] = "yeti.ini";
+
 // possible frame flags
 #define ARITH_YV12			1	// Standard YV12 frame.
 #define REDUCED_RES        2	// Reduced Resolution frame.

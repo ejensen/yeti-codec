@@ -53,7 +53,7 @@ DWORD CodecInst::DecompressBegin(LPBITMAPINFOHEADER lpbiIn, LPBITMAPINFOHEADER l
       return ICERR_MEMORY;
    }
 
-   _multithreading = GetPrivateProfileInt("settings", "multithreading", false, "yeti.ini")>0;
+   _multithreading = GetPrivateProfileInt("settings", "multithreading", false, SettingsFile)>0;
    if ( _multithreading )
    {
       int code = InitThreads( false);
@@ -205,9 +205,9 @@ void CodecInst::ReduceResDecompress()
    unsigned char * udest = ydest+_width*_height;
    unsigned char * vdest = udest+_width*_height/4; //TODO: optimize
 
-   enlarge_res(ysrc,ydest,_pBuffer2,_width/2,_height/2,_SSE2,_SSE,_MMX); //TODO: optimize
-   enlarge_res(usrc,udest,_pBuffer2,_width/4,_height/4,_SSE2,_SSE,_MMX); //TODO: optimize
-   enlarge_res(vsrc,vdest,_pBuffer2,_width/4,_height/4,_SSE2,_SSE,_MMX); //TODO: optimize
+   enlarge_res(ysrc,ydest,_pBuffer2,_width/2,_height/2,_SSE2,_SSE); //TODO: optimize
+   enlarge_res(usrc,udest,_pBuffer2,_width/4,_height/4,_SSE2,_SSE); //TODO: optimize
+   enlarge_res(vsrc,vdest,_pBuffer2,_width/4,_height/4,_SSE2,_SSE); //TODO: optimize
 
    ysrc = ydest;
    usrc = udest;

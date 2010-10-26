@@ -136,9 +136,9 @@ static BOOL CALLBACK ConfigureDialogProc(HWND hwndDlg, UINT uMsg, WPARAM wParam,
 {
    if (uMsg == WM_INITDIALOG)
    {
-      CheckDlgButton(hwndDlg, IDC_NULLFRAMES,GetPrivateProfileInt("settings", "nullframes", false, "yeti.ini") ? BST_CHECKED : BST_UNCHECKED);
-      CheckDlgButton(hwndDlg, IDC_MULTI,GetPrivateProfileInt("settings", "multithreading", false, "yeti.ini") ? BST_CHECKED : BST_UNCHECKED);
-      CheckDlgButton(hwndDlg, IDC_REDUCED,GetPrivateProfileInt("settings", "reduced", false, "yeti.ini") ? BST_CHECKED : BST_UNCHECKED);
+      CheckDlgButton(hwndDlg, IDC_NULLFRAMES,GetPrivateProfileInt("settings", "nullframes", false, SettingsFile) ? BST_CHECKED : BST_UNCHECKED);
+      CheckDlgButton(hwndDlg, IDC_MULTI,GetPrivateProfileInt("settings", "multithreading", false, SettingsFile) ? BST_CHECKED : BST_UNCHECKED);
+      CheckDlgButton(hwndDlg, IDC_REDUCED,GetPrivateProfileInt("settings", "reduced", false, SettingsFile) ? BST_CHECKED : BST_UNCHECKED);
       HWND hwndTip = CreateTooltip(hwndDlg);
       for (int l=0; item2tip[l].item; l++ )
       {
@@ -150,9 +150,9 @@ static BOOL CALLBACK ConfigureDialogProc(HWND hwndDlg, UINT uMsg, WPARAM wParam,
    {
       if (LOWORD(wParam)==IDC_OK)
       {
-         WritePrivateProfileString("settings", "nullframes",(IsDlgButtonChecked(hwndDlg, IDC_NULLFRAMES) == BST_CHECKED) ? "1" : NULL, "yeti.ini");
-         WritePrivateProfileString("settings", "multithreading",(IsDlgButtonChecked(hwndDlg, IDC_MULTI) == BST_CHECKED) ? "1" : NULL, "yeti.ini");
-         WritePrivateProfileString("settings", "reduced",(IsDlgButtonChecked(hwndDlg, IDC_REDUCED) == BST_CHECKED) ? "1" : NULL, "yeti.ini");
+         WritePrivateProfileString("settings", "nullframes",(IsDlgButtonChecked(hwndDlg, IDC_NULLFRAMES) == BST_CHECKED) ? "1" : NULL, SettingsFile);
+         WritePrivateProfileString("settings", "multithreading",(IsDlgButtonChecked(hwndDlg, IDC_MULTI) == BST_CHECKED) ? "1" : NULL, SettingsFile);
+         WritePrivateProfileString("settings", "reduced",(IsDlgButtonChecked(hwndDlg, IDC_REDUCED) == BST_CHECKED) ? "1" : NULL, SettingsFile);
 
          EndDialog(hwndDlg, 0);
       } 
@@ -241,9 +241,9 @@ DWORD CodecInst::GetState(LPVOID pv, DWORD dwSize)
    }
 
    int * state = (int*)pv;
-   state[0]=GetPrivateProfileInt("settings", "nullframes", false, "yeti.ini");
-   state[1]=GetPrivateProfileInt("settings", "multithreading", false, "yeti.ini");
-   state[2]=GetPrivateProfileInt("settings", "reduced", false, "yeti.ini");
+   state[0]=GetPrivateProfileInt("settings", "nullframes", false, SettingsFile);
+   state[1]=GetPrivateProfileInt("settings", "multithreading", false, SettingsFile);
+   state[2]=GetPrivateProfileInt("settings", "reduced", false, SettingsFile);
    return 0;
 }
 
@@ -256,11 +256,11 @@ DWORD CodecInst::SetState(LPVOID pv, DWORD dwSize)
    int * state = (int*)pv;
    char str[] = {0,0,0,0};
    str[0]='0'+state[0];
-   WritePrivateProfileString("settings", "nullframes",str, "yeti.ini");
+   WritePrivateProfileString("settings", "nullframes",str, SettingsFile);
    str[0]='0'+state[1];
-   WritePrivateProfileString("settings", "multithreading",str, "yeti.ini");
+   WritePrivateProfileString("settings", "multithreading",str, SettingsFile);
    str[0]='0'+state[2];
-   WritePrivateProfileString("settings", "reduced",str, "yeti.ini");
+   WritePrivateProfileString("settings", "reduced",str, SettingsFile);
    return 3*sizeof(int);
 }
 

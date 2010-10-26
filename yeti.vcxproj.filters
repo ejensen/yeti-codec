@@ -27,9 +27,6 @@
     <ClInclude Include="compact.h">
       <Filter>Headers</Filter>
     </ClInclude>
-    <ClInclude Include="convert.h">
-      <Filter>Headers</Filter>
-    </ClInclude>
     <ClInclude Include="convert_xvid.h">
       <Filter>Headers</Filter>
     </ClInclude>
@@ -49,6 +46,9 @@
       <Filter>Resources</Filter>
     </ClInclude>
     <ClInclude Include="yeti.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="convert.h">
       <Filter>Headers</Filter>
     </ClInclude>
   </ItemGroup>

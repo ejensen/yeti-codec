@@ -45,12 +45,12 @@ DWORD CodecInst::DecompressBegin(LPBITMAPINFOHEADER lpbiIn, LPBITMAPINFOHEADER l
 
    if ( !_pBuffer || !_pPrev )
    {
-      return ICERR_MEMORY;
+      return (DWORD)ICERR_MEMORY;
    }
 
    if ( !_cObj.InitCompressBuffers( _width*_height*5/4 ) )
    {
-      return ICERR_MEMORY;
+      return (DWORD)ICERR_MEMORY;
    }
 
    _multithreading = GetPrivateProfileInt("settings", "multithreading", false, SettingsFile)>0;
@@ -271,6 +271,12 @@ DWORD CodecInst::Decompress(ICDECOMPRESS* icinfo, DWORD dwSize)
 
    switch ( _pIn[0] ){
    case ARITH_YV12:
+      #ifdef _DEBUG
+      if( ( icinfo->dwFlags & ICDECOMPRESS_HURRYUP ) == ICDECOMPRESS_HURRYUP )
+      {
+          MessageBox (HWND_DESKTOP, "Hurry Up!!!", "Info", MB_OK | MB_ICONEXCLAMATION);
+      }
+#endif
       ArithYV12Decompress();
       break;
    case REDUCED_RES:
@@ -282,7 +288,7 @@ DWORD CodecInst::Decompress(ICDECOMPRESS* icinfo, DWORD dwSize)
       sprintf_s(emsg,128,"Unrecognized frame type: %d",_pIn[0]);
       MessageBox (HWND_DESKTOP, emsg, "Error", MB_OK | MB_ICONEXCLAMATION);
 #endif
-      return_code=ICERR_ERROR;
+      return_code = (DWORD)ICERR_ERROR;
       break;
    }
 
@@ -297,7 +303,7 @@ DWORD CodecInst::Decompress(ICDECOMPRESS* icinfo, DWORD dwSize)
    catch ( ... )
    {
    	MessageBox (HWND_DESKTOP, "Exception caught in decompress main", "Error", MB_OK | MB_ICONEXCLAMATION);
-   	return ICERR_INTERNAL;
+   	return (DWORD)ICERR_INTERNAL;
    }
 #endif
 }

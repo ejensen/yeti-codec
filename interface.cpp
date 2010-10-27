@@ -6,7 +6,7 @@
 #include <shellapi.h>
 #include <Windowsx.h>
 
-#define return_error() return ICERR_BADFORMAT;//{ char msg[256];sprintf(msg,"Returning error on line %d", __LINE__);MessageBox (HWND_DESKTOP, msg, "Error", MB_OK | MB_ICONEXCLAMATION); return ICERR_BADFORMAT; }
+#define return_error() return (DWORD)ICERR_BADFORMAT;//{ char msg[256];sprintf(msg,"Returning error on line %d", __LINE__);MessageBox (HWND_DESKTOP, msg, "Error", MB_OK | MB_ICONEXCLAMATION); return ICERR_BADFORMAT; }
 
 CodecInst::CodecInst()
 {
@@ -237,7 +237,7 @@ DWORD CodecInst::GetState(LPVOID pv, DWORD dwSize)
    } 
    else if ( dwSize < 3*sizeof(int) )
    {
-      return ICERR_BADSIZE;
+      return (DWORD)ICERR_BADSIZE;
    }
 
    int * state = (int*)pv;
@@ -400,7 +400,6 @@ DWORD CodecInst::CompressGetFormat(LPBITMAPINFOHEADER lpbiIn, LPBITMAPINFOHEADER
 }
 
 // return information about the codec
-
 DWORD CodecInst::GetInfo(ICINFO* icinfo, DWORD dwSize)
 {
    if (icinfo == NULL)
@@ -416,7 +415,7 @@ DWORD CodecInst::GetInfo(ICINFO* icinfo, DWORD dwSize)
    icinfo->dwSize       = sizeof(ICINFO);
    icinfo->fccType      = ICTYPE_VIDEO;
    icinfo->fccHandler	= FOURCC_YETI;
-   icinfo->dwFlags		= VIDCF_FASTTEMPORALC; //VIDCF_TEMPORAL;
+   icinfo->dwFlags		= VIDCF_FASTTEMPORALC;
    icinfo->dwVersion		= 0x00010000;
    icinfo->dwVersionICM	= ICVERSION;
    memcpy(icinfo->szName, L"Yeti", sizeof(L"Yeti"));

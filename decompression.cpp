@@ -39,8 +39,8 @@ DWORD CodecInst::DecompressBegin(LPBITMAPINFOHEADER lpbiIn, LPBITMAPINFOHEADER l
       buffer_size=align_round(_width*4,8)*_height+2048;
    }
 
-   _pBuffer = (unsigned char *)lag_aligned_malloc( _pBuffer,buffer_size,16,"buffer");
-   _pPrev = (unsigned char *)lag_aligned_malloc( _pPrev,buffer_size,16,"prev");
+   _pBuffer = (unsigned char *)aligned_malloc( _pBuffer,buffer_size,16,"buffer");
+   _pPrev = (unsigned char *)aligned_malloc( _pPrev,buffer_size,16,"prev");
    ZeroMemory(_pPrev, buffer_size);
 
    if ( !_pBuffer || !_pPrev )
@@ -171,7 +171,7 @@ void CodecInst::ArithYV12Decompress()
    }
 }
 
-#include "convert_xvid.cpp"
+#include "convert_xvid.h"
 
 void CodecInst::ReduceResDecompress()
 {

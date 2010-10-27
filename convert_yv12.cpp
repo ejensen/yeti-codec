@@ -89,7 +89,7 @@ void isse_yv12_to_yuy2(const BYTE* srcY, const BYTE* srcU, const BYTE* srcV, int
          }
 
          __asm {
-	push ebx    // stupid compiler forgets to save ebx!!
+   push ebx    // stupid compiler forgets to save ebx!!
             mov edi, [_dst]
             mov eax, [_srcY]
             mov ebx, [_srcU]
@@ -130,7 +130,7 @@ xloop_p:
 xloop_test_p:
             cmp edx,[src_rowsize]
             jl xloop_p
-	  pop ebx
+     pop ebx
          }
       }
 
@@ -331,7 +331,7 @@ void mmx_yv12_to_yuy2(const BYTE* srcY, const BYTE* srcU, const BYTE* srcV, int 
 
 
          __asm {
-	push ebx    // stupid compiler forgets to save ebx!!
+   push ebx    // stupid compiler forgets to save ebx!!
             mov edi, [_dst]
             mov eax, [_srcY]
             mov ebx, [_srcU]
@@ -372,7 +372,7 @@ xloop_p:
 xloop_test_p:
             cmp edx,[src_rowsize]
             jl xloop_p
-	  pop ebx
+     pop ebx
          }
       }
 

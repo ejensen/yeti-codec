@@ -167,8 +167,8 @@ int CodecInst::InitThreads( int encode )
 	int buffer_b = align_round(_info_b.width,16)*_info_b.height+2048;
 
 	if ( !_info_a.cObj.InitCompressBuffers( buffer_a ) || !_info_b.cObj.InitCompressBuffers( buffer_b ) 
-		|| !(_info_a.buffer=(unsigned char *)lag_aligned_malloc(_info_a.buffer,buffer_a,16,"Info_a.buffer"))
-		|| !(_info_b.buffer=(unsigned char *)lag_aligned_malloc(_info_b.buffer,buffer_b,16,"Info_b.buffer")) )
+		|| !(_info_a.buffer=(unsigned char *)aligned_malloc(_info_a.buffer,buffer_a,16,"Info_a.buffer"))
+		|| !(_info_b.buffer=(unsigned char *)aligned_malloc(_info_b.buffer,buffer_b,16,"Info_b.buffer")) )
 	{
 		_info_a.cObj.FreeCompressBuffers();
 		_info_b.cObj.FreeCompressBuffers();
@@ -183,7 +183,7 @@ int CodecInst::InitThreads( int encode )
 		if ( _format == RGB32 )
 		{
 			if ( !_info_c.cObj.InitCompressBuffers( buffer_a ) 
-				|| !(_info_c.buffer=(unsigned char *)lag_aligned_malloc(_info_c.buffer,buffer_a,16,"Info_c.buffer")))
+				|| !(_info_c.buffer=(unsigned char *)aligned_malloc(_info_c.buffer,buffer_a,16,"Info_c.buffer")))
 			{
 				_info_a.cObj.FreeCompressBuffers();
 				_info_b.cObj.FreeCompressBuffers();

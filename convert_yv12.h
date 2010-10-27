@@ -33,6 +33,7 @@
 // Public License plus this exception.  An independent module is a module
 // which is not derived from or based on Avisynth, such as 3rd-party filters,
 // import and export plugins, or graphical user interfaces.
+#pragma once
 
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>

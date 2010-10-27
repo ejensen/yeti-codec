@@ -312,9 +312,9 @@ void CompressClass::uncompact( const unsigned char * in, unsigned char * out, co
 // initialized the buffers used by RLE and range coding routines
 bool CompressClass::InitCompressBuffers(const unsigned int length)
 {
-   _pBuffer = (unsigned char *)lag_aligned_malloc(_pBuffer,length,32,"Compress::temp");
-   _pProbRanges = (unsigned int *)lag_aligned_malloc(_pProbRanges,260*sizeof(unsigned int),64,"Compress::ranges");
-   _pBytecounts = (unsigned int *)lag_aligned_malloc(_pBytecounts,260*sizeof(unsigned int),64,"Compress::bytecounts");
+   _pBuffer = (unsigned char *)aligned_malloc(_pBuffer,length,32,"Compress::temp");
+   _pProbRanges = (unsigned int *)aligned_malloc(_pProbRanges,260*sizeof(unsigned int),64,"Compress::ranges");
+   _pBytecounts = (unsigned int *)aligned_malloc(_pBytecounts,260*sizeof(unsigned int),64,"Compress::bytecounts");
    if ( !( _pBuffer && _pProbRanges && _pBytecounts ) )
    {
       FreeCompressBuffers();

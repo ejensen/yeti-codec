@@ -4,8 +4,8 @@
 #include <float.h>
 
 #include "huffyuv_a.h"
-#include "convert_yuy2.cpp"
-#include "convert_yv12.cpp"
+#include "convert_yuy2.h"
+#include "convert_yv12.h"
 
 // initialize the codec for compression
 DWORD CodecInst::CompressBegin(LPBITMAPINFOHEADER lpbiIn, LPBITMAPINFOHEADER lpbiOut)
@@ -29,23 +29,23 @@ DWORD CodecInst::CompressBegin(LPBITMAPINFOHEADER lpbiIn, LPBITMAPINFOHEADER lpb
    _height = lpbiIn->biHeight;
 
    _format = lpbiIn->biBitCount;
-   _length = _width*_height*_format/8; // TODO: Optimize?
+   _length = _width*_height*_format/8; // TODO: Optimize
 
    unsigned int buffer_size;
    if ( _format < RGB24 )
    {
-      buffer_size = align_round(_width,32)*_height*_format/8+1024; // TODO: Optimize?
+      buffer_size = align_round(_width,32)*_height*_format/8+1024; // TODO: Optimize
    } 
    else
    {
-      buffer_size = align_round(_width,16)*_height*4+1024; // TODO: Optimize?
+      buffer_size = align_round(_width,16)*_height*4+1024; // TODO: Optimize
    }
 
-   _pBuffer = (unsigned char *)lag_aligned_malloc(_pBuffer, buffer_size,16,"buffer");
-   _pBuffer2 = (unsigned char *)lag_aligned_malloc(_pBuffer2, buffer_size,16,"buffer2");
-   _pDelta = (unsigned char *)lag_aligned_malloc(_pDelta, buffer_size,16,"delta");
-   _pLossy_buffer = (unsigned char *)lag_aligned_malloc(_pLossy_buffer, buffer_size,16,"lossy");
-   _pPrev = (unsigned char *)lag_aligned_malloc(_pPrev, buffer_size,16,"prev");
+   _pBuffer = (unsigned char *)aligned_malloc(_pBuffer, buffer_size,16,"buffer");
+   _pBuffer2 = (unsigned char *)aligned_malloc(_pBuffer2, buffer_size,16,"buffer2");
+   _pDelta = (unsigned char *)aligned_malloc(_pDelta, buffer_size,16,"delta");
+   _pLossy_buffer = (unsigned char *)aligned_malloc(_pLossy_buffer, buffer_size,16,"lossy");
+   _pPrev = (unsigned char *)aligned_malloc(_pPrev, buffer_size,16,"prev");
    ZeroMemory(_pPrev, buffer_size);
 
    if ( !_pBuffer || !_pBuffer2 || !_pPrev || !_pDelta || !_pLossy_buffer)

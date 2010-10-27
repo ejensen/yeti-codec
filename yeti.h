@@ -40,7 +40,7 @@
 #define try_catch( f ) f
 #endif
 
-inline void * lag_aligned_malloc( void *ptr, int size, int align, char *str ) 
+inline void * aligned_malloc( void *ptr, int size, int align, char *str ) 
 {
    if ( ptr )
    {
@@ -57,7 +57,7 @@ inline void * lag_aligned_malloc( void *ptr, int size, int align, char *str )
       {
 #ifdef _DEBUG
          char msg[256];
-         sprintf_s(msg,128,"An exception occurred when attempting to free non-null buffer '%s' in lag_aligned_malloc",str);
+         sprintf_s(msg,128,"An exception occurred when attempting to free non-null buffer '%s' in aligned_malloc",str);
          MessageBox (HWND_DESKTOP, msg, "Error", MB_OK | MB_ICONEXCLAMATION);
 #endif
       }

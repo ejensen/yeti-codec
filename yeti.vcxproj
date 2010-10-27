@@ -289,6 +289,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="convert.h" />
+    <ClInclude Include="convert_yuy2.h" />
     <ClInclude Include="fibonacci.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="compact.h" />
@@ -304,6 +305,9 @@
   <ItemGroup>
     <ClCompile Include="compact.cpp" />
     <ClCompile Include="compression.cpp" />
+    <ClCompile Include="convert_xvid.cpp" />
+    <ClCompile Include="convert_yuy2.cpp" />
+    <ClCompile Include="convert_yv12.cpp" />
     <ClCompile Include="decompression.cpp" />
     <ClCompile Include="drvproc.cpp">
       <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>

@@ -268,9 +268,9 @@ void CodecInst::EndThreads()
 		Sleep(1);
 	}
 
-#ifdef _DEBUG
 	if ( !CloseHandle(_info_a.thread) )
 	{
+#ifdef _DEBUG
 		/*LPVOID lpMsgBuf;
 		FormatMessage( 
 		FORMAT_MESSAGE_ALLOCATE_BUFFER | 
@@ -286,19 +286,23 @@ void CodecInst::EndThreads()
 		MessageBox( NULL, (char *)lpMsgBuf, "Error", MB_OK | MB_ICONINFORMATION );
 		LocalFree( lpMsgBuf );*/
 		MessageBox (HWND_DESKTOP, "CloseHandle failed for thread 0x0A", "Error", MB_OK | MB_ICONEXCLAMATION);
+#endif
 	}
 	if ( !CloseHandle(_info_b.thread) )
 	{
+#ifdef _DEBUG
 		MessageBox (HWND_DESKTOP, "CloseHandle failed for thread 0x0B", "Error", MB_OK | MB_ICONEXCLAMATION);
+#endif
 	}
 	if ( _info_c.thread && _format == RGB32 )
 	{
 		if ( !CloseHandle(_info_c.thread) )
 		{
+#ifdef _DEBUG
 			MessageBox (HWND_DESKTOP,"CloseHandle failed for thread 0x0C", "Error", MB_OK | MB_ICONEXCLAMATION);
+#endif
 		}
 	}
-#endif
 
 	_info_a.thread=NULL;
 	_info_b.thread=NULL;

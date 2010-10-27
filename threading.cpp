@@ -17,6 +17,7 @@ DWORD WINAPI encode_worker_thread( LPVOID i )
 	unsigned char * const buffer = (unsigned char *)info->buffer;
 	const unsigned int format=info->format;
 	const unsigned int lum = info->lum;
+
 	while ( info->length != 0xFFFFFFFF )
 	{
 		src = (const unsigned char *)info->source;
@@ -56,8 +57,9 @@ DWORD WINAPI encode_worker_thread( LPVOID i )
 		info->length=0;
 		SuspendThread(info->thread);// go to sleep, main thread will resume it
 	}
+
 	info->cObj.FreeCompressBuffers();
-	lag_aligned_free(info->buffer,"Thread Buffer");
+	aligned_free(info->buffer,"Thread Buffer");
 	info->length=0;
 	return 0;
 }
@@ -88,8 +90,9 @@ DWORD WINAPI decode_worker_thread( LPVOID i )
 		info->length=0;
 		SuspendThread(info->thread);
 	}
+
 	info->cObj.FreeCompressBuffers();
-	lag_aligned_free(info->buffer,"Thread Buffer");
+	aligned_free(info->buffer,"Thread Buffer");
 	info->length=0;
 	return 0;
 }
@@ -172,8 +175,8 @@ int CodecInst::InitThreads( int encode )
 	{
 		_info_a.cObj.FreeCompressBuffers();
 		_info_b.cObj.FreeCompressBuffers();
-		lag_aligned_free(_info_a.buffer,"Info_a.buffer");
-		lag_aligned_free(_info_b.buffer,"Info_b.buffer");
+		aligned_free(_info_a.buffer,"Info_a.buffer");
+		aligned_free(_info_b.buffer,"Info_b.buffer");
 		_info_a.thread=NULL;
 		_info_b.thread=NULL;
 		return ICERR_MEMORY;
@@ -188,9 +191,9 @@ int CodecInst::InitThreads( int encode )
 				_info_a.cObj.FreeCompressBuffers();
 				_info_b.cObj.FreeCompressBuffers();
 				_info_c.cObj.FreeCompressBuffers();
-				lag_aligned_free(_info_a.buffer,"Info_a.buffer");
-				lag_aligned_free(_info_b.buffer,"Info_b.buffer");
-				lag_aligned_free(_info_c.buffer,"Info_c.buffer");
+				aligned_free(_info_a.buffer,"Info_a.buffer");
+				aligned_free(_info_b.buffer,"Info_b.buffer");
+				aligned_free(_info_c.buffer,"Info_c.buffer");
 				_info_a.thread=NULL;
 				_info_b.thread=NULL;
 				_info_c.thread=NULL;
@@ -222,10 +225,10 @@ int CodecInst::InitThreads( int encode )
 			if ( _format==RGB32 )
 			{
 				_info_c.cObj.FreeCompressBuffers();
-				lag_aligned_free(_info_c.buffer,"Info_c.buffer");
+				aligned_free(_info_c.buffer,"Info_c.buffer");
 			}
-			lag_aligned_free(_info_a.buffer,"Info_a.buffer");
-			lag_aligned_free(_info_b.buffer,"Info_b.buffer");
+			aligned_free(_info_a.buffer,"Info_a.buffer");
+			aligned_free(_info_b.buffer,"Info_b.buffer");
 			_info_a.thread=NULL;
 			_info_b.thread=NULL;
 			_info_c.thread=NULL;
@@ -265,6 +268,7 @@ void CodecInst::EndThreads()
 		Sleep(1);
 	}
 
+#ifdef _DEBUG
 	if ( !CloseHandle(_info_a.thread) )
 	{
 		/*LPVOID lpMsgBuf;
@@ -294,6 +298,8 @@ void CodecInst::EndThreads()
 			MessageBox (HWND_DESKTOP,"CloseHandle failed for thread 0x0C", "Error", MB_OK | MB_ICONEXCLAMATION);
 		}
 	}
+#endif
+
 	_info_a.thread=NULL;
 	_info_b.thread=NULL;
 	_info_c.thread=NULL;

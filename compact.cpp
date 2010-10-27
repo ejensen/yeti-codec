@@ -326,9 +326,9 @@ bool CompressClass::InitCompressBuffers(const unsigned int length)
 // free the buffers used by RLE and range coding routines
 void CompressClass::FreeCompressBuffers()
 {	
-   lag_aligned_free( _pBuffer,"Compress::buffer");
-   lag_aligned_free( _pProbRanges, "Compress::prob_ranges");
-   lag_aligned_free( _pBytecounts, "Compress::bytecounts");
+   aligned_free( _pBuffer,"Compress::buffer");
+   aligned_free( _pProbRanges, "Compress::prob_ranges");
+   aligned_free( _pBytecounts, "Compress::bytecounts");
 }
 
 CompressClass::CompressClass()

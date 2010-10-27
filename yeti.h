@@ -66,7 +66,7 @@ inline void * aligned_malloc( void *ptr, int size, int align, char *str )
 }
 
 #ifndef _DEBUG
-#define lag_aligned_free(ptr, str) { \
+#define aligned_free(ptr, str) { \
    if ( ptr ){ \
    try {\
    _aligned_free(ptr);\
@@ -75,7 +75,7 @@ inline void * aligned_malloc( void *ptr, int size, int align, char *str )
    ptr=NULL;\
 }
 #else
-#define lag_aligned_free(ptr, str) { \
+#define aligned_free(ptr, str) { \
    if ( ptr ){ \
    try { _aligned_free(ptr); } catch ( ... ){\
    char err_msg[256];\

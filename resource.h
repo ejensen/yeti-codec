@@ -3,22 +3,14 @@
 // Used by config.rc
 //
 #define IDS_TIP_NULLFRAMES              1
-#define IDS_TIP_MULTI                   3
-#define IDS_TIP_BITDEPTH                4
-#define IDS_TIP_REDUCED                 5
-#define IDD_DIALOG1                     101
+#define IDS_TIP_MULTI                   2
+#define IDS_TIP_REDUCED                 3
 #define IDD_SETTINGS_DIALOG             101
-#define IDC_CURSOR1                     102
-#define IDC_CURSOR2                     103
-#define IDB_BITMAP1                     104
-#define IDC_NULL                        1001
-#define IDC_OK                          1007
-#define IDC_CANCEL                      1008
-#define IDC_NULLFRAMES                  1010
-#define IDC_REDUCED                     1012
-#define IDC_MULTI                       1014
-#define IDC_BITDEPTH                    1015
-#define IDC_VERSION                     1017
+#define IDC_OK                          1001
+#define IDC_CANCEL                      1002
+#define IDC_NULLFRAMES                  1003
+#define IDC_REDUCED                     1004
+#define IDC_MULTI                       1005
 
 // Next default values for new objects
 // 

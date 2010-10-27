@@ -38,7 +38,7 @@ __declspec(align(8)) static const __int64 add_ones=0x0101010101010101;
 
 
 /*************************************
-* Progessive YV12 -> YUY2 conversion
+* Progressive YV12 -> YUY2 conversion
 *
 * (c) 2003, Klaus Post.
 *

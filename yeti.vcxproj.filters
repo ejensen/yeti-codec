@@ -14,12 +14,6 @@
     </ResourceCompile>
   </ItemGroup>
   <ItemGroup>
-    <None Include="cursor2.cur">
-      <Filter>Resources</Filter>
-    </None>
-    <None Include="cursor3.cur">
-      <Filter>Resources</Filter>
-    </None>
     <None Include="huffyuv.def" />
     <None Include="Yeti.inf" />
   </ItemGroup>

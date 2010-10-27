@@ -273,8 +273,6 @@
     </ResourceCompile>
   </ItemGroup>
   <ItemGroup>
-    <None Include="cursor2.cur" />
-    <None Include="cursor3.cur" />
     <None Include="huffyuv.def" />
     <CustomBuild Include="huffyuv_a.asm">
       <FileType>Document</FileType>

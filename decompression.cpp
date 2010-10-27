@@ -76,8 +76,8 @@ DWORD CodecInst::DecompressEnd()
          EndThreads();
       }
 
-      lag_aligned_free( _pBuffer,"buffer");
-      lag_aligned_free( _pPrev, "prev");
+      aligned_free( _pBuffer,"buffer");
+      aligned_free( _pPrev, "prev");
       _cObj.FreeCompressBuffers();
    }
    _started=0;

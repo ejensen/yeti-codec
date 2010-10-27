@@ -175,7 +175,7 @@ BOOL CodecInst::QueryConfigure()
 
 DWORD CodecInst::Configure(HWND hwnd) 
 {
-   DialogBox(hmoduleHuffYUY, MAKEINTRESOURCE(IDD_DIALOG1), hwnd, (DLGPROC)ConfigureDialogProc);
+   DialogBox(hmoduleHuffYUY, MAKEINTRESOURCE(IDD_SETTINGS_DIALOG), hwnd, (DLGPROC)ConfigureDialogProc);
    return ICERR_OK;
 }
 

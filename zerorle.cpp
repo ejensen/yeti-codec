@@ -105,7 +105,8 @@ namespace zero {
                if ( in[a] ) 
                {
                   out[b++]=in[a++];
-               } else if ( in[a+1] )
+               } 
+               else if ( in[a+1] )
                {
                   out[b]=0;
                   out[b+1]=in[a+1];
@@ -249,7 +250,8 @@ namespace zero {
             if ( b <= 256 )
             {
                lvl1+=2;
-               if ( b < 4){
+               if ( b < 4)
+               {
                   lvl2+=l2low[b];
                   lvl3+=l3low[b];
                }

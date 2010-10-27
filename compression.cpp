@@ -50,11 +50,11 @@ DWORD CodecInst::CompressBegin(LPBITMAPINFOHEADER lpbiIn, LPBITMAPINFOHEADER lpb
 
    if ( !_pBuffer || !_pBuffer2 || !_pPrev || !_pDelta || !_pLossy_buffer)
    {
-      lag_aligned_free(_pBuffer,"buffer");
-      lag_aligned_free(_pBuffer2,"buffer2");
-      lag_aligned_free(_pDelta,"delta");
-      lag_aligned_free(_pLossy_buffer,"lossy");
-      lag_aligned_free(_pPrev,"prev");
+      aligned_free(_pBuffer,"buffer");
+      aligned_free(_pBuffer2,"buffer2");
+      aligned_free(_pDelta,"delta");
+      aligned_free(_pLossy_buffer,"lossy");
+      aligned_free(_pPrev,"prev");
       return ICERR_MEMORY;
    }
 
@@ -97,11 +97,11 @@ DWORD CodecInst::CompressEnd()
          EndThreads();
       }
 
-      lag_aligned_free( _pBuffer, "buffer");
-      lag_aligned_free( _pBuffer2, "buffer2");
-      lag_aligned_free( _pDelta, "delta");
-      lag_aligned_free( _pPrev, "prev");
-      lag_aligned_free( _pLossy_buffer, "lossy_buffer");
+      aligned_free( _pBuffer, "buffer");
+      aligned_free( _pBuffer2, "buffer2");
+      aligned_free( _pDelta, "delta");
+      aligned_free( _pPrev, "prev");
+      aligned_free( _pLossy_buffer, "lossy_buffer");
       _cObj.FreeCompressBuffers();
    }
    _started = 0;

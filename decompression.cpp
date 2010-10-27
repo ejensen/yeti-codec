@@ -148,10 +148,10 @@ void CodecInst::ArithYV12Decompress()
 
    memcpy( _pPrev, dst, length);
 
-   if ( _format == YV12 )
-   {
-      return;
-   }
+   //if ( _format == YV12 )
+   //{
+   //   return;
+   //}
 
    //upsample if needed
    if ( _SSE2 )

@@ -151,7 +151,7 @@ DWORD CodecInst::CompressYV12(ICCOMPRESS* icinfo)
          }
       }
       //DELTA!!!!
-      unsigned int buffer_size = align_round(_width,32)*_height*Eighth(_format)+1024; 
+      unsigned int buffer_size = Eighth( align_round(_width, 32) * _height * _format )+1024; 
       for(unsigned int i = 0; i < buffer_size; i++)
       {
          _pDelta[i] = _pIn[i] ^ _pPrev[i];
@@ -385,13 +385,13 @@ DWORD CodecInst::CompressReduced(ICCOMPRESS *icinfo)
    const unsigned int ry_stride = align_round(hw, mod);
    const unsigned int rc_stride = align_round(Fourth(_width), mod);
    const unsigned int ry_size   = ry_stride*hh;
-   const unsigned int rc_size   = rc_stride*Fourth(_height); // TODO: Optimize
+   const unsigned int rc_size   = Fourth(rc_stride * _height);
    const unsigned int ryu_size  = ry_size+rc_size;
    const unsigned int y_size    = _width*_height;
-   const unsigned int c_size    = _width*Fourth(_height); // TODO: Optimize
+   const unsigned int c_size    = Fourth(_width * _height); // TODO: Optimize
    const unsigned int yu_size   = y_size+c_size;
-   const unsigned int ry_bytes  = _width*Fourth(_height); // TODO: Optimize
-   const unsigned int rc_bytes  = _width*Eighth(_height); 
+   const unsigned int ry_bytes  = Fourth(_width * _height); // TODO: Optimize
+   const unsigned int rc_bytes  = Fourth(Fourth(_width * _height)); 
 
    unsigned char * ysrc = _pBuffer;
    unsigned char * usrc = _pBuffer+ry_size;

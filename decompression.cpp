@@ -7,6 +7,7 @@
 #include "convert_yv12.h"
 #include <float.h>
 #include "huffyuv_a.h"
+#include "convert_xvid.h"
 
 // initialize the codec for decompression
 DWORD CodecInst::DecompressBegin(LPBITMAPINFOHEADER lpbiIn, LPBITMAPINFOHEADER lpbiOut)
@@ -31,16 +32,16 @@ DWORD CodecInst::DecompressBegin(LPBITMAPINFOHEADER lpbiIn, LPBITMAPINFOHEADER l
 
    _format = lpbiOut->biBitCount;
 
-   _length = _width*_height*_format/8; //TODO: optimize
+   _length = _width * _height * Eighth(_format);
 
-   buffer_size = _length+2048;
+   buffer_size = _length + 2048;
    if ( _format >= RGB24 )
    {
-      buffer_size=align_round(_width*4,8)*_height+2048;
+      buffer_size=align_round(Quadruple(_width), 8) * _height + 2048;
    }
 
-   _pBuffer = (unsigned char *)aligned_malloc( _pBuffer,buffer_size,16,"buffer");
-   _pPrev = (unsigned char *)aligned_malloc( _pPrev,buffer_size,16,"prev");
+   _pBuffer = (unsigned char *)aligned_malloc( _pBuffer, buffer_size, 16, "buffer");
+   _pPrev = (unsigned char *)aligned_malloc( _pPrev, buffer_size, 16, "prev");
    ZeroMemory(_pPrev, buffer_size);
 
    if ( !_pBuffer || !_pPrev )
@@ -48,12 +49,12 @@ DWORD CodecInst::DecompressBegin(LPBITMAPINFOHEADER lpbiIn, LPBITMAPINFOHEADER l
       return (DWORD)ICERR_MEMORY;
    }
 
-   if ( !_cObj.InitCompressBuffers( _width*_height*5/4 ) )
+   if ( !_cObj.InitCompressBuffers( _width * _height * 5/4 ) )
    {
       return (DWORD)ICERR_MEMORY;
    }
 
-   _multithreading = GetPrivateProfileInt("settings", "multithreading", false, SettingsFile)>0;
+   _multithreading = GetPrivateProfileInt("settings", "multithreading", false, SettingsFile) > 0;
    if ( _multithreading )
    {
       int code = InitThreads( false);
@@ -88,12 +89,12 @@ inline void CodecInst::uncompact_macro( const unsigned char * _in, unsigned char
 {
    if ( _multithreading && _thread )
    {
-      _thread->source=(unsigned char *)_in;
-      _thread->dest=_out;
-      _thread->length=_length;
-      _thread->width=_width;
-      _thread->height=_height;
-      _thread->format=_format; 
+      _thread->source = (unsigned char *)_in;
+      _thread->dest = _out;
+      _thread->length = _length;
+      _thread->width = _width;
+      _thread->height = _height;
+      _thread->format = _format; 
 
       while ( ResumeThread(((threadinfo *)_thread)->thread) != 1)
       {
@@ -102,7 +103,7 @@ inline void CodecInst::uncompact_macro( const unsigned char * _in, unsigned char
    } 
    else 
    {
-      _cObj.uncompact(_in,_out,_length);
+      _cObj.uncompact(_in, _out, _length);
    }
 }
 
@@ -111,28 +112,35 @@ void CodecInst::ArithYV12Decompress()
 {
    unsigned char * dst = _pOut;
    unsigned char * dst2 = _pBuffer;
+
    if ( _format == YUY2 )
    {
       dst = _pBuffer;
       dst2 = _pOut;
    }
 
-   int size = *(UINT32*)(_pIn+1);
-   uncompact_macro(_pIn+9,dst,_width*_height,_width,_height,&_info_a,YV12);
-   uncompact_macro(_pIn+size,dst+_width*_height,_width*_height/4,_width/2,_height/2,&_info_b,YV12); //TODO: optimize
-   size = *(UINT32*)(_pIn+5);
-   uncompact_macro(_pIn+size,dst+_width*_height+_width*_height/4,_width*_height/4,_width/2,_height/2,NULL,YV12); //TODO: optimize
+   int size = *(unsigned int*)(_pIn + 1);
+   unsigned int hh = Half(_height);
+   unsigned int hw = Half(_width);
+   unsigned int wxh = _width * _height;
+   unsigned int quarterArea = Fourth(wxh);
 
-   ASM_BlockRestore(dst+_width*_height+_width*_height/4,_width/2,_width*_height/4,0); //TODO: optimize
+   uncompact_macro(_pIn + 9, dst, wxh, _width, _height, &_info_a, YV12);
+   uncompact_macro(_pIn + size, dst + wxh, quarterArea, hw, hh, &_info_b, YV12);
+
+   size = *(unsigned int*)(_pIn + 5);
+   uncompact_macro(_pIn + size, dst + wxh + quarterArea, quarterArea, hw, hh, NULL, YV12);
+
+   ASM_BlockRestore(dst + wxh + quarterArea, hw, quarterArea, 0);
    wait_for_threads(2);
 
    if ( !_multithreading )
    {
-      ASM_BlockRestore(dst,_width,_width*_height,0);
-      ASM_BlockRestore(dst+_width*_height,_width/2,_width*_height/4,0);
+      ASM_BlockRestore(dst, _width, wxh, 0);
+      ASM_BlockRestore(dst + wxh, hw, quarterArea, 0);
    }
 
-   unsigned int length = _width * _height * YV12 / 8;
+   unsigned int length = Eighth(wxh * YV12);
    for(unsigned int i = 0; i < length; i++)
    {
       dst[i] = dst[i] ^ _pPrev[i];
@@ -148,11 +156,11 @@ void CodecInst::ArithYV12Decompress()
    //upsample if needed
    if ( _SSE2 )
    {
-      isse_yv12_to_yuy2(dst,dst+_width*_height+_width*_height/4,dst+_width*_height,_width,_width,_width/2,dst2,_width*2,_height); //TODO: optimize
+      isse_yv12_to_yuy2(dst, dst + wxh + quarterArea, dst + wxh, _width, _width, hw, dst2, Double(_width), _height);
    } 
    else 
    {
-      mmx_yv12_to_yuy2(dst,dst+_width*_height+_width*_height/4,dst+_width*_height,_width,_width,_width/2,dst2,_width*2,_height); //TODO: optimize
+      mmx_yv12_to_yuy2(dst, dst + wxh + quarterArea, dst + wxh, _width, _width, hw, dst2, Double(_width), _height);
    }
 
    if ( _format == YUY2 )
@@ -163,51 +171,57 @@ void CodecInst::ArithYV12Decompress()
    // upsample to RGB
    if ( _format == RGB32 )
    {
-      mmx_YUY2toRGB32(dst2,_pOut,dst2+_width*_height*2,_width*2); //TODO: optimize
+      mmx_YUY2toRGB32(dst2, _pOut, dst2 + Double(wxh), Double(_width));
    } 
    else 
    {
-      mmx_YUY2toRGB24(dst2,_pOut,dst2+_width*_height*2,_width*2); //TODO: optimize
+      mmx_YUY2toRGB24(dst2, _pOut, dst2 + Double(wxh), Double(_width));
    }
 }
 
-#include "convert_xvid.h"
-
 void CodecInst::ReduceResDecompress()
 {
-   _width/=2;
-   _height/=2;
-   int size = *(UINT32*)(_pIn+1);
-   unsigned char * dest = (_format==YV12)?_pBuffer:_pOut;
-   uncompact_macro(_pIn+9,dest,_width*_height,_width,_height,&_info_a,YV12);
-   uncompact_macro(_pIn+size,dest+_width*_height,_width*_height/4,_width/2,_height/2,&_info_b,YV12); //TODO: optimize
-   size = *(UINT32*)(_pIn+5);
-   uncompact_macro(_pIn+size,dest+_width*_height+_width*_height/4,_width*_height/4,_width/2,_height/2,NULL,YV12); //TODO: optimize
+   _width = Half(_width);
+   _height = Half(_height);
 
-   ASM_BlockRestore(dest+_width*_height+_width*_height/4,_width/2,_width*_height/4,0); //TODO: optimize
+   int size = *(unsigned int*)(_pIn + 1);
+   unsigned int hh = Half(_height);
+   unsigned int hw = Half(_width);
+   unsigned int wxh = _width * _height;
+   unsigned int quarterSize = Fourth(wxh);
+
+   unsigned char * dest = (_format == YV12) ? _pBuffer : _pOut;
+
+   uncompact_macro(_pIn + 9, dest, wxh, _width, _height, &_info_a, YV12);
+   uncompact_macro(_pIn + size, dest + wxh, quarterSize, hw, hh, &_info_b, YV12); //TODO: optimize
+   size = *(unsigned int*)(_pIn + 5);
+   uncompact_macro(_pIn + size, dest + wxh + quarterSize, quarterSize, hw, hh, NULL, YV12); //TODO: optimize
+
+   ASM_BlockRestore(dest + _width * _height + quarterSize, hw, quarterSize, 0); //TODO: optimize
    wait_for_threads(2);
    if ( !_multithreading )
    {
-      ASM_BlockRestore(dest,_width,_width*_height,0);
-      ASM_BlockRestore(dest+_width*_height,_width/2,_width*_height/4,0); //TODO: optimize
+      ASM_BlockRestore(dest, _width, wxh, 0);
+      ASM_BlockRestore(dest + wxh, hw, quarterSize, 0);
    }
 
-   _width*=2;
-   _height*=2;
+   _width = Double(_width);
+   _height = Double(_height);
+   wxh = _width * _height;
 
-   unsigned char * source=dest;
-   dest=(_format==YV12)?_pOut:_pBuffer;
+   unsigned char * source = dest;
+   dest = (_format == YV12) ? _pOut: _pBuffer;
 
    unsigned char * ysrc = source;
-   unsigned char * usrc = ysrc+_width*_height/4; //TODO: optimize
-   unsigned char * vsrc = usrc+_width*_height/4/4; //TODO: optimize
+   unsigned char * usrc = ysrc + Fourth(wxh);
+   unsigned char * vsrc = usrc + Fourth(Fourth(wxh));//TODO: optimize?
    unsigned char * ydest = dest;
-   unsigned char * udest = ydest+_width*_height;
-   unsigned char * vdest = udest+_width*_height/4; //TODO: optimize
+   unsigned char * udest = ydest + wxh;
+   unsigned char * vdest = udest + Fourth(wxh);
 
-   enlarge_res(ysrc,ydest,_pBuffer2,_width/2,_height/2,_SSE2,_SSE); //TODO: optimize
-   enlarge_res(usrc,udest,_pBuffer2,_width/4,_height/4,_SSE2,_SSE); //TODO: optimize
-   enlarge_res(vsrc,vdest,_pBuffer2,_width/4,_height/4,_SSE2,_SSE); //TODO: optimize
+   enlarge_res(ysrc, ydest, _pBuffer2, Half(_width), Half(_height), _SSE2, _SSE); //TODO: optimize?
+   enlarge_res(usrc, udest, _pBuffer2, Fourth(_width), Fourth(_height), _SSE2, _SSE); //TODO: optimize?
+   enlarge_res(vsrc, vdest, _pBuffer2, Fourth(_width), Fourth(_height), _SSE2, _SSE); //TODO: optimize?
 
    ysrc = ydest;
    usrc = udest;
@@ -215,15 +229,15 @@ void CodecInst::ReduceResDecompress()
 
    if ( _format == RGB24)
    {
-      yv12_to_rgb24_mmx(_pOut,_width,ysrc,vsrc,usrc,_width,_width/2,_width,-(int)_height); //TODO: optimize
+      yv12_to_rgb24_mmx(_pOut, _width, ysrc, vsrc, usrc, _width, Half(_width), _width, -(int)_height);
    } 
-   else if ( _format == RGB32 ) 
+   else if ( _format == RGB32 )
    {
-      yv12_to_rgb32_mmx(_pOut,_width,ysrc,vsrc,usrc,_width,_width/2,_width,-(int)_height); //TODO: optimize
+      yv12_to_rgb32_mmx(_pOut, _width, ysrc, vsrc, usrc, _width, Half(_width), _width, -(int)_height);
    } 
-   else if ( _format == YUY2 ) 
+   else if ( _format == YUY2 )
    {
-      yv12_to_yuyv_mmx(_pOut,_width,ysrc,vsrc,usrc,_width,_width/2,_width,_height); //TODO: optimize
+      yv12_to_yuyv_mmx(_pOut, _width, ysrc, vsrc ,usrc, _width, Half(_width), _width, _height);
    }
 }
 
@@ -238,7 +252,7 @@ DWORD CodecInst::Decompress(ICDECOMPRESS* icinfo, DWORD dwSize)
    DWORD return_code=ICERR_OK;
    if ( _started != 0x1337 )
    {
-      DecompressBegin(icinfo->lpbiInput,icinfo->lpbiOutput);
+      DecompressBegin(icinfo->lpbiInput, icinfo->lpbiOutput);
    }
    _pOut = (unsigned char *)icinfo->lpOutput;
    _pIn  = (unsigned char *)icinfo->lpInput; 

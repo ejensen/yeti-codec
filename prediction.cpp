@@ -253,14 +253,14 @@ void MMX_BlockPredict( const unsigned char * source, unsigned char * dest, const
 
 void ASM_BlockRestore(unsigned char * source, unsigned int stride,unsigned int xlength, unsigned int mode)
 {
-   for ( unsigned int a=1;a<stride+!mode;a++)
+   for ( unsigned int a=1; a<stride+!mode; a++)
    {
-      source[a]+=source[a-1];
+      source[a] += source[a-1];
    }
 
    if ( mode )
    {
-      source[stride]+=source[0];
+      source[stride] += source[0];
    }
 
    __asm{

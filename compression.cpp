@@ -109,7 +109,7 @@ DWORD CodecInst::CompressEnd()
 }
 
 // Compress a YV12 keyframe
-int CodecInst::CompressYV12(ICCOMPRESS* icinfo)
+DWORD CodecInst::CompressYV12(ICCOMPRESS* icinfo)
 {
    const unsigned int mod = (_SSE2?16:8) - 1;
 
@@ -147,7 +147,7 @@ int CodecInst::CompressYV12(ICCOMPRESS* icinfo)
          {
             icinfo->lpbiOutput->biSizeImage =0;
             *icinfo->lpdwFlags = NULL;
-            return ICERR_OK;
+            return (DWORD)ICERR_OK;
          }
       }
       //DELTA!!!!
@@ -372,10 +372,10 @@ int CodecInst::CompressYV12(ICCOMPRESS* icinfo)
 
    _pOut[0] = ARITH_YV12;
    icinfo->lpbiOutput->biSizeImage = size;
-   return ICERR_OK;
+   return (DWORD)ICERR_OK;
 }
 
-int CodecInst::CompressReduced(ICCOMPRESS *icinfo)
+DWORD CodecInst::CompressReduced(ICCOMPRESS *icinfo)
 {
    const unsigned int mod = (_SSE2?16:8);
 
@@ -517,12 +517,12 @@ int CodecInst::CompressReduced(ICCOMPRESS *icinfo)
 
    _pOut[0] = REDUCED_RES;
    icinfo->lpbiOutput->biSizeImage = size;
-   return ICERR_OK;
+   return (DWORD)ICERR_OK;
 }
 
 // This downsamples the colorspace if the set encoding colorspace is lower than the
 // colorspace of the input video
-int CodecInst::CompressLossy(ICCOMPRESS * icinfo )
+DWORD CodecInst::CompressLossy(ICCOMPRESS * icinfo )
 {
    //unsigned char * lossy_buffer=_pPrev;
 

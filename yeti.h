@@ -191,12 +191,12 @@ public:
    BOOL QueryConfigure();
 
    void uncompact_macro( const unsigned char * _in, unsigned char * _out, unsigned int _length, unsigned int _width, unsigned int _height, threadinfo * _thread, int _format);
-   int InitThreads( int encode);
+   DWORD InitThreads( int encode);
    void EndThreads();
 
-   int CompressYV12(ICCOMPRESS* icinfo);
-   int CompressLossy(ICCOMPRESS* icinfo);
-   int CompressReduced(ICCOMPRESS* icinfo);
+   DWORD CompressYV12(ICCOMPRESS* icinfo);
+   DWORD CompressLossy(ICCOMPRESS* icinfo);
+   DWORD CompressReduced(ICCOMPRESS* icinfo);
 
    void ArithYV12Decompress();
    void ReduceResDecompress();

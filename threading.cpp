@@ -97,7 +97,7 @@ DWORD WINAPI decode_worker_thread( LPVOID i )
 	return 0;
 }
 
-int CodecInst::InitThreads( int encode )
+DWORD CodecInst::InitThreads( int encode )
 {
 	DWORD temp;
 	_info_a.length=0;
@@ -179,7 +179,7 @@ int CodecInst::InitThreads( int encode )
 		aligned_free(_info_b.buffer,"Info_b.buffer");
 		_info_a.thread=NULL;
 		_info_b.thread=NULL;
-		return ICERR_MEMORY;
+		return (DWORD)ICERR_MEMORY;
 	} 
 	else 
 	{ 
@@ -197,7 +197,7 @@ int CodecInst::InitThreads( int encode )
 				_info_a.thread=NULL;
 				_info_b.thread=NULL;
 				_info_c.thread=NULL;
-				return ICERR_MEMORY;
+				return (DWORD)ICERR_MEMORY;
 			}
 			if ( encode )
 			{
@@ -232,7 +232,7 @@ int CodecInst::InitThreads( int encode )
 			_info_a.thread=NULL;
 			_info_b.thread=NULL;
 			_info_c.thread=NULL;
-			return ICERR_INTERNAL;
+			return (DWORD)ICERR_INTERNAL;
 		}
 	}
 	if ( use_format >= RGB24 )
@@ -243,7 +243,7 @@ int CodecInst::InitThreads( int encode )
 	{
 		SetThreadPriority(_info_a.thread,THREAD_PRIORITY_ABOVE_NORMAL);
 	}
-	return ICERR_OK;
+	return (DWORD)ICERR_OK;
 }
 
 void CodecInst::EndThreads()

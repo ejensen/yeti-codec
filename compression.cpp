@@ -29,16 +29,16 @@ DWORD CodecInst::CompressBegin(LPBITMAPINFOHEADER lpbiIn, LPBITMAPINFOHEADER lpb
    _height = lpbiIn->biHeight;
 
    _format = lpbiIn->biBitCount;
-   _length = _width*_height*_format/8; // TODO: Optimize
+   _length = Eighth(_width * _height * _format);
 
    unsigned int buffer_size;
    if ( _format < RGB24 )
    {
-      buffer_size = align_round(_width,32)*_height*_format/8+1024; // TODO: Optimize
+      buffer_size = Eighth(align_round(_width,32) * _height * _format) + 1024;
    } 
    else
    {
-      buffer_size = align_round(_width,16)*_height*4+1024; // TODO: Optimize
+      buffer_size = Quadruple(align_round(_width, 16) * _height) + 1024;
    }
 
    _pBuffer = (unsigned char *)aligned_malloc(_pBuffer, buffer_size,16,"buffer");
@@ -198,12 +198,12 @@ DWORD CodecInst::CompressYV12(ICCOMPRESS* icinfo)
 
       for ( unsigned int y=0;y<hh*2;y++) // TODO: Optimize
       {
-         memcpy(_pBuffer+y*c_stride,source+y*hw+y_len,hw);
-         unsigned char val=_pBuffer[y*c_stride+hw-1];
+         memcpy(_pBuffer + y * c_stride,source + y * hw + y_len, hw);
+         unsigned char val = _pBuffer[y * c_stride + hw - 1];
 
-         for ( unsigned int x=hw;x<c_stride;x++)
+         for (unsigned int x = hw; x < c_stride; x++)
          {
-            _pBuffer[y*c_stride+x]=val;
+            _pBuffer[y * c_stride + x] = val;
          }
       }
       usrc = _pBuffer;
@@ -215,27 +215,28 @@ DWORD CodecInst::CompressYV12(ICCOMPRESS* icinfo)
    {
       // align luminance
       unsigned int y;
-      for ( y=0;y<_height;y++)
+      for ( y=0; y < _height; y++)
       {
-         memcpy(_pBuffer+y*y_stride,source+y*_width,_width);
-         unsigned char val=_pBuffer[y*y_stride+_width-1];
+         memcpy(_pBuffer + y * y_stride, source + y * _width, _width);
+         unsigned char val = _pBuffer[y * y_stride + _width - 1];
 
-         for ( unsigned int x=_width;x<y_stride;x++)
+         for (unsigned int x = _width; x < y_stride; x++)
          {
-            _pBuffer[y*y_stride+x]=val;
+            _pBuffer[y * y_stride + x]=val;
          }
       }
+
       ysrc = _pBuffer;
       _pBuffer += ay_len;
 
-      for ( y=0;y<hh*2;y++)
+      for ( y=0;y<hh*2;y++)//Optimize
       {
-         memcpy(_pBuffer+y*c_stride,source+y*hw+y_len,hw);
-         unsigned char val=_pBuffer[y*c_stride+hw-1];
+         memcpy(_pBuffer + y * c_stride,source + y * hw + y_len, hw);
+         unsigned char val = _pBuffer[y * c_stride + hw - 1];
 
-         for ( unsigned int x=hw;x<c_stride;x++)
+         for ( unsigned int x = hw; x < c_stride; x++)
          {
-            _pBuffer[y*c_stride+x]=val;
+            _pBuffer[y * c_stride + x] = val;
          }
       }
       usrc = _pBuffer;
@@ -254,23 +255,19 @@ DWORD CodecInst::CompressYV12(ICCOMPRESS* icinfo)
       unsigned char * ydest;
       unsigned char * udest;
       unsigned char * vdest;
-      if ( _width&mod )  // TODO: optimize
+
+      ydest = (_width & mod) ? buffer3 : _pBuffer2; // TODO: needed?
+
+
+      if (hw & mod)
       {
-         ydest=buffer3;
+         udest=buffer3 + ay_len;
+         vdest=buffer3 + ay_len + ac_len;
       } 
       else 
       {
-         ydest=_pBuffer2;
-      }
-      if ( hw&mod ) // TODO: optimize
-      {
-         udest=buffer3+ay_len;
-         vdest=buffer3+ay_len+ac_len;
-      } 
-      else 
-      {
-         udest=_pBuffer2+ay_len;
-         vdest=_pBuffer2+ay_len+ac_len;
+         udest=_pBuffer2 + ay_len;
+         vdest=_pBuffer2 + ay_len + ac_len;
       }
 
       // perform prediction
@@ -288,27 +285,27 @@ DWORD CodecInst::CompressYV12(ICCOMPRESS* icinfo)
       }
 
       // remove alignment padding, all data will end up in buffer2
-      if ( _width&mod ) // remove luminance padding 
+      if (_width & mod) // remove luminance padding 
       {
-         for ( unsigned int y=0;y< _height;y++)
+         for (unsigned int y = 0; y < _height; y++)
          {
-            memcpy(_pBuffer2+y*_width,ydest+y*y_stride,_width);
+            memcpy(_pBuffer2 + y * _width, ydest + y * y_stride, _width);
          }
       }
-      if ( hw&mod )  // remove chroma padding
+      if ( hw & mod )  // remove chroma padding
       {
          for ( unsigned int y=0;y< hh*2;y++) // TODO: Optimize
          {
-            memcpy(_pBuffer2+y_len+y*hw,udest+y*c_stride,hw);
+            memcpy(_pBuffer2 + y_len + y * hw, udest + y * c_stride, hw);
          }
       }
 
       size = 9;
-      size+=_cObj.compact(_pBuffer2,_pOut+size,y_len);
-      *(UINT32*)(_pOut+1)=size;
-      size+=_cObj.compact(_pBuffer2+y_len,_pOut+size,c_len);
-      *(UINT32*)(_pOut+5)=size;
-      size+=_cObj.compact(_pBuffer2+yu_len,_pOut+size,c_len);
+      size += _cObj.compact(_pBuffer2, _pOut + size, y_len);
+      *(UINT32*)(_pOut + 1) = size;
+      size += _cObj.compact(_pBuffer2 + y_len, _pOut+size, c_len);
+      *(UINT32*)(_pOut + 5) = size;
+      size += _cObj.compact(_pBuffer2 + yu_len, _pOut + size ,c_len);
    } 
    else 
    {
@@ -333,7 +330,7 @@ DWORD CodecInst::CompressYV12(ICCOMPRESS* icinfo)
       }
 
       // remove alignment if needed
-      if ( hw&mod )  // remove chroma padding
+      if ( hw & mod )  // remove chroma padding
       {
          for ( unsigned int y=0;y< hh;y++)
          {
@@ -388,18 +385,19 @@ DWORD CodecInst::CompressReduced(ICCOMPRESS *icinfo)
    const unsigned int rc_size   = Fourth(rc_stride * _height);
    const unsigned int ryu_size  = ry_size+rc_size;
    const unsigned int y_size    = _width*_height;
-   const unsigned int c_size    = Fourth(_width * _height); // TODO: Optimize
+   const unsigned int quarterSize = Fourth(y_size);
+   const unsigned int c_size    = quarterSize;
    const unsigned int yu_size   = y_size+c_size;
-   const unsigned int ry_bytes  = Fourth(_width * _height); // TODO: Optimize
-   const unsigned int rc_bytes  = Fourth(Fourth(_width * _height)); 
+   const unsigned int ry_bytes  = quarterSize;
+   const unsigned int rc_bytes  = Fourth(quarterSize); 
 
    unsigned char * ysrc = _pBuffer;
-   unsigned char * usrc = _pBuffer+ry_size;
-   unsigned char * vsrc = _pBuffer+ryu_size;
+   unsigned char * usrc = _pBuffer + ry_size;
+   unsigned char * vsrc = _pBuffer + ryu_size;
 
-   reduce_res(_pIn,ysrc, _pBuffer2, _width, _height, _SSE2, _SSE);
-   reduce_res(_pIn+y_size, usrc, _pBuffer2, hw, hh, _SSE2, _SSE);
-   reduce_res(_pIn+yu_size, vsrc, _pBuffer2, hw, hh, _SSE2, _SSE);
+   reduce_res(_pIn, ysrc, _pBuffer2, _width, _height, _SSE2, _SSE);
+   reduce_res(_pIn + y_size, usrc, _pBuffer2, hw, hh, _SSE2, _SSE);
+   reduce_res(_pIn + yu_size, vsrc, _pBuffer2, hw, hh, _SSE2, _SSE);
 
    unsigned int size;
 
@@ -422,27 +420,31 @@ DWORD CodecInst::CompressReduced(ICCOMPRESS *icinfo)
          MMX_BlockPredict(vsrc,vdest,rc_stride,rc_size,_SSE,0);
       }
 
-      if ( hw%mod ) // remove luminance padding TODO: Optimize
+      if ( hw % mod ) // remove luminance padding
       {
-         for ( unsigned int y=0;y< hh;y++) // TODO: Optimize
+         for ( unsigned int y = 0; y < hh; y++)
          {
-            memcpy(ysrc+y*hw,ydest+y*ry_stride,hw); // TODO: Optimize
+            memcpy(ysrc + y * hw, ydest + y * ry_stride, hw);
          }
       }
       else
       {
-         ysrc=ydest;
+         ysrc = ydest;
       }
-      if ( rc_stride != _width/4 )  // remove chroma padding TODO: Optimize
+
+      unsigned int quarterWidth = Fourth( _width );
+      unsigned int quarterHeight = Fourth( _height );
+
+      if ( rc_stride != quarterWidth )  // remove chroma padding
       {
          unsigned int y;
-         for ( y=0;y<_height/4;y++) // TODO: Optimize
+         for (y = 0; y < quarterHeight; y++) // TODO: Optimize
          {
-            memcpy(usrc+y*_width/4, udest+y*rc_stride, _width/4); // TODO: Optimize
+            memcpy(usrc + y * quarterWidth, udest + y * rc_stride, quarterWidth);
          }
-         for ( y=0;y<_height/4;y++)// TODO: Optimize
+         for (y = 0; y < quarterHeight; y++)// TODO: Optimize
          {
-            memcpy(vsrc+y*_width/4, vdest+y*rc_stride, _width/4); // TODO: Optimize
+            memcpy(vsrc + y * quarterWidth, vdest + y * rc_stride, quarterWidth);
          }
       } 
       else
@@ -452,46 +454,48 @@ DWORD CodecInst::CompressReduced(ICCOMPRESS *icinfo)
       }
 
       size = 9;
-      size+=_cObj.compact(ysrc,_pOut+size,ry_bytes);
+      size+=_cObj.compact(ysrc, _pOut + size, ry_bytes);
       *(UINT32*)(_pOut+1)=size;
-      size+=_cObj.compact(usrc,_pOut+size,rc_bytes);
+      size+=_cObj.compact(usrc, _pOut + size, rc_bytes);
       *(UINT32*)(_pOut+5)=size;
-      size+=_cObj.compact(vsrc,_pOut+size,rc_bytes);
+      size+=_cObj.compact(vsrc, _pOut + size, rc_bytes);
    } 
    else
    {
-      _info_a.source=ysrc;
-      _info_a.dest=_pOut+9;
-      _info_a.length=ry_bytes;
+      _info_a.source = ysrc;
+      _info_a.dest =_pOut + 9;
+      _info_a.length = ry_bytes;
       ForceResumeThread(_info_a.thread);
-      _info_b.source=usrc;
-      _info_b.dest=_pPrev;
-      _info_b.length=rc_bytes;
+      _info_b.source = usrc;
+      _info_b.dest = _pPrev;
+      _info_b.length = rc_bytes;
       ForceResumeThread(_info_b.thread);
 
       unsigned char *vdest = _pBuffer2;
 
       if ( _SSE2 )
       {
-         SSE2_BlockPredict(vsrc,vdest,rc_stride,rc_size,0);
+         SSE2_BlockPredict(vsrc, vdest, rc_stride, rc_size, 0);
       } 
       else
       {
-         MMX_BlockPredict(vsrc,vdest,rc_stride,rc_size,_SSE,0);
+         MMX_BlockPredict(vsrc, vdest, rc_stride, rc_size ,_SSE, 0);
       }
 
       // remove alignment if needed
-      if ( rc_stride != _width/4 )  // remove chroma padding TODO: Optimize
+      unsigned int quarterWidth = Fourth( _width );
+      if ( rc_stride != quarterWidth )  // remove chroma padding
       {
-         vsrc=vdest;
-         vdest=_pBuffer2+rc_size;
-         for (unsigned int y=0; y< _height/4; y++) // TODO: Optimize
+         unsigned int quarterHeight = Fourth( _height );
+         vsrc = vdest;
+         vdest = _pBuffer2 + rc_size;
+         for (unsigned int y = 0; y< quarterHeight; y++)
          {
-            memcpy(vdest+y*_width/4, vsrc+y*rc_stride, _width/4); // TODO: Optimize
+            memcpy(vdest + y * quarterWidth, vsrc + y * rc_stride, quarterWidth);
          }
       }
       vsrc = vdest;
-      vdest = _pBuffer2+rc_size*2;
+      vdest = _pBuffer2 + Double(rc_size);
 
       size=_cObj.compact(vsrc, vdest, rc_bytes);
       while ( _info_a.length )
@@ -500,8 +504,8 @@ DWORD CodecInst::CompressReduced(ICCOMPRESS *icinfo)
       }
 
       int sizea = _info_a.size;
-      *(UINT32*)(_pOut+5)=9+sizea;
-      memcpy(_pOut+sizea+9,vdest,size);
+      *(UINT32*)(_pOut+5) = 9 + sizea;
+      memcpy(_pOut+sizea + 9, vdest, size);
 
       while ( _info_b.length )
       {
@@ -509,10 +513,10 @@ DWORD CodecInst::CompressReduced(ICCOMPRESS *icinfo)
       }
 
       int sizeb = _info_b.size;
-      *(UINT32*)(_pOut+1)=sizea+9+size;
-      memcpy(_pOut+sizea+9+size, _pPrev, sizeb);
+      *(UINT32*)(_pOut+1)= sizea + 9 + size;
+      memcpy(_pOut + sizea + 9 + size, _pPrev, sizeb);
 
-      size+=sizea+sizeb+9;
+      size += sizea + sizeb + 9;
    }
 
    _pOut[0] = REDUCED_RES;

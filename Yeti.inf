@@ -12,7 +12,7 @@ DelReg=YETI.Reg
 UpdateInis=YETI.INIs.Del
 
 [SourceDisksNames]
-1="Yeti video codec","",1
+1="Yeti Video Codec","",1
 
 [SourceDisksFiles]
 Yeti.inf=1
@@ -33,15 +33,15 @@ Yeti.dll
 Yeti.ini
 
 [YETI.Reg]
-HKLM,SYSTEM\CurrentControlSet\Control\MediaResources\icm\VIDC.YETI,Description,,"Yeti lossless codec [YETI]"
+HKLM,SYSTEM\CurrentControlSet\Control\MediaResources\icm\VIDC.YETI,Description,,"Yeti video codec [YETI]"
 HKLM,SYSTEM\CurrentControlSet\Control\MediaResources\icm\VIDC.YETI,Driver,,"Yeti.dll"
-HKLM,SYSTEM\CurrentControlSet\Control\MediaResources\icm\VIDC.YETI,FriendlyName,,"Yeti lossless codec [YETI]"
+HKLM,SYSTEM\CurrentControlSet\Control\MediaResources\icm\VIDC.YETI,FriendlyName,,"Yeti video codec [YETI]"
 
 HKLM,"Software\Microsoft\Windows NT\CurrentVersion\drivers.desc",Yeti.dll,,"Yeti codec [YETI]"
 HKLM,"Software\Microsoft\Windows NT\CurrentVersion\Drivers32",VIDC.YETI,,"Yeti.dll"
 
 HKLM,Software\Microsoft\Windows\CurrentVersion\Uninstall\YETI
-HKLM,Software\Microsoft\Windows\CurrentVersion\Uninstall\YETI,DisplayName,,"Yeti video codec (Remove Only)"
+HKLM,Software\Microsoft\Windows\CurrentVersion\Uninstall\YETI,DisplayName,,"Yeti Video Codec (Remove Only)"
 HKLM,Software\Microsoft\Windows\CurrentVersion\Uninstall\YETI,UninstallString,,"rundll.exe setupx.dll,InstallHinfSection DefaultUninstall 132 %17%\Yeti.inf"
 
 [YETI.INIs]

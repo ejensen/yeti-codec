@@ -5,6 +5,7 @@
 #include <xmmintrin.h>
 #include <stdlib.h>
 #include <memory.h>
+#include "yeti.h"
 
 #pragma warning(disable:4731)
 
@@ -525,22 +526,24 @@ void enlarge_res(const unsigned char * src, unsigned char * dst, unsigned char *
 
             b = _mm_avg_epu8(a,b);
 
-            *(__m128i*)(dest+x*2+y*stride*4) =  _mm_unpacklo_epi8(b,a);
-            *(__m128i*)(dest+x*2+y*stride*4+16)=_mm_unpackhi_epi8(b,a);
+            *(__m128i*)(dest + Double(x) + Quadruple(y*stride)) =  _mm_unpacklo_epi8(b,a);
+            *(__m128i*)(dest + Double(x) + Quadruple(y*stride) + 16) = _mm_unpackhi_epi8(b,a);
          }
       }
-      height*=2;
-      stride*=2;
-      width*=2;
+
+      height = Double(height);
+      stride = Double(stride);
+      width = Double(width);
+
       for ( y=0;y<height-2;y+=2)
       {
          for ( unsigned int x=0;x<stride;x+=32)
          {
             __m128i a = *(__m128i *)(dest+x+y*stride);
-            __m128i b = *(__m128i *)(dest+x+y*stride+stride*2);
+            __m128i b = *(__m128i *)(dest+x+y*stride + Double(stride));
 
-            __m128i c = *(__m128i *)(dest+x+y*stride+16);
-            __m128i d = *(__m128i *)(dest+x+y*stride+stride*2+16);
+            __m128i c = *(__m128i *)(dest+x+y*stride + 16);
+            __m128i d = *(__m128i *)(dest+x+y*stride + Double(stride) + 16);
 
             a=_mm_avg_epu8(a,b);
             c=_mm_avg_epu8(c,d);
@@ -569,22 +572,24 @@ void enlarge_res(const unsigned char * src, unsigned char * dst, unsigned char *
 
                b = _mm_avg_pu8(a,b);
 
-               *(__m64*)(dest+x*2+y*stride*4) = _mm_unpacklo_pi8(b,a);
-               *(__m64*)(dest+x*2+y*stride*4+8)=_mm_unpackhi_pi8(b,a);
+               *(__m64*)(dest+Double(x)+Quadruple(y*stride)) = _mm_unpacklo_pi8(b,a);
+               *(__m64*)(dest+Double(x)+Quadruple(y*stride)+8)=_mm_unpackhi_pi8(b,a);
             }
          }
-         height*=2;
-         stride*=2;
-         width*=2;
+
+         height = Double(height);
+         stride = Double(stride);
+         width = Double(width);
+
          for ( y=0;y<height-2;y+=2)
          {
             for ( unsigned int x=0;x<stride;x+=16)
             {
                __m64 a = *(__m64 *)(dest+x+y*stride);
-               __m64 b = *(__m64 *)(dest+x+y*stride+stride*2);
+               __m64 b = *(__m64 *)(dest+x+y*stride+Double(stride));
 
                __m64 c = *(__m64 *)(dest+x+y*stride+8);
-               __m64 d = *(__m64 *)(dest+x+y*stride+stride*2+8);
+               __m64 d = *(__m64 *)(dest+x+y*stride+Double(stride)+8);
 
                a=_mm_avg_pu8(a,b);
                c=_mm_avg_pu8(c,d);
@@ -617,22 +622,24 @@ void enlarge_res(const unsigned char * src, unsigned char * dst, unsigned char *
                b = _mm_srli_pi16(b,1);
                b = _mm_add_pi8(c,b);
 
-               *(__m64*)(dest+x*2+y*stride*4) = _mm_unpacklo_pi8(b,a);
-               *(__m64*)(dest+x*2+y*stride*4+8)=_mm_unpackhi_pi8(b,a);
+               *(__m64*)(dest+Double(x)+Quadruple(y*stride)) = _mm_unpacklo_pi8(b,a);
+               *(__m64*)(dest+Double(x)+Quadruple(y*stride)+8)=_mm_unpackhi_pi8(b,a);
             }
          }
-         height*=2;
-         stride*=2;
-         width*=2;
+
+         height = Double(height);
+         stride = Double(stride);
+         width = Double(width);
+
          for ( y=0;y<height-2;y+=2)
          {
             for ( unsigned int x=0;x<stride;x+=16)
             {
                __m64 a = *(__m64 *)(dest+x+y*stride);
-               __m64 b = *(__m64 *)(dest+x+y*stride+stride*2);
+               __m64 b = *(__m64 *)(dest+x+y*stride+Double(stride));
 
                __m64 c = *(__m64 *)(dest+x+y*stride+8);
-               __m64 d = *(__m64 *)(dest+x+y*stride+stride*2+8);
+               __m64 d = *(__m64 *)(dest+x+y*stride+Double(stride)+8);
 
                a = _mm_and_si64(a,mask);
                b = _mm_and_si64(b,mask);

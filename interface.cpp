@@ -384,13 +384,14 @@ DWORD CodecInst::CompressGetFormat(LPBITMAPINFOHEADER lpbiIn, LPBITMAPINFOHEADER
    lpbiOut->biPlanes = 1;
    lpbiOut->biCompression = FOURCC_YETI;
 
-   if ( lpbiIn->biBitCount != 24 ) // TODO: optimize
+   if ( lpbiIn->biBitCount != 24 )
    {
-      lpbiOut->biSizeImage = lpbiIn->biWidth * lpbiIn->biHeight * lpbiIn->biBitCount/8;
+      lpbiOut->biSizeImage = Eighth( lpbiIn->biWidth * lpbiIn->biHeight * lpbiIn->biBitCount);
+      lpbiOut->biSizeImage = Eighth( lpbiIn->biWidth * lpbiIn->biHeight * lpbiIn->biBitCount);
    } 
    else 
    {
-      lpbiOut->biSizeImage = align_round(lpbiIn->biWidth * lpbiIn->biBitCount/8,4)* lpbiIn->biHeight;
+      lpbiOut->biSizeImage = align_round(Eighth(lpbiIn->biWidth * lpbiIn->biBitCount),4)* lpbiIn->biHeight;
    }
 
    lpbiOut->biBitCount = lpbiIn->biBitCount;
@@ -415,11 +416,11 @@ DWORD CodecInst::GetInfo(ICINFO* icinfo, DWORD dwSize)
    icinfo->dwSize       = sizeof(ICINFO);
    icinfo->fccType      = ICTYPE_VIDEO;
    icinfo->fccHandler	= FOURCC_YETI;
-   icinfo->dwFlags		= VIDCF_FASTTEMPORALC;
+   icinfo->dwFlags		= VIDCF_FASTTEMPORALC | VIDCF_FASTTEMPORALD;
    icinfo->dwVersion		= 0x00010000;
    icinfo->dwVersionICM	= ICVERSION;
    memcpy(icinfo->szName, L"Yeti", sizeof(L"Yeti"));
-   memcpy(icinfo->szDescription, L"Yeti lossless codec", sizeof(L"Yeti lossless codec"));
+   memcpy(icinfo->szDescription, L"Yeti Video Codec", sizeof(L"Yeti Video Codec"));
 
    return sizeof(ICINFO);
 }

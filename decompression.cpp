@@ -193,11 +193,11 @@ void CodecInst::ReduceResDecompress()
    unsigned char * dest = (_format == YV12) ? _pBuffer : _pOut;
 
    uncompact_macro(_pIn + 9, dest, wxh, _width, _height, &_info_a, YV12);
-   uncompact_macro(_pIn + size, dest + wxh, quarterSize, hw, hh, &_info_b, YV12); //TODO: optimize
+   uncompact_macro(_pIn + size, dest + wxh, quarterSize, hw, hh, &_info_b, YV12);
    size = *(unsigned int*)(_pIn + 5);
-   uncompact_macro(_pIn + size, dest + wxh + quarterSize, quarterSize, hw, hh, NULL, YV12); //TODO: optimize
+   uncompact_macro(_pIn + size, dest + wxh + quarterSize, quarterSize, hw, hh, NULL, YV12);
 
-   ASM_BlockRestore(dest + _width * _height + quarterSize, hw, quarterSize, 0); //TODO: optimize
+   ASM_BlockRestore(dest + _width * _height + quarterSize, hw, quarterSize, 0);
    wait_for_threads(2);
    if ( !_multithreading )
    {

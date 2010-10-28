@@ -161,14 +161,14 @@ void CompressClass::calcprob(const unsigned char * const in, const unsigned int 
 
 unsigned int CompressClass::compact( const unsigned char * in, unsigned char * out, const unsigned int length,const bool yuy2_lum)
 {
-   int min_size = length/512; //TODO optimize
-
-   int bytes_used=0;
+   int min_size = length >> 9; // length/512
 
    if ( min_size < 16 )
    {
-      min_size=16;
+      min_size = 16;
    }
+
+   int bytes_used=0;
 
    //int rle = best_compresssion(in,out,(int*)bytecounts,length,1);
    int rle;

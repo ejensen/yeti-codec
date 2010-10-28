@@ -534,37 +534,35 @@ DWORD CodecInst::CompressLossy(ICCOMPRESS * icinfo )
    const unsigned char * src=0;
    DWORD ret_val=0;
 
-   if ( _format >= RGB24 ) //TODO: Optimize
+   if ( _format >= RGB24 )
    {
-      unsigned char * dest;
-      dest = _pBuffer; // TODO: Optimize
-
       if ( _format == RGB24 )
       {
-         mmx_ConvertRGB24toYUY2(_pIn,dest,_width*3,_width*2,_width,_height); // TODO: Optimize
+         mmx_ConvertRGB24toYUY2(_pIn,_pBuffer,_width*3,Double(_width),_width,_height);
       } 
       else if ( _format == RGB32 )
       {
-         mmx_ConvertRGB32toYUY2((const unsigned int *)_pIn,(unsigned int *)dest,_width,_width/2,_width,_height);// TODO: Optimize
+         mmx_ConvertRGB32toYUY2((const unsigned int *)_pIn,(unsigned int *)_pBuffer,_width,Half(_width),_width,_height);
       }
-      src=dest;
+      src = _pBuffer;
    }
    else
    {
-      src=_pIn;
+      src = _pIn;
    }
 
+   unsigned int dw = Double(_width);
    unsigned char * dst2=_pLossy_buffer;
-   unsigned int yuy2_pitch = align_round(_width*2,16); // TODO: Optimize
+   unsigned int yuy2_pitch = align_round(dw,16);
    unsigned int y_pitch = align_round(_width,8);
-   unsigned int uv_pitch = align_round(_width/2,8); // TODO: Optimize
+   unsigned int uv_pitch = align_round(Half(_width),8);
 
    bool is_aligned = (_width%16)==0;
    if ( !is_aligned )
    {
-      for ( unsigned int h=0;h<_height;h++)
+      for (unsigned int h = 0; h < _height; h++)
       {
-         memcpy(dst2+yuy2_pitch*h, src+_width*2*h, _width*2); // TODO: Optimize
+         memcpy(dst2 + yuy2_pitch * h, src + dw * h, dw);
       }
 
       src = dst2;
@@ -573,28 +571,30 @@ DWORD CodecInst::CompressLossy(ICCOMPRESS * icinfo )
 
    if ( _SSE )
    {
-      isse_yuy2_to_yv12(src, _width*2, yuy2_pitch, dst2, dst2+y_pitch*_height+uv_pitch*_height/2, dst2+y_pitch*_height, y_pitch,uv_pitch, _height);
+      isse_yuy2_to_yv12(src, dw, yuy2_pitch, dst2, dst2+y_pitch*_height+ Half(uv_pitch * _height), dst2+y_pitch*_height, y_pitch,uv_pitch, _height);
    } 
    else 
    {
-      mmx_yuy2_to_yv12( src, _width*2, yuy2_pitch, dst2, dst2+y_pitch*_height+uv_pitch*_height/2, dst2+y_pitch*_height, y_pitch,uv_pitch, _height);
+      mmx_yuy2_to_yv12( src, dw, yuy2_pitch, dst2, dst2+y_pitch*_height+ Half(uv_pitch * _height), dst2+y_pitch*_height, y_pitch,uv_pitch, _height);
    }
 
    unsigned char * dest = _pLossy_buffer;
    if ( !is_aligned )
    {
       unsigned int h;
-      for ( h=0;h<_height;h++)
+
+      for ( h=0;h < _height;h++)
       {
-         memcpy(dest + _width * h, dst2 + y_pitch * h, _width); // TODO: Optimize
+         memcpy(dest + _width * h, dst2 + y_pitch * h, _width);
       }
 
       dst2 += y_pitch * _height;
       dest += _width * _height;
 
-      for ( h=0; h<_height; h++)
+      unsigned int hw = Half(_width);
+      for ( h=0; h < _height; h++)
       {
-         memcpy(dest+_width / 2 * h, dst2 + uv_pitch * h, _width/2); // TODO: Optimize
+         memcpy(dest + hw * h, dst2 + uv_pitch * h, hw);
       }
    }
 

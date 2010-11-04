@@ -145,24 +145,23 @@ DWORD CodecInst::CompressYV12(ICCOMPRESS* icinfo)
          pos&=(~15);
          if (!memcmp(_pIn+pos,_pPrev+pos,len-pos) && !memcmp(_pIn,_pPrev,pos) )
          {
-            icinfo->lpbiOutput->biSizeImage =0;
-            *icinfo->lpdwFlags = NULL;
+            icinfo->lpbiOutput->biSizeImage = 0;
+            *icinfo->lpdwFlags = 0;
             return (DWORD)ICERR_OK;
          }
       }
       //DELTA!!!!
-      unsigned int buffer_size = Eighth( align_round(_width, 32) * _height * _format )+1024; 
-      for(unsigned int i = 0; i < buffer_size; i++)
+      for(unsigned int i = 0; i < len; i++)
       {
          _pDelta[i] = _pIn[i] ^ _pPrev[i];
       }
-
-      source = _pDelta;
    }
    else
    {
-      source = (unsigned char*)_pIn;
+      memcpy(_pDelta, _pIn, len); //TODO Optimize
    }
+
+   source = _pDelta;
 
    //note: chroma has only half the width of luminance, it may need to be aligned separately
 
@@ -229,7 +228,7 @@ DWORD CodecInst::CompressYV12(ICCOMPRESS* icinfo)
       ysrc = _pBuffer;
       _pBuffer += ay_len;
 
-      for ( y=0;y<hh*2;y++)//Optimize
+      for ( y=0;y<Double(hh);y++)//Optimize?
       {
          memcpy(_pBuffer + y * c_stride,source + y * hw + y_len, hw);
          unsigned char val = _pBuffer[y * c_stride + hw - 1];
@@ -611,13 +610,16 @@ DWORD CodecInst::CompressLossy(ICCOMPRESS * icinfo )
    else
    {
       ret_val = CompressYV12(icinfo);
-      if ( icinfo->dwFlags == 1 /*AVIIF_LIST*/ && ret_val == ICERR_OK )
+      if( ret_val == ICERR_OK )
       {
-         *icinfo->lpdwFlags = AVIIF_KEYFRAME;
-      }
-      else
-      {
-         *icinfo->lpdwFlags = AVIIF_LASTPART;
+         if ( icinfo->dwFlags == 1 /*AVIIF_LIST*/ ) // TODO: Optimize
+         {
+            *icinfo->lpdwFlags = AVIIF_KEYFRAME;
+         }
+         else
+         {
+            *icinfo->lpdwFlags = AVIIF_LASTPART;
+         }
       }
    }
    //_pIn=stored_in;
@@ -677,11 +679,6 @@ DWORD CodecInst::Compress(ICCOMPRESS* icinfo, DWORD dwSize)
 
    //if ( _nullframes ){
     memcpy( _pPrev, _pIn, _length); // TODO: Optimize
-   //}
-
-   //if (ret_val == ICERR_OK )
-   //{
-   //   *icinfo->lpdwFlags = AVIIF_KEYFRAME; //TODO: Change for delta frames
    //}
 
    if ( !(fpuword & _PC_53) || (fpuword & _MCW_RC))

@@ -263,10 +263,10 @@ namespace zero {
             } 
             else
             {
-               int bShift = b >> 8;
-               lvl1+= Double((bShift+1));
-               lvl2+=(((b-bShift)>>8) +1)*3;
-               lvl3+=Quadruple((((b-(b>>7))>>8) +1));
+               int bShift = b / 256;
+               lvl1+=(bShift+1)*2; 
+               lvl2+=((b-bShift)/256+1)*3; 
+               lvl3+=((b-(b/128))/256+1)*4; 
             }
          }
          lvl1++;
@@ -275,7 +275,7 @@ namespace zero {
       }
 
       // if RLE compressed extremely well, see if all but the 1st byte are 0 
-      if ( lvl1 < length >> 7 + 4 )
+      if ( lvl1 < length/128 + 4 )
       {
          unsigned int val=*(unsigned int*)(in);
          val-=in[0];

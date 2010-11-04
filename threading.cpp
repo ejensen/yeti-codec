@@ -16,7 +16,6 @@ DWORD WINAPI encode_worker_thread( LPVOID i )
    unsigned char * dest=NULL;
    unsigned char * const buffer = (unsigned char *)info->buffer;
    const unsigned int format=info->format;
-   const unsigned int lum = info->lum;
 
    while ( info->length != 0xFFFFFFFF )
    {
@@ -104,7 +103,7 @@ DWORD CodecInst::InitThreads( int encode )
    _info_b.length=0;
    _info_c.length=0;
 
-   unsigned int use_format = use_format = YV12;
+   unsigned int use_format = YV12;
 
    _info_a.width = _width;
    _info_b.width = Half(_width);
@@ -145,10 +144,6 @@ DWORD CodecInst::InitThreads( int encode )
    _info_b.name = "Thread B";
    _info_c.name = "Thread C";
 #endif
-
-   _info_a.lum = 1;
-   _info_b.lum = 0;
-   _info_c.lum = 0;
 
    int buffer_a = align_round(_width,16)*(_height)+2048;
    int buffer_b = align_round(_info_b.width,16)*_info_b.height+2048;

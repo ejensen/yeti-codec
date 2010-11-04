@@ -53,12 +53,12 @@ void isse_yv12_to_yuy2(const BYTE* srcY, const BYTE* srcU, const BYTE* srcV, int
       __asm mov		ebx_backup,ebx
 
       const BYTE** srcp= new const BYTE*[3];
-      int src_pitch_uv2 = src_pitch_uv<<1;
+      int src_pitch_uv2 = src_pitch_uv * 2;
       //  int src_pitch_uv4 = src_pitch_uv*4;
       //int skipnext = 0;
 
-      int dst_pitch2=dst_pitch<<1;
-      int src_pitch2 = src_pitch<<1;
+      int dst_pitch2=dst_pitch * 2;
+      int src_pitch2 = src_pitch * 2;
 
 
       /**** Do first and last lines - NO interpolation:   *****/
@@ -76,8 +76,8 @@ void isse_yv12_to_yuy2(const BYTE* srcY, const BYTE* srcU, const BYTE* srcV, int
             break;
          case 2:
             _srcY=srcY+(src_pitch*(height-2));
-            _srcU=srcU+(src_pitch_uv*((height>>1)-1));
-            _srcV=srcV+(src_pitch_uv*((height>>1)-1));
+            _srcU=srcU+(src_pitch_uv*(height/2-1));
+            _srcV=srcV+(src_pitch_uv*(height/2-1));
             _dst = dst+(dst_pitch*(height-2));
             break;
          case 3: // Same chroma as in 4
@@ -294,11 +294,11 @@ void mmx_yv12_to_yuy2(const BYTE* srcY, const BYTE* srcU, const BYTE* srcV, int 
    int height) {
       __declspec(align(8)) static __int64 add_64=0x0002000200020002;
       const BYTE** srcp= new const BYTE*[3];
-      int src_pitch_uv2 = src_pitch_uv<<1;
+      int src_pitch_uv2 = src_pitch_uv * 2;
       //int skipnext = 0;
 
-      int dst_pitch2=dst_pitch<<1;
-      int src_pitch2 = src_pitch<<1;
+      int dst_pitch2=dst_pitch * 2;
+      int src_pitch2 = src_pitch * 2;
 
 
 
@@ -317,8 +317,8 @@ void mmx_yv12_to_yuy2(const BYTE* srcY, const BYTE* srcU, const BYTE* srcV, int 
             break;
          case 2:
             _srcY=srcY+(src_pitch*(height-2));
-            _srcU=srcU+(src_pitch_uv*((height>>1)-1));
-            _srcV=srcV+(src_pitch_uv*((height>>1)-1));
+            _srcU=srcU+(src_pitch_uv*(height/2-1));
+            _srcV=srcV+(src_pitch_uv*(height/2-1));
             _dst = dst+(dst_pitch*(height-2));
             break;
          case 3: // Same chroma as in 4
@@ -555,12 +555,12 @@ __declspec(align(8)) static __int64 mask2	= 0xff00ff00ff00ff00;
       dstp[1]=dstY+dst_pitchY;
       dstp[2]=dstU;
       dstp[3]=dstV;
-      int src_pitch2 = src_pitch<<1;
-      int dst_pitch2 = dst_pitchY<<1;
+      int src_pitch2 = src_pitch * 2;
+      int dst_pitch2 = dst_pitchY * 2;
 
       int y=0;
       //int x=0;
-      src_rowsize = (src_rowsize+3) >> 2;
+      src_rowsize = (src_rowsize+3)  / 4;
       __asm {
   push ebx    // stupid compiler forgets to save ebx!!
          movq mm7,[mask2]
@@ -672,12 +672,12 @@ __declspec(align(8)) static __int64 add_1	= 0x0001000100010001;
       dstp[1]=dstY+dst_pitchY;
       dstp[2]=dstU;
       dstp[3]=dstV;
-      int src_pitch2 = src_pitch<<1;
-      int dst_pitch2 = dst_pitchY<<1;
+      int src_pitch2 = src_pitch * 2;
+      int dst_pitch2 = dst_pitchY * 2;
 
       int y=0;
       //int x=0;
-      src_rowsize = (src_rowsize+3) >> 2;
+      src_rowsize = (src_rowsize+3) / 4;
       __asm {
   push ebx    // stupid compiler forgets to save ebx!!
          mov edx,0

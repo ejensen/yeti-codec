@@ -102,7 +102,6 @@ inline void * aligned_malloc( void *ptr, int size, int align, char *str )
 
 static const DWORD FOURCC_YETI = mmioFOURCC('Y','E','T','I');
 static const DWORD FOURCC_YUY2 = mmioFOURCC('Y','U','Y','2');
-static const DWORD FOURCC_UYVY = mmioFOURCC('U','Y','V','Y');
 static const DWORD FOURCC_YV12 = mmioFOURCC('Y','V','1','2');
 
 static const char SettingsFile[] = "yeti.ini";
@@ -129,9 +128,6 @@ struct threadinfo
    unsigned int format;
    volatile unsigned int length;	// uncompressed data length
    volatile unsigned int size;		// compressed data length
-   unsigned int lum;				// needed for YUY2 prediction
-   HANDLE mutex;
-   char mutex_name[12];
 #ifdef _DEBUG
    char * name;
 #endif

@@ -300,7 +300,7 @@ DWORD CodecInst::CompressQuery(LPBITMAPINFOHEADER lpbiIn, LPBITMAPINFOHEADER lpb
          return_error()
       }
    } 
-   else if ( lpbiIn->biCompression == FOURCC_YUY2 || lpbiIn->biCompression == FOURCC_UYVY )
+   else if ( lpbiIn->biCompression == FOURCC_YUY2 )
    {
       if ( lpbiIn->biBitCount != 16 ) 
       {
@@ -321,11 +321,6 @@ DWORD CodecInst::CompressQuery(LPBITMAPINFOHEADER lpbiIn, LPBITMAPINFOHEADER lpb
       char * y = (char*)&x;
       sprintf(msg,"Unknown format, %c%c%c%c",y[0],y[1],y[2],y[3]);
       MessageBox (HWND_DESKTOP, msg, "Error", MB_OK | MB_ICONEXCLAMATION);*/
-      return_error()
-   }
-
-   if ( lpbiIn->biCompression == FOURCC_UYVY ) // down sampling UYUV is not supported
-   { 
       return_error()
    }
 
@@ -416,7 +411,7 @@ DWORD CodecInst::GetInfo(ICINFO* icinfo, DWORD dwSize)
    icinfo->dwSize       = sizeof(ICINFO);
    icinfo->fccType      = ICTYPE_VIDEO;
    icinfo->fccHandler	= FOURCC_YETI;
-   icinfo->dwFlags		= VIDCF_FASTTEMPORALC | VIDCF_FASTTEMPORALD;
+   icinfo->dwFlags		= VIDCF_FASTTEMPORALC;
    icinfo->dwVersion		= 0x00010000;
    icinfo->dwVersionICM	= ICVERSION;
    memcpy(icinfo->szName, L"Yeti", sizeof(L"Yeti"));

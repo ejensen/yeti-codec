@@ -32,7 +32,7 @@ DWORD CodecInst::DecompressBegin(LPBITMAPINFOHEADER lpbiIn, LPBITMAPINFOHEADER l
 
    _format = lpbiOut->biBitCount;
 
-   _length = _width * _height * Eighth(_format);
+   _length = Eighth(_width * _height * _format);
 
    buffer_size = _length + 2048;
    if ( _format >= RGB24 )
@@ -198,7 +198,9 @@ void CodecInst::ReduceResDecompress()
    uncompact_macro(_pIn + size, dest + wxh + quarterSize, quarterSize, hw, hh, NULL, YV12);
 
    ASM_BlockRestore(dest + _width * _height + quarterSize, hw, quarterSize, 0);
+
    wait_for_threads(2);
+
    if ( !_multithreading )
    {
       ASM_BlockRestore(dest, _width, wxh, 0);
@@ -274,7 +276,7 @@ DWORD CodecInst::Decompress(ICDECOMPRESS* icinfo, DWORD dwSize)
    {
       _controlfp(_PC_53 | _RC_NEAR,_MCW_PC | _MCW_RC);
 #ifdef _DEBUG
-      static bool firsttime=true;
+      static bool firsttime = true;
       if ( firsttime )
       {
          firsttime=false;
@@ -285,7 +287,7 @@ DWORD CodecInst::Decompress(ICDECOMPRESS* icinfo, DWORD dwSize)
 
    switch ( _pIn[0] ){
    case ARITH_YV12:
-      #ifdef _DEBUG
+#ifdef _DEBUG
       if( ( icinfo->dwFlags & ICDECOMPRESS_HURRYUP ) == ICDECOMPRESS_HURRYUP )
       {
           MessageBox (HWND_DESKTOP, "Hurry Up!!!", "Info", MB_OK | MB_ICONEXCLAMATION);

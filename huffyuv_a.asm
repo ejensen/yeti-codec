@@ -254,8 +254,6 @@ _&procname	ENDP
 
 YUV2RGB_PROC	mmx_YUY2toRGB24,0,0
 YUV2RGB_PROC	mmx_YUY2toRGB32,0,1
-;YUV2RGB_PROC	mmx_UYVYtoRGB24,1,0
-;YUV2RGB_PROC	mmx_UYVYtoRGB32,1,1
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 

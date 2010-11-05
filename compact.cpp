@@ -158,8 +158,7 @@ void CompressClass::calcprob(const unsigned char * const in, const unsigned int 
 // This function encapsulates compressing a byte stream.
 // It applies a modified run length encoding if it saves enough bytes, 
 // writes the frequency header, and range compresses the byte stream.
-
-unsigned int CompressClass::compact( const unsigned char * in, unsigned char * out, const unsigned int length,const bool yuy2_lum)
+unsigned int CompressClass::compact( const unsigned char * in, unsigned char * out, const unsigned int length)
 {
    int min_size = length / 512;
 
@@ -172,16 +171,9 @@ unsigned int CompressClass::compact( const unsigned char * in, unsigned char * o
 
    //int rle = best_compresssion(in,out,(int*)bytecounts,length,1);
    int rle;
-   if ( !yuy2_lum || in[0]!=in[1])
-   {
-      rle = zero::testRLE(in,length,min_size);
-   } 
-   else
-   {
-      rle = zero::testRLE(in+1,length-1,min_size);
-   }
+   rle = zero::testRLE(in,length,min_size);
 
-   out[0]=rle;
+   out[0] = rle;
    if ( rle )
    {
       if (rle == -1 )  // solid run of 0s, only 1st byte is needed
@@ -189,7 +181,6 @@ unsigned int CompressClass::compact( const unsigned char * in, unsigned char * o
          out[0]=0xFF;
          out[1]=in[0];
          bytes_used= 2;
-
       } 
       else 
       {
@@ -239,23 +230,23 @@ void CompressClass::uncompact( const unsigned char * in, unsigned char * out, co
       {
          if ( rle < 4 ){
             unsigned int size = *( UINT32 *)(in+1);
-            if ( size >= length )  // should not happen, most likely a corrupted 1.3.x encoding
-            {
-               int skip;
-               skip = readprob(in+1);
-               if ( !skip )
-                  return;
-               decode(in+skip,out,length);
-            } 
-            else 
-            {	
+            //if ( size >= length )  // should not happen, most likely a corrupted 1.3.x encoding
+            //{
+            //   int skip;
+            //   skip = readprob(in+1);
+            //   if ( !skip )
+            //      return;
+            //   decode(in+skip,out,length);
+            //} 
+            //else 
+            //{	
                int skip;
                skip = readprob(in+5);
                if ( !skip )
                   return;
                decode(in+4+skip,_pBuffer,size);
                zero::deRLE(_pBuffer,out,length,in[0]);
-            }
+            //}
          } 
          else
          {

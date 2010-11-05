@@ -19,7 +19,7 @@ public:
 	bool InitCompressBuffers(const unsigned int length);
 	void FreeCompressBuffers();
 
-	unsigned int compact( const unsigned char * in, unsigned char * out, const unsigned int length, const bool yuy2_lum=false);
+	unsigned int compact( const unsigned char * in, unsigned char * out, const unsigned int length);
 	void uncompact( const unsigned char * in, unsigned char * out, const unsigned int length);
 	void calcprob(const unsigned char * in, const unsigned int length);
 	void calcprob2(const unsigned char * in, const unsigned int length);

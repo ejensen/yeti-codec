@@ -111,29 +111,12 @@ DWORD CodecInst::CompressEnd()
 // Compress a YV12 keyframe
 DWORD CodecInst::CompressYV12(ICCOMPRESS* icinfo)
 {
-   const unsigned int mod = (_SSE2?16:8) - 1;
-
-   const unsigned int hw = Half(_width);
-   const unsigned int hh = Half(_height);
-
+   //TODO: Optimize for subsequent calls
    const unsigned int y_len	= _width*_height;
    const unsigned int c_len	= Fourth(y_len);
    const unsigned int yu_len	= y_len+c_len;
    const unsigned int len		= yu_len+c_len;
 
-   const unsigned int y_stride	= align_round(_width,mod+1);
-   const unsigned int c_stride	= align_round(hw,mod+1);
-
-   const unsigned int ay_len	= y_stride*_height;
-   const unsigned int ac_len	= Half(c_stride*_height);
-   const unsigned int ayu_len	= ay_len+ac_len;
-
-   const unsigned char * ysrc;
-   const unsigned char * usrc;
-   const unsigned char * vsrc;
-
-   const unsigned int in_aligned = !((int)_pIn&mod);
-   
    unsigned char* source;
 
    if(icinfo->lFrameNum > 0) //TODO: Optimize
@@ -151,7 +134,7 @@ DWORD CodecInst::CompressYV12(ICCOMPRESS* icinfo)
          }
       }
       //DELTA!!!!
-      for(unsigned int i = 0; i < len; i++)
+      for(unsigned int i = 0; i < len; i++) //TODO: optimize
       {
          _pDelta[i] = _pIn[i] ^ _pPrev[i];
       }
@@ -163,9 +146,29 @@ DWORD CodecInst::CompressYV12(ICCOMPRESS* icinfo)
 
    source = _pDelta;
 
+   //TODO: Optimize for subsequent calls
+   const unsigned int mod = (_SSE2?16:8) - 1;
+
+   const unsigned int hw = Half(_width);
+   const unsigned int hh = Half(_height);
+
+   const unsigned int y_stride	= align_round(_width,mod+1);
+   const unsigned int c_stride	= align_round(hw,mod+1);
+
+   const unsigned int ay_len	= y_stride*_height;
+   const unsigned int ac_len	= Half(c_stride*_height);
+   const unsigned int ayu_len	= ay_len+ac_len;
+
+   const unsigned char * ysrc;
+   const unsigned char * usrc;
+   const unsigned char * vsrc;
+
+   const unsigned int in_aligned = !( (int)_pIn & mod);
+  
+
    //note: chroma has only half the width of luminance, it may need to be aligned separately
 
-   if ( ((hw)&mod) == 0 )  // no alignment padding needed
+   if ( ((hw) & mod) == 0 )  // no alignment padding needed
    {
       if ( in_aligned )  // no alignment needed
       {
@@ -175,13 +178,13 @@ DWORD CodecInst::CompressYV12(ICCOMPRESS* icinfo)
       } 
       else // data is naturally aligned,	input buffer is not
       {
-         memcpy(_pBuffer,source,len);
+         memcpy(_pBuffer, source, len);
          ysrc = _pBuffer;
          usrc = _pBuffer+y_len;
          vsrc = _pBuffer+yu_len;
       }
    } 
-   else if ( (_width&mod) == 0 ) // chroma needs alignment padding
+   else if ( (_width & mod) == 0 ) // chroma needs alignment padding
    { 
       if ( in_aligned )
       {
@@ -195,9 +198,9 @@ DWORD CodecInst::CompressYV12(ICCOMPRESS* icinfo)
 
       _pBuffer += y_len; // step over luminance (not always needed...)
 
-      for ( unsigned int y=0;y<Double(hh);y++) // TODO: Optimize?
+      for ( unsigned int y=0; y < Double(hh); y++) // TODO: Optimize?
       {
-         memcpy(_pBuffer + y * c_stride,source + y * hw + y_len, hw);
+         memcpy(_pBuffer + y * c_stride, source + y * hw + y_len, hw);
          unsigned char val = _pBuffer[y * c_stride + hw - 1];
 
          for (unsigned int x = hw; x < c_stride; x++)
@@ -205,6 +208,7 @@ DWORD CodecInst::CompressYV12(ICCOMPRESS* icinfo)
             _pBuffer[y * c_stride + x] = val;
          }
       }
+
       usrc = _pBuffer;
       vsrc = _pBuffer+ac_len;
 
@@ -214,7 +218,7 @@ DWORD CodecInst::CompressYV12(ICCOMPRESS* icinfo)
    {
       // align luminance
       unsigned int y;
-      for ( y=0; y < _height; y++)
+      for ( y = 0; y < _height; y++)
       {
          memcpy(_pBuffer + y * y_stride, source + y * _width, _width);
          unsigned char val = _pBuffer[y * y_stride + _width - 1];
@@ -228,7 +232,7 @@ DWORD CodecInst::CompressYV12(ICCOMPRESS* icinfo)
       ysrc = _pBuffer;
       _pBuffer += ay_len;
 
-      for ( y=0;y<Double(hh);y++)//Optimize?
+      for ( y = 0; y < Double(hh); y++)//Optimize?
       {
          memcpy(_pBuffer + y * c_stride,source + y * hw + y_len, hw);
          unsigned char val = _pBuffer[y * c_stride + hw - 1];
@@ -243,7 +247,7 @@ DWORD CodecInst::CompressYV12(ICCOMPRESS* icinfo)
 
       _pBuffer -= ay_len;
    }
-   // done aligning, aligned data is in 'in' (which may actually be prev) or buffer 
+   // done aligning, aligned data is in 'in' which may actually be prev or buffer 
 
    int size;
    if ( !_multithreading )
@@ -283,6 +287,8 @@ DWORD CodecInst::CompressYV12(ICCOMPRESS* icinfo)
          MMX_BlockPredict(vsrc,vdest,c_stride,ac_len,_SSE,0);
       }
 
+      memcpy(_pBuffer2, _pBuffer, len);
+
       // remove alignment padding, all data will end up in buffer2
       if (_width & mod) // remove luminance padding 
       {
@@ -291,9 +297,10 @@ DWORD CodecInst::CompressYV12(ICCOMPRESS* icinfo)
             memcpy(_pBuffer2 + y * _width, ydest + y * y_stride, _width);
          }
       }
+
       if ( hw & mod )  // remove chroma padding
       {
-         for ( unsigned int y=0;y< Double(hh);y++) // TODO: Optimize?
+         for ( unsigned int y = 0 ; y< Double(hh); y++) // TODO: Optimize?
          {
             memcpy(_pBuffer2 + y_len + y * hw, udest + y * c_stride, hw);
          }
@@ -302,9 +309,9 @@ DWORD CodecInst::CompressYV12(ICCOMPRESS* icinfo)
       size = 9;
       size += _cObj.compact(_pBuffer2, _pOut + size, y_len);
       *(UINT32*)(_pOut + 1) = size;
-      size += _cObj.compact(_pBuffer2 + y_len, _pOut+size, c_len);
+      size += _cObj.compact(_pBuffer2 + y_len, _pOut + size, c_len);
       *(UINT32*)(_pOut + 5) = size;
-      size += _cObj.compact(_pBuffer2 + yu_len, _pOut + size ,c_len);
+      size += _cObj.compact(_pBuffer2 + yu_len, _pOut + size , c_len);
    } 
    else 
    {

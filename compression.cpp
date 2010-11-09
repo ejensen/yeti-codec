@@ -134,10 +134,15 @@ DWORD CodecInst::CompressYV12(ICCOMPRESS* icinfo)
          }
       }
       //DELTA!!!!
-      for(unsigned int i = 0; i < len; i++) //TODO: optimize
-      {
-         m_pDelta[i] = m_pIn[i] ^ m_pPrev[i];
-      }
+
+      Fast_XOR(m_pDelta, m_pIn, m_pPrev, len);
+
+
+      //DELTA!!!!
+      //for(unsigned int i = 0; i < len; i++) //TODO: optimize
+      //{
+      //   m_pDelta[i] = m_pIn[i] ^ m_pPrev[i];
+      //}
    }
    else
    {
@@ -252,7 +257,7 @@ DWORD CodecInst::CompressYV12(ICCOMPRESS* icinfo)
    int size;
    if ( !m_multithreading )
    {
-      unsigned char *buffer3=(unsigned char *)ALIGN_ROUND(_pOut,16);
+      unsigned char *buffer3 = (unsigned char *)ALIGN_ROUND(_pOut,16);
 
       //set up dest buffers based on if alignment padding needs removal later
       unsigned char * ydest;
@@ -276,15 +281,15 @@ DWORD CodecInst::CompressYV12(ICCOMPRESS* icinfo)
       // perform prediction
       if ( m_SSE2 )
       {
-         SSE2_BlockPredict(ysrc,ydest,y_stride,ay_len,0);
-         SSE2_BlockPredict(usrc,udest,c_stride,ac_len,0);
-         SSE2_BlockPredict(vsrc,vdest,c_stride,ac_len,0);
+         SSE2_BlockPredict(ysrc, ydest, y_stride, ay_len);
+         SSE2_BlockPredict(usrc, udest, c_stride, ac_len);
+         SSE2_BlockPredict(vsrc, vdest, c_stride, ac_len);
       } 
       else
       {
-         MMX_BlockPredict(ysrc,ydest,y_stride,ay_len,0);
-         MMX_BlockPredict(usrc,udest,c_stride,ac_len,0);
-         MMX_BlockPredict(vsrc,vdest,c_stride,ac_len,0);
+         MMX_BlockPredict(ysrc, ydest, y_stride, ay_len);
+         MMX_BlockPredict(usrc, udest, c_stride, ac_len);
+         MMX_BlockPredict(vsrc, vdest, c_stride, ac_len);
       }
 
       memcpy(m_pBuffer2, m_pBuffer, len);
@@ -328,11 +333,11 @@ DWORD CodecInst::CompressYV12(ICCOMPRESS* icinfo)
 
       if (m_SSE2)
       {
-         SSE2_BlockPredict(vsrc, vdest, c_stride, ac_len, 0);
+         SSE2_BlockPredict(vsrc, vdest, c_stride, ac_len);
       } 
       else 
       {
-         MMX_BlockPredict(vsrc, vdest, c_stride, ac_len, 0);
+         MMX_BlockPredict(vsrc, vdest, c_stride, ac_len);
       }
 
       // remove alignment if needed
@@ -410,20 +415,20 @@ DWORD CodecInst::CompressReduced(ICCOMPRESS *icinfo)
    if ( !m_multithreading )
    {
       unsigned char * ydest = m_pBuffer2;
-      unsigned char * udest = m_pBuffer2+ry_size;
-      unsigned char * vdest = m_pBuffer2+ryu_size;
+      unsigned char * udest = m_pBuffer2 + ry_size;
+      unsigned char * vdest = m_pBuffer2 + ryu_size;
 
       if ( m_SSE2 )
       {
-         SSE2_BlockPredict(ysrc,ydest,ry_stride,ry_size,0);
-         SSE2_BlockPredict(usrc,udest,rc_stride,rc_size,0);
-         SSE2_BlockPredict(vsrc,vdest,rc_stride,rc_size,0);
+         SSE2_BlockPredict(ysrc,ydest,ry_stride,ry_size);
+         SSE2_BlockPredict(usrc,udest,rc_stride,rc_size);
+         SSE2_BlockPredict(vsrc,vdest,rc_stride,rc_size);
       } 
       else
       {
-         MMX_BlockPredict(ysrc,ydest,ry_stride,ry_size,0);
-         MMX_BlockPredict(usrc,udest,rc_stride,rc_size,0);
-         MMX_BlockPredict(vsrc,vdest,rc_stride,rc_size,0);
+         MMX_BlockPredict(ysrc,ydest,ry_stride,ry_size);
+         MMX_BlockPredict(usrc,udest,rc_stride,rc_size);
+         MMX_BlockPredict(vsrc,vdest,rc_stride,rc_size);
       }
 
       if ( hw % mod ) // remove luminance padding
@@ -455,16 +460,16 @@ DWORD CodecInst::CompressReduced(ICCOMPRESS *icinfo)
       } 
       else
       {
-         usrc=udest;
-         vsrc=vdest;
+         usrc = udest;
+         vsrc = vdest;
       }
 
       size = 9;
-      size+=m_cObj.compact(ysrc, _pOut + size, ry_bytes);
+      size += m_cObj.compact(ysrc, _pOut + size, ry_bytes);
       *(UINT32*)(_pOut+1)=size;
-      size+=m_cObj.compact(usrc, _pOut + size, rc_bytes);
+      size += m_cObj.compact(usrc, _pOut + size, rc_bytes);
       *(UINT32*)(_pOut+5)=size;
-      size+=m_cObj.compact(vsrc, _pOut + size, rc_bytes);
+      size += m_cObj.compact(vsrc, _pOut + size, rc_bytes);
    } 
    else
    {
@@ -472,6 +477,7 @@ DWORD CodecInst::CompressReduced(ICCOMPRESS *icinfo)
       m_info_a.m_pDest =_pOut + 9;
       m_info_a.m_length = ry_bytes;
       RESUME_THREAD(m_info_a.m_thread);
+
       m_info_b.m_pSource = usrc;
       m_info_b.m_pDest = m_pPrev;
       m_info_b.m_length = rc_bytes;
@@ -481,11 +487,11 @@ DWORD CodecInst::CompressReduced(ICCOMPRESS *icinfo)
 
       if ( m_SSE2 )
       {
-         SSE2_BlockPredict(vsrc, vdest, rc_stride, rc_size, 0);
+         SSE2_BlockPredict(vsrc, vdest, rc_stride, rc_size);
       } 
       else
       {
-         MMX_BlockPredict(vsrc, vdest, rc_stride, rc_size, 0);
+         MMX_BlockPredict(vsrc, vdest, rc_stride, rc_size);
       }
 
       // remove alignment if needed

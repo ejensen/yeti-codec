@@ -9,7 +9,7 @@
 
 #pragma warning(disable:4731)
 
-#define align_round(x,y) ((((unsigned int)(x))+(y-1))&(~(y-1)))
+#define ALIGN_ROUND(x,y) ((((unsigned int)(x))+(y-1))&(~(y-1)))
 
 inline int median(int x,int y,int z ) 
 {
@@ -19,7 +19,7 @@ inline int median(int x,int y,int z )
    return  (i<=j)?i:j;	//j=min(i,j);
 }
 
-void SSE2_BlockPredict( const unsigned char * source, unsigned char * dest, const unsigned int stride, const unsigned int length, int mode)
+void SSE2_BlockPredict( const unsigned char * source, unsigned char * dest, const unsigned int stride, const unsigned int length)
 {
    unsigned int a;
    __m128i t0;
@@ -39,18 +39,11 @@ void SSE2_BlockPredict( const unsigned char * source, unsigned char * dest, cons
    tb=*(__m128i *)(source+stride-16); // x
    tb = _mm_srli_si128(tb,15);
 
-   if ( !mode )
-   {
-      // dest[stride] must equal source[stride]-source[stride-1] not source[0] due to a coding error
-      // to achieve this, the initial values for z is set to y to make x the median
-      ta=*(__m128i *)(source); // z
-      ta = _mm_slli_si128(ta,15);
-      ta = _mm_srli_si128(ta,15);
-   } 
-   else  // otherwise, set z equal to x so y is the median
-   {
-      ta=tb;
-   }
+   // dest[stride] must equal source[stride]-source[stride-1] not source[0] due to a coding error
+   // to achieve this, the initial values for z is set to y to make x the median
+   ta=*(__m128i *)(source); // z
+   ta = _mm_slli_si128(ta,15);
+   ta = _mm_srli_si128(ta,15);
 
    for ( ;a<length;a+=16)
    {
@@ -105,7 +98,7 @@ void SSE2_BlockPredict( const unsigned char * source, unsigned char * dest, cons
    }
 }
 
-void MMX_BlockPredict( const unsigned char * source, unsigned char * dest, const unsigned int stride, const unsigned int length, int mode)
+void MMX_BlockPredict( const unsigned char * source, unsigned char * dest, const unsigned int stride, const unsigned int length)
 {
    unsigned int a;
    __m64 t0;
@@ -126,18 +119,12 @@ void MMX_BlockPredict( const unsigned char * source, unsigned char * dest, const
 
    tb = _mm_srli_si64(tb,7*8);
 
-   if ( !mode )
-   {
-      // dest[stride] must equal source[stride]-source[stride-1] not source[0] due to a coding error
-      // to achieve this, the initial values for z is set to y to make x the median
-      ta=*(__m64 *)(source); // z
-      ta = _mm_slli_si64(ta,7*8);
-      ta = _mm_srli_si64(ta,7*8);
-   } 
-   else  // otherwise, set z equal to x so y is the median
-   {
-      ta=tb;
-   }
+   // dest[stride] must equal source[stride]-source[stride-1] not source[0] due to a coding error
+   // to achieve this, the initial values for z is set to y to make x the median
+   ta=*(__m64 *)(source); // z
+   ta = _mm_slli_si64(ta,7*8);
+   ta = _mm_srli_si64(ta,7*8);
+
    for ( ;a<length;a+=8)
    {
       __m64 x=*(__m64*)(source+a);
@@ -193,14 +180,14 @@ void MMX_BlockPredict( const unsigned char * source, unsigned char * dest, const
    _mm_empty();
 }
 
-void ASM_BlockRestore(unsigned char * source, unsigned int stride,unsigned int xlength, unsigned int mode)
+void ASM_BlockRestore(unsigned char * source, unsigned int stride, unsigned int xlength, unsigned int mode)
 {
-   for ( unsigned int a=1; a<stride+!mode; a++)
+   for ( unsigned int a = 1; a < stride + !mode; a++)
    {
       source[a] += source[a-1];
    }
 
-   if ( mode )
+   if ( mode ) //TODO: Optimize
    {
       source[stride] += source[0];
    }
@@ -280,7 +267,7 @@ void reduce_res(const unsigned char * src, unsigned char * dest, unsigned char *
 
    const unsigned int mod = (SSE2?32:16);
 
-   const unsigned int stride = align_round(width,mod);
+   const unsigned int stride = ALIGN_ROUND(width,mod);
 
    if ( stride != width )
    {
@@ -378,7 +365,7 @@ void enlarge_res(const unsigned char * src, unsigned char * dst, unsigned char *
 
    const unsigned int mod = (SSE2?32:16);
 
-   unsigned int stride = align_round(width,mod);
+   unsigned int stride = ALIGN_ROUND(width,mod);
 
    if ( stride != width)
    {

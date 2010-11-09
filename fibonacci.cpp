@@ -18,7 +18,7 @@
 // moved accordingly. This is pretty much the same as the zero RLE done on the byte streams 
 // themselves, except the run is encoded using Fibonacci coding.
 
-#define writeBit(x) { \
+#define WRITE_BIT(x) { \
    if ( x) \
    out[pos]|=bitpos;\
    bitpos>>=1;\
@@ -68,14 +68,14 @@ unsigned int FibonacciEncode2(unsigned int * in, unsigned char * out, unsigned i
 
       for ( unsigned int x = 0; x <= a; x++ )
       {
-         writeBit( output[x] );
+         WRITE_BIT( output[x] );
       }
       bits2--;
 
       //write numerical part
       for (unsigned int place = 0x80000000 ; bits2; bits2--)
       {
-         writeBit( num&place);
+         WRITE_BIT( num&place);
          place>>=1;
       }
       if ( in[b]==0 )
@@ -115,14 +115,14 @@ unsigned int FibonacciEncode2(unsigned int * in, unsigned char * out, unsigned i
 
          for ( unsigned int x = 0; x <= a; x++ )
          {
-            writeBit( output[x] );
+            WRITE_BIT( output[x] );
          }
          bits2--;
 
          //write numerical part
          for (unsigned int place = 0x80000000 ; bits2; bits2--)
          {
-            writeBit( num&place);
+            WRITE_BIT( num&place);
             place>>=1;
          }
       }
@@ -130,7 +130,7 @@ unsigned int FibonacciEncode2(unsigned int * in, unsigned char * out, unsigned i
    return pos+(bitpos!=0x80);
 }
 
-#define readBit() { \
+#define READ_BIT() { \
    bit = bitpos & in[pos];\
    bitpos >>=1;\
    if ( !bitpos ){\
@@ -208,7 +208,7 @@ int FibonacciDecode2(const unsigned char * in, unsigned int * out){
          for ( ; !(prevbit && bit ); a++ )
          {
             prevbit = bit;
-            readBit();
+            READ_BIT();
             if ( bit && !prevbit )
                bits+=series[a];
          }
@@ -218,7 +218,7 @@ int FibonacciDecode2(const unsigned char * in, unsigned int * out){
 
          for ( a= 0;a < bits; a++ )
          {
-            readBit();
+            READ_BIT();
             value<<=1;
             if ( bit )
                value++;
@@ -235,7 +235,7 @@ int FibonacciDecode2(const unsigned char * in, unsigned int * out){
             for ( a =0; !(prevbit && bit); a++ )
             {
                prevbit = bit;
-               readBit();
+               READ_BIT();
 
                if ( bit && !prevbit )
                   bits+=series[a];
@@ -246,7 +246,7 @@ int FibonacciDecode2(const unsigned char * in, unsigned int * out){
 
             for ( a= 0;a < bits; a++ )
             {
-               readBit();
+               READ_BIT();
                value<<=1;
                if ( bit )
                   value++;

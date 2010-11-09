@@ -182,6 +182,18 @@ public:
    void EndThreads();
 
    DWORD CompressYV12(ICCOMPRESS* icinfo);
+
+   inline void Fast_XOR(void* dest, const void* src1, const void* src2, const unsigned int len ) 
+   {
+      unsigned* tempDest = (unsigned*)dest;
+      unsigned* tempSrc1 = (unsigned*)src1;
+      unsigned* tempSrc2 = (unsigned*)src2;
+      for(unsigned i = 0; i < FOURTH(len); i++)
+      {
+         tempDest[i] = tempSrc1[i] ^ tempSrc2[i];
+      }
+   }
+
    DWORD CompressLossy(ICCOMPRESS* icinfo);
    DWORD CompressReduced(ICCOMPRESS* icinfo);
 

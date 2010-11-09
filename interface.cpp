@@ -6,7 +6,7 @@
 #include <shellapi.h>
 #include <Windowsx.h>
 
-#define return_error() return (DWORD)ICERR_BADFORMAT;//{ char msg[256];sprintf(msg,"Returning error on line %d", __LINE__);MessageBox (HWND_DESKTOP, msg, "Error", MB_OK | MB_ICONEXCLAMATION); return ICERR_BADFORMAT; }
+#define RETURN_ERROR() return (DWORD)ICERR_BADFORMAT;//{ char msg[256];sprintf(msg,"Returning error on line %d", __LINE__);MessageBox (HWND_DESKTOP, msg, "Error", MB_OK | MB_ICONEXCLAMATION); return ICERR_BADFORMAT; }
 
 CodecInst::CodecInst()
 {
@@ -292,21 +292,21 @@ DWORD CodecInst::CompressQuery(LPBITMAPINFOHEADER lpbiIn, LPBITMAPINFOHEADER lpb
    {
       if ( lpbiIn->biBitCount != 24 && lpbiIn->biBitCount != 32)
       {
-         return_error()
+         RETURN_ERROR()
       }
    } 
    else if ( lpbiIn->biCompression == FOURCC_YUY2 )
    {
       if ( lpbiIn->biBitCount != 16 ) 
       {
-         return_error()
+         RETURN_ERROR()
       }
    }
    else if ( lpbiIn->biCompression == FOURCC_YV12 )
    {
       if ( lpbiIn->biBitCount != 12 )
       {
-         return_error()
+         RETURN_ERROR()
       }
    } 
    else 
@@ -316,40 +316,40 @@ DWORD CodecInst::CompressQuery(LPBITMAPINFOHEADER lpbiIn, LPBITMAPINFOHEADER lpb
       char * y = (char*)&x;
       sprintf(msg,"Unknown format, %c%c%c%c",y[0],y[1],y[2],y[3]);
       MessageBox (HWND_DESKTOP, msg, "Error", MB_OK | MB_ICONEXCLAMATION);*/
-      return_error()
+      RETURN_ERROR()
    }
 
    // Make sure width is mod 4 for YUV formats
    if ( lpbiIn->biWidth % 4 )
    {
-      return_error()
+      RETURN_ERROR()
    }
 
    // Make sure the height is acceptable for YV12 formats
    if ( lpbiIn->biHeight % 2)
    {
-      return_error();
+      RETURN_ERROR();
    }
 
    // See if the output format is acceptable if need be
    if ( lpbiOut )
    {
       if ( lpbiOut->biSize < sizeof(BITMAPINFOHEADER) )
-         return_error()
+         RETURN_ERROR()
          if ( lpbiOut->biBitCount != 24 && lpbiOut->biBitCount != 32 && lpbiOut->biBitCount != 16 && lpbiOut->biBitCount != 12 )
-            return_error()
+            RETURN_ERROR()
             if ( lpbiIn->biHeight != lpbiOut->biHeight )
-               return_error()
+               RETURN_ERROR()
                if ( lpbiIn->biWidth != lpbiOut->biWidth )
-                  return_error()
+                  RETURN_ERROR()
                   if ( lpbiOut->biCompression != FOURCC_YETI )
-                     return_error()
+                     RETURN_ERROR()
    }
 
    detectFlags(&m_SSE2, &m_SSE);
    if ( !m_SSE )
    {
-      return_error()
+      RETURN_ERROR()
    }
 
    return (DWORD)ICERR_OK;
@@ -366,7 +366,7 @@ DWORD CodecInst::CompressGetFormat(LPBITMAPINFOHEADER lpbiIn, LPBITMAPINFOHEADER
    // make sure the input is an acceptable format
    if ( CompressQuery(lpbiIn, NULL) == ICERR_BADFORMAT )
    {
-      return_error()
+      RETURN_ERROR()
    }
 
    *lpbiOut = *lpbiIn;
@@ -444,7 +444,7 @@ DWORD CodecInst::DecompressQuery(const LPBITMAPINFOHEADER lpbiIn, const LPBITMAP
    detectFlags(&m_SSE2, &m_SSE);
    if ( !m_SSE )
    {
-      return_error()
+      RETURN_ERROR()
    }
 
    if ( !lpbiOut )
@@ -536,7 +536,7 @@ DWORD CodecInst::DecompressGetFormat(const LPBITMAPINFOHEADER lpbiIn, LPBITMAPIN
 
 DWORD CodecInst::DecompressGetPalette(LPBITMAPINFOHEADER lpbiIn, LPBITMAPINFOHEADER lpbiOut)
 {
-   return_error()
+   RETURN_ERROR()
 }
 
 #endif

@@ -11,48 +11,40 @@ DWORD WINAPI encode_worker_thread( LPVOID i )
    const unsigned int SSE2 = info->m_SSE2;
    const unsigned int stride = ALIGN_ROUND(width,(SSE2?16:8));
 
-   const unsigned char * src=NULL;
-   unsigned char * dest=NULL;
+   const unsigned char * src = NULL;
+   unsigned char * dest = NULL;
    unsigned char * const buffer = (unsigned char *)info->m_pBuffer;
    const unsigned int format=info->m_format;
 
-   while ( info->m_length != 0xFFFFFFFF )
+   while ( info->m_length != 0xFFFFFFFF ) //TODO: Optimize
    {
       src = (const unsigned char *)info->m_pSource;
       dest = (unsigned char *)info->m_pDest;
 
-      unsigned char * dst;
-      if (  width != stride ) //TODO: Optimize
-      {
-         dst=(unsigned char *)ALIGN_ROUND(dest,16);
-      } 
-      else
-      {
-         dst=buffer;
-      }
+      unsigned char * dst = (width == stride) ? buffer : (unsigned char *)ALIGN_ROUND(dest,16);
 
       if ( SSE2 )
       {
-         SSE2_BlockPredict(src,dst,stride,stride*height,(format!=YV12));
+         SSE2_BlockPredict(src,dst,stride,stride*height);
       } 
       else 
       {
-         MMX_BlockPredict(src,dst,stride,stride*height,(format!=YV12));
+         MMX_BlockPredict(src,dst,stride,stride*height);
       }
 
-      if ( width!= stride )
+      if ( width != stride )
       {
          unsigned char * padded = dst;
          unsigned char * stripped = buffer;
          for ( unsigned int y=0; y<height; y++)
          {
-            memcpy(stripped+y*width,padded+y*stride,width);
+            memcpy(stripped+y*width, padded+y*stride, width);
          }
       }
 
-      info->m_size=info->m_cObj.compact(buffer,dest,width*height);
+      info->m_size=info->m_cObj.compact(buffer, dest, width*height);
       assert( *(__int64*)dest != 0 );
-      info->m_length=0;
+      info->m_length = 0;
       SuspendThread(info->m_thread);// go to sleep, main thread will resume it
    }
 
@@ -67,23 +59,24 @@ DWORD WINAPI decode_worker_thread( LPVOID i )
    threadinfo * info = (threadinfo *)i;
    unsigned int width;
    unsigned int height;
-   unsigned char * src=NULL;
-   unsigned char * dest=NULL;
+   unsigned char * src = NULL;
+   unsigned char * dest = NULL;
    unsigned int format;
    unsigned int length;
-   while ( info->m_length != 0xFFFFFFFF )
+
+   while ( info->m_length != 0xFFFFFFFF ) //TODO:Optimize
    {
       src = (unsigned char *)info->m_pSource;
       dest = (unsigned char *)info->m_pDest;
 
-      length=info->m_length;
-      format=info->m_format;
+      length = info->m_length;
+      format = info->m_format;
       width = info->m_width;
       height = info->m_height;
 
-      info->m_cObj.uncompact(src,dest,length);
+      info->m_cObj.uncompact(src, dest, length);
 
-      ASM_BlockRestore(dest, width, width*height, format!=YV12);
+      ASM_BlockRestore(dest, width, width*height, format != YV12);
 
       info->m_length=0;
       SuspendThread(info->m_thread);

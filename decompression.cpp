@@ -138,17 +138,15 @@ void CodecInst::YV12Decompress()
    }
 
    unsigned int length = EIGHTH(wxh * YV12);
-   for(unsigned int i = 0; i < length; i++)
-   {
-      dst[i] = dst[i] ^ m_pPrev[i];
-   }
+
+   Fast_XOR(dst, dst, m_pPrev, length);
 
    memcpy( m_pPrev, dst, length);
 
-   //if ( _format == YV12 )
-   //{
-   //   return;
-   //}
+   if ( m_format == YV12 )
+   {
+      return;
+   }
 
    //upsample if needed
    if ( m_SSE2 )

@@ -1,18 +1,18 @@
 #pragma once
 
-#define ForceResumeThread(x) {\
+#define RESUME_THREAD(x) {\
 	while( ResumeThread(x) != 1){\
 		Sleep(0);\
 	}\
 }
 
-#define wait_for_threads(threads) { \
-	if ( _multithreading ) { \
+#define WAIT_FOR_THREADS(threads) { \
+	if ( m_multithreading ) { \
 		if ( threads == 2) { \
-			while ( _info_a.length || _info_b.length ) \
+			while ( m_info_a.m_length || m_info_b.m_length ) \
 				Sleep(0); \
 		} else if ( threads == 3 ){ \
-			while ( _info_a.length || _info_b.length || _info_c.length) \
+			while ( m_info_a.m_length || m_info_b.m_length || m_info_c.m_length) \
 				Sleep(0); \
 		} \
 	} \

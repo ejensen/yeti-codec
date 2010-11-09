@@ -105,7 +105,7 @@ void SSE2_BlockPredict( const unsigned char * source, unsigned char * dest, cons
    }
 }
 
-void MMX_BlockPredict( const unsigned char * source, unsigned char * dest, const unsigned int stride, const unsigned int length, int SSE, int mode)
+void MMX_BlockPredict( const unsigned char * source, unsigned char * dest, const unsigned int stride, const unsigned int length, int mode)
 {
    unsigned int a;
    __m64 t0;
@@ -138,115 +138,56 @@ void MMX_BlockPredict( const unsigned char * source, unsigned char * dest, const
    {
       ta=tb;
    }
-
-   if ( SSE )
+   for ( ;a<length;a+=8)
    {
-      for ( ;a<length;a+=8)
-      {
-         __m64 x=*(__m64*)(source+a);
-         x = _mm_slli_si64(x,8);
-         x = _mm_or_si64(x,tb);
-         __m64 y=*(__m64*)(source+a-stride);
-         __m64 z=*(__m64*)(source+a-stride);
-         z = _mm_slli_si64(z,8);
-         z = _mm_or_si64(z,ta);
+      __m64 x=*(__m64*)(source+a);
+      x = _mm_slli_si64(x,8);
+      x = _mm_or_si64(x,tb);
+      __m64 y=*(__m64*)(source+a-stride);
+      __m64 z=*(__m64*)(source+a-stride);
+      z = _mm_slli_si64(z,8);
+      z = _mm_or_si64(z,ta);
 
-         __m64 u;
-         __m64 v;
-         __m64 w;
-         __m64 t;
+      __m64 u;
+      __m64 v;
+      __m64 w;
+      __m64 t;
 
-         t = _mm_setzero_si64();
-         u = _mm_setzero_si64();
-         v = _mm_setzero_si64();
-         w = _mm_setzero_si64();
+      t = _mm_setzero_si64();
+      u = _mm_setzero_si64();
+      v = _mm_setzero_si64();
+      w = _mm_setzero_si64();
 
-         t = _mm_unpacklo_pi8(x,t);
-         u = _mm_unpacklo_pi8(y,u);
-         v = _mm_unpacklo_pi8(z,v);
-         t = _mm_add_pi16(t,u);
-         t = _mm_sub_pi16(t,v);
+      t = _mm_unpacklo_pi8(x,t);
+      u = _mm_unpacklo_pi8(y,u);
+      v = _mm_unpacklo_pi8(z,v);
+      t = _mm_add_pi16(t,u);
+      t = _mm_sub_pi16(t,v);
 
-         u = _mm_setzero_si64();
-         v = _mm_setzero_si64();
+      u = _mm_setzero_si64();
+      v = _mm_setzero_si64();
 
-         u = _mm_unpackhi_pi8(x,u);
-         v = _mm_unpackhi_pi8(y,v);
-         w = _mm_unpackhi_pi8(z,w);
+      u = _mm_unpackhi_pi8(x,u);
+      v = _mm_unpackhi_pi8(y,v);
+      w = _mm_unpackhi_pi8(z,w);
 
-         u = _mm_add_pi16(u,v);
-         u = _mm_sub_pi16(u,w); 
+      u = _mm_add_pi16(u,v);
+      u = _mm_sub_pi16(u,w); 
 
-         z = _mm_packs_pu16 (t,u); // z now equals x+y-z
+      z = _mm_packs_pu16 (t,u); // z now equals x+y-z
 
-         ta = _mm_srli_si64(y,7*8);
-         tb = _mm_srli_si64(*(__m64*)(source+a),7*8);
+      ta = _mm_srli_si64(y,7*8);
+      tb = _mm_srli_si64(*(__m64*)(source+a),7*8);
 
-         __m64 i;
-         __m64 j;
+      __m64 i;
+      __m64 j;
 
-         i = _mm_min_pu8(x,y);
-         j = _mm_max_pu8(x,y);
-         i = _mm_max_pu8(i,z);
-         j = _mm_min_pu8(i,j);
+      i = _mm_min_pu8(x,y);
+      j = _mm_max_pu8(x,y);
+      i = _mm_max_pu8(i,z);
+      j = _mm_min_pu8(i,j);
 
-         *(__m64*)(dest+a)=_mm_sub_pi8( *(__m64*)(source+a),j);
-      }
-   } 
-   else
-   {
-      for ( ;a<length;a+=8)
-      {
-         __m64 x=*(__m64*)(source+a);
-         x = _mm_slli_si64(x,8);
-         x = _mm_or_si64(x,tb);
-         __m64 y=*(__m64*)(source+a-stride);
-         __m64 z=*(__m64*)(source+a-stride);
-         z = _mm_slli_si64(z,8);
-         z = _mm_or_si64(z,ta);
-
-         __m64 u;
-         __m64 v;
-         __m64 w;
-         __m64 t;
-
-         t = _mm_setzero_si64();
-         u = _mm_setzero_si64();
-         v = _mm_setzero_si64();
-         w = _mm_setzero_si64();
-
-         t = _mm_unpacklo_pi8(x,t);
-         u = _mm_unpacklo_pi8(y,u);
-         v = _mm_unpacklo_pi8(z,v);
-         t = _mm_add_pi16(t,u);
-         t = _mm_sub_pi16(t,v);
-
-         u = _mm_setzero_si64();
-         v = _mm_setzero_si64();
-
-         u = _mm_unpackhi_pi8(x,u);
-         v = _mm_unpackhi_pi8(y,v);
-         w = _mm_unpackhi_pi8(z,w);
-
-         u = _mm_add_pi16(u,v);
-         u = _mm_sub_pi16(u,w); 
-
-         z = _mm_packs_pu16 (t,u); // z now equals x+y-z
-
-         ta = _mm_srli_si64(y,7*8);
-         tb = _mm_srli_si64(*(__m64*)(source+a),7*8);
-
-         __m64 i;
-         __m64 j;
-
-         i = _mm_sub_pi8(x,_mm_subs_pu8(x,y));//min
-         j = _mm_add_pi8(y,_mm_subs_pu8(x,y));//max
-         i = _mm_add_pi8(z,_mm_subs_pu8(i,z));//max
-         j = _mm_sub_pi8(i,_mm_subs_pu8(i,j));//min
-
-         *(__m64*)(dest+a)=_mm_sub_pi8( *(__m64*)(source+a),j);
-      }
-
+      *(__m64*)(dest+a)=_mm_sub_pi8( *(__m64*)(source+a),j);
    }
 
    _mm_empty();
@@ -333,7 +274,7 @@ median_restore_block:
 }
 
 // halves the resolution and aligns the resulting data
-void reduce_res(const unsigned char * src, unsigned char * dest, unsigned char * buffer, unsigned int width, unsigned int height, const int SSE2, const int SSE)
+void reduce_res(const unsigned char * src, unsigned char * dest, unsigned char * buffer, unsigned int width, unsigned int height, const bool SSE2)
 {
    const unsigned char * source;
 
@@ -395,82 +336,34 @@ void reduce_res(const unsigned char * src, unsigned char * dest, unsigned char *
             *(__m128i *)(dest+y*stride/4+x/2)=a;
          }
       }
-   } 
+   }
    else
    {
       __m64 mask = _mm_set1_pi16(0x00ff);
-      if ( SSE )
+      for ( unsigned int y=0;y<height;y+=2)
       {
-         for ( unsigned int y=0;y<height;y+=2)
+         for ( unsigned int x=0;x<stride;x+=16)
          {
-            for ( unsigned int x=0;x<stride;x+=16)
-            {
-               __m64 a = *(__m64 *)(source+stride*y+x);
-               __m64 b = *(__m64 *)(source+stride*y+x+stride);
+            __m64 a = *(__m64 *)(source+stride*y+x);
+            __m64 b = *(__m64 *)(source+stride*y+x+stride);
 
-               __m64 c = *(__m64 *)(source+stride*y+x+8);
-               __m64 d = *(__m64 *)(source+stride*y+x+stride+8);
+            __m64 c = *(__m64 *)(source+stride*y+x+8);
+            __m64 d = *(__m64 *)(source+stride*y+x+stride+8);
 
-               a = _mm_avg_pu8(a,b);
-               c = _mm_avg_pu8(c,d);
+            a = _mm_avg_pu8(a,b);
+            c = _mm_avg_pu8(c,d);
 
-               b = _mm_srli_si64(a,8);
-               d = _mm_srli_si64(c,8);
+            b = _mm_srli_si64(a,8);
+            d = _mm_srli_si64(c,8);
 
-               a = _mm_avg_pu8(a,b);
-               c = _mm_avg_pu8(c,d);
+            a = _mm_avg_pu8(a,b);
+            c = _mm_avg_pu8(c,d);
 
-               a = _mm_and_si64(a,mask);
-               c = _mm_and_si64(c,mask);
+            a = _mm_and_si64(a,mask);
+            c = _mm_and_si64(c,mask);
 
-               a = _mm_packs_pu16(a,c);
-               *(__m64 *)(dest+y*stride/4+x/2)=a;
-            }
-         }
-      } 
-      else
-      {
-         for ( unsigned int y=0;y<height;y+=2)
-         {
-            for ( unsigned int x=0;x<stride;x+=16){
-               __m64 a = *(__m64 *)(source+stride*y+x);
-               __m64 b = *(__m64 *)(source+stride*y+x+stride);
-
-               __m64 c = *(__m64 *)(source+stride*y+x+8);
-               __m64 d = *(__m64 *)(source+stride*y+x+stride+8);
-
-               __m64 e,f,g,h;
-
-               e = _mm_setzero_si64();
-               f = _mm_setzero_si64();
-               g = _mm_setzero_si64();
-               h = _mm_setzero_si64();
-
-               e = _mm_and_si64(a,mask);
-               a = _mm_srli_pi16(a,8);
-               a = _mm_add_pi16(a,e);
-
-               f = _mm_and_si64(b,mask);
-               b = _mm_srli_pi16(b,8);
-               b = _mm_add_pi16(b,f);
-
-               g = _mm_and_si64(c,mask);
-               c = _mm_srli_pi16(c,8);
-               c = _mm_add_pi16(c,g);
-
-               h = _mm_and_si64(d,mask);
-               d = _mm_srli_pi16(d,8);
-               d = _mm_add_pi16(d,h);
-
-               a = _mm_add_pi16(a,b);
-               a = _mm_srli_pi16(a,2);
-
-               c = _mm_add_pi16(c,d);
-               c = _mm_srli_pi16(c,2);
-
-               a = _mm_packs_pu16(a,c);
-               *(__m64 *)(dest+y*stride/4+x/2)=a;
-            }
+            a = _mm_packs_pu16(a,c);
+            *(__m64 *)(dest+y*stride/4+x/2)=a;
          }
       }
       _mm_empty();
@@ -478,7 +371,7 @@ void reduce_res(const unsigned char * src, unsigned char * dest, unsigned char *
 }
 
 // doubles the resolution
-void enlarge_res(const unsigned char * src, unsigned char * dst, unsigned char * buffer, unsigned int width, unsigned int height, const int SSE2, const int SSE)
+void enlarge_res(const unsigned char * src, unsigned char * dst, unsigned char * buffer, unsigned int width, unsigned int height, const bool SSE2)
 {
    const unsigned char * source;
    unsigned char * dest;
@@ -526,24 +419,24 @@ void enlarge_res(const unsigned char * src, unsigned char * dst, unsigned char *
 
             b = _mm_avg_epu8(a,b);
 
-            *(__m128i*)(dest + Double(x) + Quadruple(y*stride)) =  _mm_unpacklo_epi8(b,a);
-            *(__m128i*)(dest + Double(x) + Quadruple(y*stride) + 16) = _mm_unpackhi_epi8(b,a);
+            *(__m128i*)(dest + DOUBLE(x) + QUADRUPLE(y*stride)) =  _mm_unpacklo_epi8(b,a);
+            *(__m128i*)(dest + DOUBLE(x) + QUADRUPLE(y*stride) + 16) = _mm_unpackhi_epi8(b,a);
          }
       }
 
-      height = Double(height);
-      stride = Double(stride);
-      width = Double(width);
+      height = DOUBLE(height);
+      stride = DOUBLE(stride);
+      width = DOUBLE(width);
 
-      for ( y=0;y<height-2;y+=2)
+      for ( y=0; y < height-2; y+=2)
       {
          for ( unsigned int x=0;x<stride;x+=32)
          {
             __m128i a = *(__m128i *)(dest+x+y*stride);
-            __m128i b = *(__m128i *)(dest+x+y*stride + Double(stride));
+            __m128i b = *(__m128i *)(dest+x+y*stride + DOUBLE(stride));
 
             __m128i c = *(__m128i *)(dest+x+y*stride + 16);
-            __m128i d = *(__m128i *)(dest+x+y*stride + Double(stride) + 16);
+            __m128i d = *(__m128i *)(dest+x+y*stride + DOUBLE(stride) + 16);
 
             a=_mm_avg_epu8(a,b);
             c=_mm_avg_epu8(c,d);
@@ -554,108 +447,45 @@ void enlarge_res(const unsigned char * src, unsigned char * dst, unsigned char *
    } 
    else 
    {
-      if ( SSE )
+      unsigned int y;
+      for ( y=0;y<height;y++)
       {
-         unsigned int y;
-         for ( y=0;y<height;y++)
+         __m64 p = *(__m64 *)(source+y*stride);
+         p = _mm_slli_si64(p,7*8);
+         p = _mm_srli_si64(p,7*8);
+         for ( unsigned int x=0;x<stride;x+=8)
          {
-            __m64 p = *(__m64 *)(source+y*stride);
-            p = _mm_slli_si64(p,7*8);
-            p = _mm_srli_si64(p,7*8);
-            for ( unsigned int x=0;x<stride;x+=8)
-            {
-               __m64 a = *(__m64 *)(source+x+y*stride);
-               __m64 b = _mm_slli_si64(a,8);
+            __m64 a = *(__m64 *)(source+x+y*stride);
+            __m64 b = _mm_slli_si64(a,8);
 
-               b = _mm_or_si64(b,p);
-               p = _mm_srli_si64(a,8*7);
+            b = _mm_or_si64(b,p);
+            p = _mm_srli_si64(a,8*7);
 
-               b = _mm_avg_pu8(a,b);
+            b = _mm_avg_pu8(a,b);
 
-               *(__m64*)(dest+Double(x)+Quadruple(y*stride)) = _mm_unpacklo_pi8(b,a);
-               *(__m64*)(dest+Double(x)+Quadruple(y*stride)+8)=_mm_unpackhi_pi8(b,a);
-            }
+            *(__m64*)(dest+DOUBLE(x)+QUADRUPLE(y*stride)) = _mm_unpacklo_pi8(b,a);
+            *(__m64*)(dest+DOUBLE(x)+QUADRUPLE(y*stride)+8)=_mm_unpackhi_pi8(b,a);
          }
+      }
 
-         height = Double(height);
-         stride = Double(stride);
-         width = Double(width);
+      height = DOUBLE(height);
+      stride = DOUBLE(stride);
+      width = DOUBLE(width);
 
-         for ( y=0;y<height-2;y+=2)
-         {
-            for ( unsigned int x=0;x<stride;x+=16)
-            {
-               __m64 a = *(__m64 *)(dest+x+y*stride);
-               __m64 b = *(__m64 *)(dest+x+y*stride+Double(stride));
-
-               __m64 c = *(__m64 *)(dest+x+y*stride+8);
-               __m64 d = *(__m64 *)(dest+x+y*stride+Double(stride)+8);
-
-               a=_mm_avg_pu8(a,b);
-               c=_mm_avg_pu8(c,d);
-               *(__m64*)(dest+x+y*stride+stride)=a;
-               *(__m64*)(dest+x+y*stride+stride+8)=c;
-            }
-         }
-      } 
-      else  // MMX only
+      for ( y=0;y<height-2;y+=2)
       {
-         unsigned int y;
-         __m64 mask = _mm_set1_pi32( 0xfefefefe );
-         for ( y=0;y<height;y++)
+         for ( unsigned int x=0;x<stride;x+=16)
          {
-            __m64 p = *(__m64 *)(source+y*stride);
-            p = _mm_slli_si64(p,7*8);
-            p = _mm_srli_si64(p,7*8);
-            for ( unsigned int x=0;x<stride;x+=8)
-            {
-               __m64 a = *(__m64 *)(source+x+y*stride);
-               __m64 b = _mm_slli_si64(a,8);
+            __m64 a = *(__m64 *)(dest+x+y*stride);
+            __m64 b = *(__m64 *)(dest+x+y*stride+DOUBLE(stride));
 
-               b = _mm_or_si64(b,p);
-               p = _mm_srli_si64(a,8*7);
+            __m64 c = *(__m64 *)(dest+x+y*stride+8);
+            __m64 d = *(__m64 *)(dest+x+y*stride+DOUBLE(stride)+8);
 
-               __m64 c = _mm_and_si64(a,mask);
-               b = _mm_and_si64(b,mask);
-
-               c = _mm_srli_pi16(c,1);
-               b = _mm_srli_pi16(b,1);
-               b = _mm_add_pi8(c,b);
-
-               *(__m64*)(dest+Double(x)+Quadruple(y*stride)) = _mm_unpacklo_pi8(b,a);
-               *(__m64*)(dest+Double(x)+Quadruple(y*stride)+8)=_mm_unpackhi_pi8(b,a);
-            }
-         }
-
-         height = Double(height);
-         stride = Double(stride);
-         width = Double(width);
-
-         for ( y=0;y<height-2;y+=2)
-         {
-            for ( unsigned int x=0;x<stride;x+=16)
-            {
-               __m64 a = *(__m64 *)(dest+x+y*stride);
-               __m64 b = *(__m64 *)(dest+x+y*stride+Double(stride));
-
-               __m64 c = *(__m64 *)(dest+x+y*stride+8);
-               __m64 d = *(__m64 *)(dest+x+y*stride+Double(stride)+8);
-
-               a = _mm_and_si64(a,mask);
-               b = _mm_and_si64(b,mask);
-               c = _mm_and_si64(c,mask);
-               d = _mm_and_si64(d,mask);
-
-               a = _mm_srli_pi16(a,1);
-               b = _mm_srli_pi16(b,1);
-               c = _mm_srli_pi16(c,1);
-               d = _mm_srli_pi16(d,1);
-
-               a=_mm_add_pi8(a,b);
-               c=_mm_add_pi8(c,d);
-               *(__m64*)(dest+x+y*stride+stride)=a;
-               *(__m64*)(dest+x+y*stride+stride+8)=c;
-            }
+            a=_mm_avg_pu8(a,b);
+            c=_mm_avg_pu8(c,d);
+            *(__m64*)(dest+x+y*stride+stride)=a;
+            *(__m64*)(dest+x+y*stride+stride+8)=c;
          }
       }
       _mm_empty();

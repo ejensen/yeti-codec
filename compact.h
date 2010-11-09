@@ -6,11 +6,11 @@
 class CompressClass 
 {
 public:
-	unsigned int * _pProbRanges;		// Byte probability range table
-	unsigned int _scale;				// Used to replace some multiply/divides with binary shifts,
+	unsigned int * m_pProbRanges;		// Byte probability range table
+	unsigned int m_scale;				// Used to replace some multiply/divides with binary shifts,
 	// (1<<scale) is equal to the cumulative probability of all bytes
-	unsigned int * _pBytecounts;		// Byte frequency table
-	unsigned char * _pBuffer;			// buffer to perform RLE
+	unsigned int * m_pBytecounts;		// Byte frequency table
+	unsigned char * m_pBuffer;			// buffer to perform RLE
 
 
 	CompressClass();

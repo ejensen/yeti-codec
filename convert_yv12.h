@@ -52,7 +52,7 @@ extern "C" {
 		BYTE* dstY, BYTE* dstU, BYTE* dstV, int dst_pitch, int dst_pitchUV,
 		int height);
 
-	void mmx_yuy2_to_yv12(const BYTE* src, int src_rowsize, int src_pitch, 
-		BYTE* dstY, BYTE* dstU, BYTE* dstV, int dst_pitch, int dst_pitchUV,
-		int height);
+	//void mmx_yuy2_to_yv12(const BYTE* src, int src_rowsize, int src_pitch, 
+	//	BYTE* dstY, BYTE* dstU, BYTE* dstV, int dst_pitch, int dst_pitchUV,
+	//	int height);
 };

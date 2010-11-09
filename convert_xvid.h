@@ -63,28 +63,28 @@ void _cdecl yv12_to_yuyv_mmx(BYTE * dst,
    int height);
 
 
-void _cdecl rgb24_to_yv12_mmx (BYTE * const y_out,
-   BYTE * const u_out,
-   BYTE * const v_out,
-   const BYTE * const src,
-   const unsigned int width,
-   const unsigned int height,
-   const unsigned int stride);
+//void _cdecl rgb24_to_yv12_mmx (BYTE * const y_out,
+//   BYTE * const u_out,
+//   BYTE * const v_out,
+//   const BYTE * const src,
+//   const unsigned int width,
+//   const unsigned int height,
+//   const unsigned int stride);
 
 
-void _cdecl rgb32_to_yv12_mmx (BYTE * const y_out,
-   BYTE * const u_out,
-   BYTE * const v_out,
-   const BYTE * const src,
-   const unsigned int width,
-   const unsigned int height,
-   const unsigned int stride);
+//void _cdecl rgb32_to_yv12_mmx (BYTE * const y_out,
+//   BYTE * const u_out,
+//   BYTE * const v_out,
+//   const BYTE * const src,
+//   const unsigned int width,
+//   const unsigned int height,
+//   const unsigned int stride);
 
 
-void _cdecl yuyv_to_yv12_mmx(BYTE * const y_out,
-   BYTE * const u_out,
-   BYTE * const v_out,
-   const BYTE * const src,
-   const int width,
-   const int height,
-   const int stride);
+//void _cdecl yuyv_to_yv12_mmx(BYTE * const y_out,
+//   BYTE * const u_out,
+//   BYTE * const v_out,
+//   const BYTE * const src,
+//   const int width,
+//   const int height,
+//   const int stride);

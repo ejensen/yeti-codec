@@ -1,3 +1,3 @@
 #pragma once
 
-void __stdcall detectFlags( int * SSE2, int * SSE, int * MMX);
+void __stdcall detectFlags( bool * SSE2, bool * SSE);

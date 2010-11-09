@@ -318,7 +318,7 @@ namespace zero {
    {
       int a=0;
       int b=0;
-      memset(out,0,length);
+      ZeroMemory(out,length);
       if ( level == 1 )
       {
          while ( b < length)

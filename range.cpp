@@ -22,12 +22,12 @@ unsigned int CompressClass::encode( const unsigned char * in, unsigned char * ou
    unsigned int help = 0;
    unsigned char * const count = out;
    const unsigned char * const ending = in+length;
-   const unsigned int * const p_ranges = _pProbRanges;
+   const unsigned int * const p_ranges = m_pProbRanges;
 
    while( in<ending )
    {
       // encode symbol
-      unsigned int r = range >> _scale;
+      unsigned int r = range >> m_scale;
       unsigned int tmp = r * p_ranges[*in];
       low += tmp;
       if ( *in < 255 ) 
@@ -111,9 +111,9 @@ void CompressClass::decode( const unsigned char * in, unsigned char * out, const
    buffer&=1;
    unsigned int range = 0x80;
    const unsigned char * ending = out+length;
-   const unsigned int range_top = _pProbRanges[255];
-   const unsigned int * const p_ranges = _pProbRanges;
-   const unsigned int shift = _scale;
+   const unsigned int range_top = m_pProbRanges[255];
+   const unsigned int * const p_ranges = m_pProbRanges;
+   const unsigned int shift = m_scale;
    unsigned int r_hash[256];
 
    // When determining the probability range that a value falls into,

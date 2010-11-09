@@ -15,14 +15,7 @@
 #include <stdio.h>
 
 #ifdef _DEBUG
-#define TRY_CATCH_FUNC			// enables try/catch macro
-#define bang(str) MessageBox(HWND_DESKTOP, str, "Error", MB_OK | MB_ICONEXCLAMATION)
-#else
-#define bang(str)
-#endif
-
-#ifdef TRY_CATCH_FUNC
-#define try_catch( f ) \
+#define TRY_CATCH( f ) \
    try { f }\
    catch ( char * tc_cmsg){\
    char * tc_msg = (char *)malloc(strlen(tc_cmsg)+128);\
@@ -37,7 +30,7 @@
    throw tc_msg;\
 }
 #else
-#define try_catch( f ) f
+#define TRY_CATCH( f ) f
 #endif
 
 inline void * aligned_malloc( void *ptr, int size, int align, char *str ) 
@@ -66,7 +59,7 @@ inline void * aligned_malloc( void *ptr, int size, int align, char *str )
 }
 
 #ifndef _DEBUG
-#define aligned_free(ptr, str) { \
+#define ALIGNED_FREE(ptr, str) { \
    if ( ptr ){ \
    try {\
    _aligned_free(ptr);\
@@ -75,7 +68,7 @@ inline void * aligned_malloc( void *ptr, int size, int align, char *str )
    ptr=NULL;\
 }
 #else
-#define aligned_free(ptr, str) { \
+#define ALIGNED_FREE(ptr, str) { \
    if ( ptr ){ \
    try { _aligned_free(ptr); } catch ( ... ){\
    char err_msg[256];\
@@ -88,14 +81,14 @@ inline void * aligned_malloc( void *ptr, int size, int align, char *str )
 #endif
 
 // y must be 2^n
-#define align_round(x,y) ((((unsigned int)(x))+(y-1))&(~(y-1)))
+#define ALIGN_ROUND(x,y) ((((unsigned int)(x))+(y-1))&(~(y-1)))
 
-#define Half(x) (x>>1)
-#define Fourth(x) (x>>2)
-#define Eighth(x) (x>>3)
+#define HALF(x) (x>>1)
+#define FOURTH(x) (x>>2)
+#define EIGHTH(x) (x>>3)
 
-#define Double(x) (x<<1)
-#define Quadruple(x) (x<<2)
+#define DOUBLE(x) (x<<1)
+#define QUADRUPLE(x) (x<<2)
 
 #include "resource.h"
 #include "compact.h"
@@ -107,7 +100,7 @@ static const DWORD FOURCC_YV12 = mmioFOURCC('Y','V','1','2');
 static const char SettingsFile[] = "yeti.ini";
 
 // possible frame flags
-#define ARITH_YV12			1	// Standard YV12 frame.
+#define YV12_FRAME			1	// Standard YV12 frame.
 #define REDUCED_RES        2	// Reduced Resolution frame.
 
 // possible colorspaces
@@ -118,49 +111,47 @@ static const char SettingsFile[] = "yeti.ini";
 
 struct threadinfo
 {
-   volatile const unsigned char * source;	// data source
-   volatile unsigned char * dest;		// data destination
-   unsigned char * buffer;	// buffer used for median prediction or restoration
-   unsigned int SSE2;
-   unsigned int SSE;
-   unsigned int width;
-   unsigned int height;
-   unsigned int format;
-   volatile unsigned int length;	// uncompressed data length
-   volatile unsigned int size;		// compressed data length
+   volatile const unsigned char * m_pSource;	// data source
+   volatile unsigned char * m_pDest;		// data destination
+   unsigned char * m_pBuffer;	// buffer used for median prediction or restoration
+   unsigned int m_width;
+   unsigned int m_height;
+   unsigned int m_format;
+   bool m_SSE2;
+   volatile unsigned int m_length;	// uncompressed data length
+   volatile unsigned int m_size;		// compressed data length
 #ifdef _DEBUG
-   char * name;
+   char * m_strName;
 #endif
-   HANDLE thread;
-   CompressClass cObj;
+   HANDLE m_thread;
+   CompressClass m_cObj;
 };
 
 class CodecInst
 {
 public:
-   unsigned char * _pBuffer;
-   unsigned char * _pPrev;
-   const unsigned char * _pIn;
+   unsigned char * m_pBuffer;
+   unsigned char * m_pPrev;
+   const unsigned char * m_pIn;
    unsigned char * _pOut;
-   unsigned char * _pBuffer2;
-   unsigned char * _pDelta;
-   unsigned char * _pLossy_buffer;
-   unsigned int _length;
-   unsigned int _width;
-   unsigned int _height;
-   unsigned int _format;	//input format for compressing, output format for decompression. Also the bitdepth.
-   bool _nullframes;
-   bool _reduced;
-   bool _multithreading;
-   int _started;			//if the codec has been properly initialized yet
-   threadinfo _info_a;
-   threadinfo _info_b;
-   threadinfo _info_c;
-   CompressClass _cObj;
+   unsigned char * m_pBuffer2;
+   unsigned char * m_pDelta;
+   unsigned char * m_pLossy_buffer;
+   unsigned int m_length;
+   unsigned int m_width;
+   unsigned int m_height;
+   unsigned int m_format;	//input format for compressing, output format for decompression. Also the bitdepth.
+   bool m_nullframes;
+   bool m_reduced;
+   bool m_multithreading;
+   bool m_started;			//if the codec has been properly initialized yet
+   threadinfo m_info_a;
+   threadinfo m_info_b;
+   threadinfo m_info_c;
+   CompressClass m_cObj;
 
-   int _SSE2;	
-   int _SSE;
-   int _MMX;
+   bool m_SSE2;	
+   bool m_SSE;
 
    CodecInst();
    ~CodecInst();
@@ -186,7 +177,7 @@ public:
 
    BOOL QueryConfigure();
 
-   void uncompact_macro( const unsigned char * _in, unsigned char * _out, unsigned int _length, unsigned int _width, unsigned int _height, threadinfo * _thread, int _format);
+   void uncompact_macro( const unsigned char * in, unsigned char * out, unsigned int length, unsigned int width, unsigned int height, threadinfo * thread, int format);
    DWORD InitThreads( int encode);
    void EndThreads();
 
@@ -194,7 +185,7 @@ public:
    DWORD CompressLossy(ICCOMPRESS* icinfo);
    DWORD CompressReduced(ICCOMPRESS* icinfo);
 
-   void ArithYV12Decompress();
+   void YV12Decompress();
    void ReduceResDecompress();
 };
 

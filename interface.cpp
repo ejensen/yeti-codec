@@ -11,7 +11,7 @@
 CodecInst::CodecInst()
 {
 #ifdef _DEBUG
-   if ( _started == 0x1337)
+   if ( m_started)
    {
       char msg[128];
       sprintf_s(msg,128,"Attempting to instantiate a codec instance that has not been destroyed");
@@ -19,34 +19,33 @@ CodecInst::CodecInst()
    }
 #endif
 
-   _pBuffer=NULL;
-   _pPrev=NULL;
-   _pDelta=NULL;
-   _pBuffer2=NULL;
-   _pLossy_buffer=NULL;
-   _length=0;
-   _nullframes=false;
-   _reduced=false;
-   _started=0;
-   _SSE2=0;
-   _SSE=0;
-   _MMX=0;
-   _cObj._pProbRanges=NULL;
-   _cObj._pBytecounts=NULL;
-   _cObj._pBuffer=NULL;
+   m_pBuffer=NULL;
+   m_pPrev=NULL;
+   m_pDelta=NULL;
+   m_pBuffer2=NULL;
+   m_pLossy_buffer=NULL;
+   m_length=0;
+   m_nullframes=false;
+   m_reduced=false;
+   m_started=false;
+   m_SSE2=0;
+   m_SSE=0;
+   m_cObj.m_pProbRanges=NULL;
+   m_cObj.m_pBytecounts=NULL;
+   m_cObj.m_pBuffer=NULL;
 
-   _multithreading=0;
-   _info_a.source=NULL;
-   _info_a.dest=NULL;
-   _info_a.size=0;
-   _info_a.length=0;
-   _info_a.thread=0;
-   _info_b=_info_a;
-   _info_c=_info_a;
+   m_multithreading=0;
+   m_info_a.m_pSource=NULL;
+   m_info_a.m_pDest=NULL;
+   m_info_a.m_size=0;
+   m_info_a.m_length=0;
+   m_info_a.m_thread=0;
+   m_info_b=m_info_a;
+   m_info_c=m_info_a;
 
-   memcpy((void*)&_info_a.cObj,&_cObj,sizeof(_cObj));
-   memcpy((void*)&_info_b.cObj,&_cObj,sizeof(_cObj));
-   memcpy((void*)&_info_c.cObj,&_cObj,sizeof(_cObj));
+   memcpy((void*)&m_info_a.m_cObj,&m_cObj,sizeof(m_cObj));
+   memcpy((void*)&m_info_b.m_cObj,&m_cObj,sizeof(m_cObj));
+   memcpy((void*)&m_info_c.m_cObj,&m_cObj,sizeof(m_cObj));
 }
 
 HMODULE hmoduleHuffYUY=0;
@@ -200,9 +199,9 @@ CodecInst::~CodecInst()
 {
    try
    {
-      if ( _started == 0x1337 )
+      if ( m_started )
       {
-         if (_pBuffer2)
+         if (m_pBuffer2)
          {
             CompressEnd();
          } 
@@ -211,7 +210,7 @@ CodecInst::~CodecInst()
             DecompressEnd();
          }
       }
-      _started =0;
+      m_started = false;
    } 
    catch ( ... ) {};
 }
@@ -264,9 +263,9 @@ DWORD CodecInst::SetState(LPVOID pv, DWORD dwSize)
    return 3*sizeof(int);
 }
 
-// test for MMX, SSE, and SSE2 support
+// test for SSE, and SSE2 support
 
-void __stdcall detectFlags( int * SSE2, int * SSE, int * MMX)
+void __stdcall detectFlags( bool * SSE2, bool * SSE)
 {
    int flags;
    __asm{
@@ -274,16 +273,12 @@ void __stdcall detectFlags( int * SSE2, int * SSE, int * MMX)
          cpuid
          mov			flags,edx
    }
-   if ( flags & (1 << 23) )
+   if ( flags & (1 << 25) )
    {
-      *MMX = true;
-      if ( flags & (1 << 25) )
+      *SSE = true;
+      if ( flags & (1 << 26) )
       {
-         *SSE = true;
-         if ( flags & (1 << 26) )
-         {
-            *SSE2 = true;
-         }
+         *SSE2 = true;
       }
    }
 }
@@ -351,8 +346,8 @@ DWORD CodecInst::CompressQuery(LPBITMAPINFOHEADER lpbiIn, LPBITMAPINFOHEADER lpb
                      return_error()
    }
 
-   detectFlags(&_SSE2, &_SSE, &_MMX);
-   if ( !_MMX )
+   detectFlags(&m_SSE2, &m_SSE);
+   if ( !m_SSE )
    {
       return_error()
    }
@@ -381,17 +376,17 @@ DWORD CodecInst::CompressGetFormat(LPBITMAPINFOHEADER lpbiIn, LPBITMAPINFOHEADER
 
    if ( lpbiIn->biBitCount != 24 )
    {
-      lpbiOut->biSizeImage = Eighth( lpbiIn->biWidth * lpbiIn->biHeight * lpbiIn->biBitCount);
-      lpbiOut->biSizeImage = Eighth( lpbiIn->biWidth * lpbiIn->biHeight * lpbiIn->biBitCount);
+      lpbiOut->biSizeImage = EIGHTH( lpbiIn->biWidth * lpbiIn->biHeight * lpbiIn->biBitCount);
+      lpbiOut->biSizeImage = EIGHTH( lpbiIn->biWidth * lpbiIn->biHeight * lpbiIn->biBitCount);
    } 
    else 
    {
-      lpbiOut->biSizeImage = align_round(Eighth(lpbiIn->biWidth * lpbiIn->biBitCount),4)* lpbiIn->biHeight;
+      lpbiOut->biSizeImage = ALIGN_ROUND(EIGHTH(lpbiIn->biWidth * lpbiIn->biBitCount),4)* lpbiIn->biHeight;
    }
 
    lpbiOut->biBitCount = lpbiIn->biBitCount;
 
-   *(UINT32*)(&lpbiOut[1])= _reduced ? REDUCED_RES : ARITH_YV12; //Change?
+   *(UINT32*)(&lpbiOut[1])= m_reduced ? REDUCED_RES : YV12_FRAME; //Change?
    return (DWORD)ICERR_OK;
 }
 
@@ -446,8 +441,8 @@ DWORD CodecInst::DecompressQuery(const LPBITMAPINFOHEADER lpbiIn, const LPBITMAP
       return (DWORD)ICERR_BADFORMAT;
    }
 
-   detectFlags(&_SSE2, &_SSE, &_MMX);
-   if ( !_MMX )
+   detectFlags(&m_SSE2, &m_SSE);
+   if ( !m_SSE )
    {
       return_error()
    }

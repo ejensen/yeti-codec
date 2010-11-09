@@ -40,12 +40,12 @@
     * Fractions are one bit less than integer code,
     *  but otherwise the algorithm is the same, except
     *  r_y and b_y are calculated at the same time.
-    * Order of executin has been changed much for better pairing possibilities.
+    * Order of executing has been changed much for better pairing possibilities.
     * It is important that the 64bit values are 8 byte-aligned
     *  otherwise it will give a huge penalty when accessing them.
    * Instructions pair rather ok, instructions from the top is merged
     *  into last part, to avoid dependency stalls.
-    *  (paired instrucions are indented by a space)
+    *  (paired instructions are indented by a space)
     *****************************/
 
 

@@ -43,16 +43,16 @@ DWORD CodecInst::CompressBegin(LPBITMAPINFOHEADER lpbiIn, LPBITMAPINFOHEADER lpb
 
    m_pBuffer = (unsigned char *)aligned_malloc(m_pBuffer, buffer_size,16,"buffer");
    m_pBuffer2 = (unsigned char *)aligned_malloc(m_pBuffer2, buffer_size,16,"buffer2");
-   m_pDelta = (unsigned char *)aligned_malloc(m_pDelta, buffer_size,16,"delta");
+   //m_pDelta = (unsigned char *)aligned_malloc(m_pDelta, buffer_size,16,"delta");
    m_pLossy_buffer = (unsigned char *)aligned_malloc(m_pLossy_buffer, buffer_size,16,"lossy");
    m_pPrev = (unsigned char *)aligned_malloc(m_pPrev, buffer_size,16,"prev");
    ZeroMemory(m_pPrev, buffer_size);
 
-   if ( !m_pBuffer || !m_pBuffer2 || !m_pPrev || !m_pDelta || !m_pLossy_buffer)
+   if ( !m_pBuffer || !m_pBuffer2 || !m_pPrev /*|| !m_pDelta*/ || !m_pLossy_buffer)
    {
       ALIGNED_FREE(m_pBuffer,"buffer");
       ALIGNED_FREE(m_pBuffer2,"buffer2");
-      ALIGNED_FREE(m_pDelta,"delta");
+      //ALIGNED_FREE(m_pDelta,"delta");
       ALIGNED_FREE(m_pLossy_buffer,"lossy");
       ALIGNED_FREE(m_pPrev,"prev");
       return (DWORD)ICERR_MEMORY;
@@ -99,7 +99,7 @@ DWORD CodecInst::CompressEnd()
 
       ALIGNED_FREE( m_pBuffer, "buffer");
       ALIGNED_FREE( m_pBuffer2, "buffer2");
-      ALIGNED_FREE( m_pDelta, "delta");
+      //ALIGNED_FREE( m_pDelta, "delta");
       ALIGNED_FREE( m_pPrev, "prev");
       ALIGNED_FREE( m_pLossy_buffer, "lossy_buffer");
       m_cObj.FreeCompressBuffers();
@@ -117,39 +117,23 @@ DWORD CodecInst::CompressYV12(ICCOMPRESS* icinfo)
    const unsigned int yu_len	= y_len+c_len;
    const unsigned int len		= yu_len+c_len;
 
-   unsigned char* source;
-
    if(icinfo->lFrameNum > 0) //TODO: Optimize
    {
       if ( m_nullframes )
       {
          // compare in two parts, video is more likely to change in middle than at bottom
-         unsigned int pos = HALF(len)+15;
-         pos&=(~15);
-         if (!memcmp(m_pIn+pos,m_pPrev+pos,len-pos) && !memcmp(m_pIn,m_pPrev,pos) )
+         unsigned int pos = HALF(len) + 15;
+         pos &= (~15);
+         if (!memcmp(m_pIn+pos,m_pPrev + pos, len - pos) && !memcmp(m_pIn, m_pPrev, pos))
          {
             icinfo->lpbiOutput->biSizeImage = 0;
             *icinfo->lpdwFlags = 0;
             return (DWORD)ICERR_OK;
          }
       }
-      //DELTA!!!!
 
-      Fast_XOR(m_pDelta, m_pIn, m_pPrev, len);
-
-
-      //DELTA!!!!
-      //for(unsigned int i = 0; i < len; i++) //TODO: optimize
-      //{
-      //   m_pDelta[i] = m_pIn[i] ^ m_pPrev[i];
-      //}
+      Fast_XOR((unsigned char*)m_pIn, m_pIn, m_pPrev, len);
    }
-   else
-   {
-      memcpy(m_pDelta, m_pIn, len); //TODO Optimize
-   }
-
-   source = m_pDelta;
 
    //TODO: Optimize for subsequent calls
    const unsigned int mod = (m_SSE2?16:8) - 1;
@@ -177,13 +161,13 @@ DWORD CodecInst::CompressYV12(ICCOMPRESS* icinfo)
    {
       if ( in_aligned )  // no alignment needed
       {
-         ysrc = source;
-         usrc = source+y_len;
-         vsrc = source+yu_len;
+         ysrc = m_pIn;
+         usrc = m_pIn+y_len;
+         vsrc = m_pIn+yu_len;
       } 
       else // data is naturally aligned,	input buffer is not
       {
-         memcpy(m_pBuffer, source, len);
+         memcpy(m_pBuffer, m_pIn, len);
          ysrc = m_pBuffer;
          usrc = m_pBuffer+y_len;
          vsrc = m_pBuffer+yu_len;
@@ -193,11 +177,11 @@ DWORD CodecInst::CompressYV12(ICCOMPRESS* icinfo)
    { 
       if ( in_aligned )
       {
-         ysrc = source;
+         ysrc = m_pIn;
       } 
       else 
       {
-         memcpy(m_pBuffer,source,y_len);
+         memcpy(m_pBuffer, m_pIn, y_len);
          ysrc = m_pBuffer;
       }
 
@@ -205,7 +189,7 @@ DWORD CodecInst::CompressYV12(ICCOMPRESS* icinfo)
 
       for ( unsigned int y=0; y < DOUBLE(hh); y++) // TODO: Optimize?
       {
-         memcpy(m_pBuffer + y * c_stride, source + y * hw + y_len, hw);
+         memcpy(m_pBuffer + y * c_stride, m_pIn + y * hw + y_len, hw);
          unsigned char val = m_pBuffer[y * c_stride + hw - 1];
 
          for (unsigned int x = hw; x < c_stride; x++)
@@ -225,7 +209,7 @@ DWORD CodecInst::CompressYV12(ICCOMPRESS* icinfo)
       unsigned int y;
       for ( y = 0; y < m_height; y++)
       {
-         memcpy(m_pBuffer + y * y_stride, source + y * m_width, m_width);
+         memcpy(m_pBuffer + y * y_stride, m_pIn + y * m_width, m_width);
          unsigned char val = m_pBuffer[y * y_stride + m_width - 1];
 
          for (unsigned int x = m_width; x < y_stride; x++)
@@ -239,7 +223,7 @@ DWORD CodecInst::CompressYV12(ICCOMPRESS* icinfo)
 
       for ( y = 0; y < DOUBLE(hh); y++)//Optimize?
       {
-         memcpy(m_pBuffer + y * c_stride,source + y * hw + y_len, hw);
+         memcpy(m_pBuffer + y * c_stride ,m_pIn + y * hw + y_len, hw);
          unsigned char val = m_pBuffer[y * c_stride + hw - 1];
 
          for ( unsigned int x = hw; x < c_stride; x++)
@@ -248,7 +232,7 @@ DWORD CodecInst::CompressYV12(ICCOMPRESS* icinfo)
          }
       }
       usrc = m_pBuffer;
-      vsrc = m_pBuffer+c_stride*hh;
+      vsrc = m_pBuffer + c_stride * hh;
 
       m_pBuffer -= ay_len;
    }

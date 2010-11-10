@@ -96,7 +96,8 @@ namespace zero {
                b+=2;
             }
          }
-      } else if( level == 2 )
+      } 
+      else if( level == 2 )
       {
          if ( length > 300 )
          {
@@ -239,34 +240,36 @@ namespace zero {
       int l2low[]={0,1,3,3};
       int l3low[]={0,1,2,4};
 
-      for ( int a =0; a < length; a++ )
+      for (int a = 0; a < length; a++)
       {
-         if ( !in[a] )
+         if (!in[a])
          {
-            int b=a;
+            int b = a;
             a++;
-            for ( ; !in[a] && a < length;a++);
-            b=a-b;
+            for ( ; !in[a] && a < length; a++);
+
+            b = a - b;
+
             if ( b <= 256 )
             {
-               lvl1+=2;
+               lvl1 += 2;
                if ( b < 4)
                {
-                  lvl2+=l2low[b];
-                  lvl3+=l3low[b];
+                  lvl2 += l2low[b];
+                  lvl3 += l3low[b];
                }
                else
                {
-                  lvl2+=3;
-                  lvl3+=4;
+                  lvl2 += 3;
+                  lvl3 += 4;
                }
             } 
             else
             {
                int bShift = b / 256;
-               lvl1+=(bShift+1)*2; 
-               lvl2+=((b-bShift)/256+1)*3; 
-               lvl3+=((b-(b/128))/256+1)*4; 
+               lvl1 += (bShift + 1) * 2; 
+               lvl2 += ((b - bShift)/256 + 1) * 3; 
+               lvl3 += ((b - (b/128))/256 + 1) * 4; 
             }
          }
          lvl1++;
@@ -275,7 +278,7 @@ namespace zero {
       }
 
       // if RLE compressed extremely well, see if all but the 1st byte are 0 
-      if ( lvl1 < length/128 + 4 )
+      if ( lvl1 < length / 128 + 4 )
       {
          unsigned int val=*(unsigned int*)(in);
          val-=in[0];
@@ -299,13 +302,18 @@ namespace zero {
       lvl2=length-lvl2;
       lvl3=length-lvl3;
 
-
       if ( lvl1 >= minReduction && lvl1 >= lvl2 && lvl1 >= lvl3 )
+      {
          return 1;
+      }
       if ( lvl2 >= minReduction && lvl2 >= lvl3 )
+      {
          return 2;
+      }
       if ( lvl3 >= minReduction )
+      {
          return 3;
+      }
       return 0;
    }
 

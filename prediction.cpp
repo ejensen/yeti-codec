@@ -284,7 +284,7 @@ void reduce_res(const unsigned char * src, unsigned char * dest, unsigned char *
       }
       source=buffer;
    } 
-   else if ( ((int)src)&(mod/2-1) )
+   else if ( ((int)src)&(HALF(mod)-1) )
    {
       memcpy(buffer,src,width*height);
       source=buffer;

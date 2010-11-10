@@ -37,7 +37,7 @@ DWORD CodecInst::DecompressBegin(LPBITMAPINFOHEADER lpbiIn, LPBITMAPINFOHEADER l
    buffer_size = m_length + 2048;
    if ( m_format >= RGB24 )
    {
-      buffer_size=ALIGN_ROUND(QUADRUPLE(m_width), 8) * m_height + 2048;
+      buffer_size = ALIGN_ROUND(QUADRUPLE(m_width), 8) * m_height + 2048;
    }
 
    m_pBuffer = (unsigned char *)aligned_malloc( m_pBuffer, buffer_size, 16, "buffer");
@@ -81,7 +81,7 @@ DWORD CodecInst::DecompressEnd()
       ALIGNED_FREE( m_pPrev, "prev");
       m_cObj.FreeCompressBuffers();
    }
-   m_started=false;
+   m_started = false;
    return ICERR_OK;
 }
 
@@ -246,11 +246,13 @@ DWORD CodecInst::Decompress(ICDECOMPRESS* icinfo, DWORD dwSize)
    try 
    {
 #endif
-   DWORD return_code=ICERR_OK;
+   DWORD return_code = ICERR_OK;
+
    if ( !m_started )
    {
       DecompressBegin(icinfo->lpbiInput, icinfo->lpbiOutput);
    }
+
    m_pOut = (unsigned char *)icinfo->lpOutput;
    m_pIn  = (unsigned char *)icinfo->lpInput; 
    icinfo->lpbiOutput->biSizeImage = m_length;

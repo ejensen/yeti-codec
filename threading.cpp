@@ -43,14 +43,16 @@ DWORD WINAPI encode_worker_thread( LPVOID i )
       }
 
       info->m_size=info->m_cObj.compact(buffer, dest, width*height);
+
       assert( *(__int64*)dest != 0 );
+
       info->m_length = 0;
       SuspendThread(info->m_thread);// go to sleep, main thread will resume it
    }
 
    info->m_cObj.FreeCompressBuffers();
    ALIGNED_FREE(info->m_pBuffer,"Thread Buffer");
-   info->m_length=0;
+   info->m_length = 0;
    return 0;
 }
 

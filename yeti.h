@@ -14,6 +14,9 @@
 #include <assert.h>
 #include <stdio.h>
 
+#include "resource.h"
+#include "compact.h"
+
 #ifdef _DEBUG
 #define TRY_CATCH( f ) \
    try { f }\
@@ -89,9 +92,6 @@ inline void * aligned_malloc( void *ptr, int size, int align, char *str )
 
 #define DOUBLE(x) (x<<1)
 #define QUADRUPLE(x) (x<<2)
-
-#include "resource.h"
-#include "compact.h"
 
 static const DWORD FOURCC_YETI = mmioFOURCC('Y','E','T','I');
 static const DWORD FOURCC_YUY2 = mmioFOURCC('Y','U','Y','2');

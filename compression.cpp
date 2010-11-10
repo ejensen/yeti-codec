@@ -14,7 +14,6 @@ DWORD CodecInst::CompressBegin(LPBITMAPINFOHEADER lpbiIn, LPBITMAPINFOHEADER lpb
    {
       CompressEnd();
    }
-   m_started = false;
 
    m_nullframes = GetPrivateProfileInt("settings", "nullframes", false, SettingsFile)>0;
    m_multithreading = GetPrivateProfileInt("settings", "multithreading", false, SettingsFile)>0;

@@ -11,7 +11,7 @@
 CodecInst::CodecInst()
 {
 #ifdef _DEBUG
-   if ( m_started)
+   if(m_started)
    {
       char msg[128];
       sprintf_s(msg,128,"Attempting to instantiate a codec instance that has not been destroyed");

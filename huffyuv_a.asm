@@ -22,44 +22,6 @@ _TEXT64	segment	page public use32 'CODE'
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-HUFF_CODEC_PROC_START	MACRO
-
-	push	ebp
-	push	edi
-	push	esi
-	push	ebx
-
-	mov	esi,[esp+4+16]
-	mov	edi,[esp+8+16]
-	mov	ebp,[esp+12+16]
-	mov	eax,[esi]
-
-	ENDM
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-YUV_SHIFT	MACRO	mmb,mma,uyvy	; clobbers mm4,5
-
-; mma:mmb = ABCDEFGHIJKLMNOP (VYUYVYUY...) - backwards from mem order
-;   we want mmb = EDGFIHKJ (prev pixel of same channel)
-
-	movq	mm4,mmb
-	punpcklbw	mmb,mma		; mm4:mmb = AIBJCKDLEMFNGOHP
-	punpckhbw	mm4,mma
-	movq	mm5,mmb
-	punpcklbw	mmb,mm4		; mm5:mmb = AEIMBFJNCGKODHLP
-	punpckhbw	mm5,mm4
-	movq	mm4,mmb
-	punpcklbw	mmb,mm5		; mm4:mmb = ACEGIKMOBDFHJLNP
-	punpckhbw	mm4,mm5
-	psllq	mmb,8+8*&uyvy		; mm4:mmb = EGIKMO__DFHJLNP_
-	psllq	mm4,16-8*&uyvy
-	punpckhbw	mmb,mm4		; mmb = EDGFIHKJ (for YUY2; different for UYVY)
-
-	ENDM
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
 	align	8
 
 yuv2rgb_constants:

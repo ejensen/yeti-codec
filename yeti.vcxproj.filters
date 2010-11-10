@@ -14,8 +14,8 @@
     </ResourceCompile>
   </ItemGroup>
   <ItemGroup>
-    <None Include="huffyuv.def" />
     <None Include="Yeti.inf" />
+    <None Include="drvproc.def" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="compact.h">

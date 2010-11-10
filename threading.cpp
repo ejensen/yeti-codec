@@ -14,7 +14,7 @@ DWORD WINAPI encode_worker_thread( LPVOID i )
    const unsigned char * src = NULL;
    unsigned char * dest = NULL;
    unsigned char * const buffer = (unsigned char *)info->m_pBuffer;
-   const unsigned int format=info->m_format;
+//   const unsigned int format=info->m_format;
 
    while ( info->m_length != 0xFFFFFFFF ) //TODO: Optimize
    {
@@ -25,18 +25,18 @@ DWORD WINAPI encode_worker_thread( LPVOID i )
 
       if ( SSE2 )
       {
-         SSE2_BlockPredict(src,dst,stride,stride*height);
+         SSE2_BlockPredict(src, dst, stride, stride * height);
       } 
       else 
       {
-         MMX_BlockPredict(src,dst,stride,stride*height);
+         MMX_BlockPredict(src, dst, stride, stride * height);
       }
 
       if ( width != stride )
       {
          unsigned char * padded = dst;
          unsigned char * stripped = buffer;
-         for ( unsigned int y=0; y<height; y++)
+         for ( unsigned int y=0; y < height; y++)
          {
             memcpy(stripped+y*width, padded+y*stride, width);
          }
@@ -78,12 +78,12 @@ DWORD WINAPI decode_worker_thread( LPVOID i )
 
       ASM_BlockRestore(dest, width, width*height, format != YV12);
 
-      info->m_length=0;
+      info->m_length = 0;
       SuspendThread(info->m_thread);
    }
 
    info->m_cObj.FreeCompressBuffers();
-   ALIGNED_FREE(info->m_pBuffer,"Thread Buffer");
+   ALIGNED_FREE(info->m_pBuffer, "Thread Buffer");
    info->m_length=0;
    return 0;
 }
@@ -158,9 +158,9 @@ DWORD CodecInst::InitThreads( int encode )
             m_info_a.m_cObj.FreeCompressBuffers();
             m_info_b.m_cObj.FreeCompressBuffers();
             m_info_c.m_cObj.FreeCompressBuffers();
-            ALIGNED_FREE(m_info_a.m_pBuffer,"Info_a.buffer");
-            ALIGNED_FREE(m_info_b.m_pBuffer,"Info_b.buffer");
-            ALIGNED_FREE(m_info_c.m_pBuffer,"Info_c.buffer");
+            ALIGNED_FREE(m_info_a.m_pBuffer, "Info_a.buffer");
+            ALIGNED_FREE(m_info_b.m_pBuffer, "Info_b.buffer");
+            ALIGNED_FREE(m_info_c.m_pBuffer, "Info_c.buffer");
             m_info_a.m_thread=NULL;
             m_info_b.m_thread=NULL;
             m_info_c.m_thread=NULL;

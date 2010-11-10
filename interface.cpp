@@ -21,7 +21,7 @@ CodecInst::CodecInst()
 
    m_pBuffer=NULL;
    m_pPrev=NULL;
-   //m_pDelta=NULL;
+   m_pDelta=NULL;
    m_pBuffer2=NULL;
    m_pLossy_buffer=NULL;
    m_length=0;

@@ -107,13 +107,13 @@ inline void CodecInst::uncompact_macro( const unsigned char * in, unsigned char 
 // Decompress a YV12 keyframe
 void CodecInst::YV12Decompress()
 {
-   unsigned char * dst = _pOut;
+   unsigned char * dst = m_pOut;
    unsigned char * dst2 = m_pBuffer;
 
    if ( m_format == YUY2 )
    {
       dst = m_pBuffer;
-      dst2 = _pOut;
+      dst2 = m_pOut;
    }
 
    int size = *(unsigned int*)(m_pIn + 1);
@@ -166,11 +166,11 @@ void CodecInst::YV12Decompress()
    // upsample to RGB
    if ( m_format == RGB32 )
    {
-      mmx_YUY2toRGB32(dst2, _pOut, dst2 + DOUBLE(wxh), DOUBLE(m_width));
+      mmx_YUY2toRGB32(dst2, m_pOut, dst2 + DOUBLE(wxh), DOUBLE(m_width));
    } 
    else 
    {
-      mmx_YUY2toRGB24(dst2, _pOut, dst2 + DOUBLE(wxh), DOUBLE(m_width));
+      mmx_YUY2toRGB24(dst2, m_pOut, dst2 + DOUBLE(wxh), DOUBLE(m_width));
    }
 }
 
@@ -185,7 +185,7 @@ void CodecInst::ReduceResDecompress()
    unsigned int wxh = m_width * m_height;
    unsigned int quarterSize = FOURTH(wxh);
 
-   unsigned char * dest = (m_format == YV12) ? m_pBuffer : _pOut;
+   unsigned char * dest = (m_format == YV12) ? m_pBuffer : m_pOut;
 
    uncompact_macro(m_pIn + 9, dest, wxh, m_width, m_height, &m_info_a, YV12);
    uncompact_macro(m_pIn + size, dest + wxh, quarterSize, hw, hh, &m_info_b, YV12);
@@ -207,7 +207,7 @@ void CodecInst::ReduceResDecompress()
    wxh = m_width * m_height;
 
    unsigned char * source = dest;
-   dest = (m_format == YV12) ? _pOut: m_pBuffer;
+   dest = (m_format == YV12) ? m_pOut: m_pBuffer;
 
    unsigned char * ysrc = source;
    unsigned char * usrc = ysrc + FOURTH(wxh);
@@ -226,15 +226,15 @@ void CodecInst::ReduceResDecompress()
 
    if ( m_format == RGB24)
    {
-      yv12_to_rgb24_mmx(_pOut, m_width, ysrc, vsrc, usrc, m_width, HALF(m_width), m_width, -(int)m_height);
+      yv12_to_rgb24_mmx(m_pOut, m_width, ysrc, vsrc, usrc, m_width, HALF(m_width), m_width, -(int)m_height);
    } 
    else if ( m_format == RGB32 )
    {
-      yv12_to_rgb32_mmx(_pOut, m_width, ysrc, vsrc, usrc, m_width, HALF(m_width), m_width, -(int)m_height);
+      yv12_to_rgb32_mmx(m_pOut, m_width, ysrc, vsrc, usrc, m_width, HALF(m_width), m_width, -(int)m_height);
    } 
    else if ( m_format == YUY2 )
    {
-      yv12_to_yuyv_mmx(_pOut, m_width, ysrc, vsrc ,usrc, m_width, HALF(m_width), m_width, m_height);
+      yv12_to_yuyv_mmx(m_pOut, m_width, ysrc, vsrc ,usrc, m_width, HALF(m_width), m_width, m_height);
    }
 }
 
@@ -251,7 +251,7 @@ DWORD CodecInst::Decompress(ICDECOMPRESS* icinfo, DWORD dwSize)
    {
       DecompressBegin(icinfo->lpbiInput, icinfo->lpbiOutput);
    }
-   _pOut = (unsigned char *)icinfo->lpOutput;
+   m_pOut = (unsigned char *)icinfo->lpOutput;
    m_pIn  = (unsigned char *)icinfo->lpInput; 
    icinfo->lpbiOutput->biSizeImage = m_length;
 

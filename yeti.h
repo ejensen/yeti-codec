@@ -133,9 +133,9 @@ public:
    unsigned char * m_pBuffer;
    unsigned char * m_pPrev;
    unsigned char * m_pIn;
-   unsigned char * _pOut;
+   unsigned char * m_pOut;
    unsigned char * m_pBuffer2;
-   //unsigned char * m_pDelta;
+   unsigned char * m_pDelta;
    unsigned char * m_pLossy_buffer;
    unsigned int m_length;
    unsigned int m_width;

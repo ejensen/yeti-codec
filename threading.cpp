@@ -23,14 +23,23 @@ DWORD WINAPI encode_worker_thread( LPVOID i )
 
       unsigned char * dst = (width == stride) ? buffer : (unsigned char *)ALIGN_ROUND(dest,16);
 
-      if ( SSE2 )
-      {
-         SSE2_BlockPredict(src, dst, stride, stride * height);
-      } 
-      else 
-      {
-         MMX_BlockPredict(src, dst, stride, stride * height);
-      }
+      //if( info->m_keyframe )
+      //{
+         if ( SSE2 )
+         {
+            SSE2_BlockPredict(src, dst, stride, stride * height);
+         } 
+         else 
+         {
+            MMX_BlockPredict(src, dst, stride, stride * height);
+         }
+      //}
+      //else
+      //{
+      //   const unsigned char* temp = src;
+      //   src = dst;
+      //   dst = (unsigned char*)temp;
+      //}
 
       if ( width != stride )
       {
@@ -78,7 +87,10 @@ DWORD WINAPI decode_worker_thread( LPVOID i )
 
       info->m_cObj.uncompact(src, dest, length);
 
-      ASM_BlockRestore(dest, width, width*height, format != YV12);
+      //if(info->m_keyframe)
+      //{
+         ASM_BlockRestore(dest, width, width*height, format != YV12);
+      //}
 
       info->m_length = 0;
       SuspendThread(info->m_thread);

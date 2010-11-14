@@ -100,8 +100,16 @@ static const DWORD FOURCC_YV12 = mmioFOURCC('Y','V','1','2');
 static const char SettingsFile[] = "yeti.ini";
 
 // possible frame flags
-#define YV12_FRAME			1	// Standard YV12 frame.
-#define REDUCED_RES        2	// Reduced Resolution frame.
+#define DELTAFRAME            0x0
+#define KEYFRAME              0x1
+
+#define YV12_FRAME            0x10
+#define YV12_DELTAFRAME       (YV12_FRAME | DELTAFRAME)
+#define YV12_KEYFRAME         (YV12_FRAME | KEYFRAME)
+
+#define REDUCED_FRAME         0x20
+#define REDUCED_DELTAFRAME    (REDUCED_FRAME | DELTAFRAME)
+#define REDUCED_KEYFRAME      (REDUCED_FRAME | KEYFRAME)
 
 // possible colorspaces
 #define RGB24	24
@@ -117,6 +125,7 @@ struct threadinfo
    unsigned int m_width;
    unsigned int m_height;
    unsigned int m_format;
+   bool m_keyframe;
    bool m_SSE2;
    volatile unsigned int m_length;	// uncompressed data length
    volatile unsigned int m_size;		// compressed data length
@@ -136,12 +145,13 @@ public:
    unsigned char * m_pOut;
    unsigned char * m_pBuffer2;
    unsigned char * m_pDelta;
-   unsigned char * m_pLossy_buffer;
+   unsigned char * m_pLossyBuffer;
    unsigned int m_length;
    unsigned int m_width;
    unsigned int m_height;
    unsigned int m_format;	//input format for compressing, output format for decompression. Also the bitdepth.
    bool m_nullframes;
+   bool m_deltaframes;
    bool m_reduced;
    bool m_multithreading;
    bool m_started;			//if the codec has been properly initialized yet
@@ -177,13 +187,13 @@ public:
 
    BOOL QueryConfigure();
 
-   void uncompact_macro( const unsigned char * in, unsigned char * out, unsigned int length, unsigned int width, unsigned int height, threadinfo * thread, int format);
-   DWORD InitThreads( int encode);
+   void InitDecompressionThreads(const unsigned char * in, unsigned char * out, unsigned int length, unsigned int width, unsigned int height, threadinfo * thread, int format, bool keyframe);
+   DWORD InitThreads(int encode);
    void EndThreads();
 
    DWORD CompressYV12(ICCOMPRESS* icinfo);
 
-   inline void Fast_XOR(void* dest, const void* src1, const void* src2, const unsigned int len ) 
+   void Fast_XOR(void* dest, const void* src1, const void* src2, const unsigned int len ) 
    {
       unsigned* tempDest = (unsigned*)dest;
       unsigned* tempSrc1 = (unsigned*)src1;
@@ -194,10 +204,53 @@ public:
       }
    }
 
+   unsigned long Fast_XOR_Count(void* dest, const void* src1, const void* src2, const unsigned int len) 
+   {
+      unsigned* tempDest = (unsigned*)dest;
+      unsigned* tempSrc1 = (unsigned*)src1;
+      unsigned* tempSrc2 = (unsigned*)src2;
+
+      unsigned long bitCount= 0;
+
+      for(unsigned i = 0; i < FOURTH(len); i++)
+      {
+         tempDest[i] = tempSrc1[i] ^ tempSrc2[i];
+         bitCount += COUNT_BITS(tempDest[i]);
+      }
+
+      return bitCount;
+   }
+
+   const unsigned long Fast_XOR_Count(void* dest, const void* src1, const void* src2, const unsigned int len, const unsigned long max)
+   {
+      unsigned* tempDest = (unsigned*)dest;
+      unsigned* tempSrc1 = (unsigned*)src1;
+      unsigned* tempSrc2 = (unsigned*)src2;
+
+      unsigned long bitCount = 0;
+
+      for(unsigned int i = 0; bitCount < max && i < FOURTH(len); i++)
+      {
+         tempDest[i] = tempSrc1[i] ^ tempSrc2[i];
+         bitCount += COUNT_BITS(tempDest[i]);
+      }
+
+      return bitCount;
+   }
+
+   template<class T>
+   inline unsigned int COUNT_BITS(T v)
+   {
+      v = v - ((v >> 1) & (T)~(T)0/3);
+      v = (v & (T)~(T)0/15*3) + ((v >> 2) & (T)~(T)0/15*3);
+      v = (v + (v >> 4)) & (T)~(T)0/255*15;
+      return (T)(v * ((T)~(T)0/255)) >> (sizeof(T) - 1) * CHAR_BIT;
+   }
+
    DWORD CompressLossy(ICCOMPRESS* icinfo);
    DWORD CompressReduced(ICCOMPRESS* icinfo);
 
-   void YV12Decompress();
+   void YV12Decompress(bool keyframe);
    void ReduceResDecompress();
 };
 

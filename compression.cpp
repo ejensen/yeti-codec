@@ -15,9 +15,10 @@ DWORD CodecInst::CompressBegin(LPBITMAPINFOHEADER lpbiIn, LPBITMAPINFOHEADER lpb
       CompressEnd();
    }
 
-   m_nullframes = GetPrivateProfileInt("settings", "nullframes", false, SettingsFile)>0;
-   m_multithreading = GetPrivateProfileInt("settings", "multithreading", false, SettingsFile)>0;
-   m_reduced = GetPrivateProfileInt("settings", "reduced", false, SettingsFile)>0;
+   m_nullframes = GetPrivateProfileInt("settings", "nullframes", false, SettingsFile) > 0;
+   m_multithreading = GetPrivateProfileInt("settings", "multithreading", false, SettingsFile) > 0;
+   m_reduced = GetPrivateProfileInt("settings", "reduced", false, SettingsFile) > 0;
+   m_deltaframes = GetPrivateProfileInt("settings", "deltaframes", false, SettingsFile) > 0;
 
    if ( int error = CompressQuery(lpbiIn, lpbiOut) != ICERR_OK )
    {
@@ -43,16 +44,16 @@ DWORD CodecInst::CompressBegin(LPBITMAPINFOHEADER lpbiIn, LPBITMAPINFOHEADER lpb
    m_pBuffer = (unsigned char *)aligned_malloc(m_pBuffer, buffer_size,16,"buffer");
    m_pBuffer2 = (unsigned char *)aligned_malloc(m_pBuffer2, buffer_size,16,"buffer2");
    m_pDelta = (unsigned char *)aligned_malloc(m_pDelta, buffer_size,16,"delta");
-   m_pLossy_buffer = (unsigned char *)aligned_malloc(m_pLossy_buffer, buffer_size,16,"lossy");
+   m_pLossyBuffer = (unsigned char *)aligned_malloc(m_pLossyBuffer, buffer_size,16,"lossy");
    m_pPrev = (unsigned char *)aligned_malloc(m_pPrev, buffer_size,16,"prev");
    ZeroMemory(m_pPrev, buffer_size);
 
-   if ( !m_pBuffer || !m_pBuffer2 || !m_pPrev || !m_pDelta || !m_pLossy_buffer)
+   if ( !m_pBuffer || !m_pBuffer2 || !m_pPrev || !m_pDelta || !m_pLossyBuffer)
    {
       ALIGNED_FREE(m_pBuffer,"buffer");
       ALIGNED_FREE(m_pBuffer2,"buffer2");
       ALIGNED_FREE(m_pDelta,"delta");
-      ALIGNED_FREE(m_pLossy_buffer,"lossy");
+      ALIGNED_FREE(m_pLossyBuffer,"lossy");
       ALIGNED_FREE(m_pPrev,"prev");
       return (DWORD)ICERR_MEMORY;
    }
@@ -100,7 +101,7 @@ DWORD CodecInst::CompressEnd()
       ALIGNED_FREE( m_pBuffer2, "buffer2");
       ALIGNED_FREE( m_pDelta, "delta");
       ALIGNED_FREE( m_pPrev, "prev");
-      ALIGNED_FREE( m_pLossy_buffer, "lossy_buffer");
+      ALIGNED_FREE( m_pLossyBuffer, "lossy_buffer");
       m_cObj.FreeCompressBuffers();
    }
    m_started = false;
@@ -117,27 +118,61 @@ DWORD CodecInst::CompressYV12(ICCOMPRESS* icinfo)
    const unsigned int len		= yu_len+c_len;
 
    unsigned char* source;
+   unsigned frameType;
 
-   if(icinfo->lFrameNum > 0) //TODO: Optimize
+   if(icinfo->dwFlags != ICCOMPRESS_KEYFRAME && icinfo->lFrameNum > 0) //TODO: Optimize
    {
-      if ( m_nullframes )
+      if( m_deltaframes )
       {
-         // compare in two parts, video is more likely to change in middle than at bottom
-         unsigned int pos = HALF(len)+15;
-         pos&=(~15);
-         if (!memcmp(m_pIn+pos,m_pPrev+pos,len-pos) && !memcmp(m_pIn,m_pPrev,pos) )
+         unsigned long maxDelta = DOUBLE(len);
+         unsigned long bitCount = Fast_XOR_Count(m_pDelta, m_pIn, m_pPrev, len, maxDelta);
+
+         if(bitCount >= maxDelta)
+         {
+         memcpy(m_pDelta, m_pIn, len);
+         *icinfo->lpdwFlags = AVIIF_KEYFRAME;
+         icinfo->dwFlags = ICCOMPRESS_KEYFRAME;
+         frameType = YV12_KEYFRAME;
+         }
+         else if(bitCount == 0 && m_nullframes)
          {
             icinfo->lpbiOutput->biSizeImage = 0;
             *icinfo->lpdwFlags = 0;
             return (DWORD)ICERR_OK;
          }
+         else
+         {
+            //*icinfo->lpdwFlags = AVIIF_LASTPART;
+            frameType = YV12_DELTAFRAME;
+         }
       }
+      else
+      {
+         if( m_nullframes )
+         {
+            // compare in two parts, video is more likely to change in middle than at bottom
+            unsigned int pos = HALF(len) + 15;
+            pos &= (~15);
+            if (!memcmp(m_pIn + pos, m_pPrev + pos, len - pos) && !memcmp(m_pIn, m_pPrev, pos))
+            {
+               icinfo->lpbiOutput->biSizeImage = 0;
+               *icinfo->lpdwFlags = 0;
+               return (DWORD)ICERR_OK;
+            }
+         }
 
-      Fast_XOR(m_pDelta, m_pIn, m_pPrev, len);
+         memcpy(m_pDelta, m_pIn, len); //TODO Optimize
+         *icinfo->lpdwFlags = AVIIF_KEYFRAME;
+         icinfo->dwFlags = ICCOMPRESS_KEYFRAME;
+         frameType = YV12_KEYFRAME;
+      }
    }
    else
    {
       memcpy(m_pDelta, m_pIn, len); //TODO Optimize
+      *icinfo->lpdwFlags = AVIIF_KEYFRAME;
+      icinfo->dwFlags = ICCOMPRESS_KEYFRAME;
+      frameType = YV12_KEYFRAME;
    }
 
    source = m_pDelta;
@@ -160,13 +195,13 @@ DWORD CodecInst::CompressYV12(ICCOMPRESS* icinfo)
    const unsigned char * vsrc;
 
    const unsigned int in_aligned = !( (int)m_pIn & mod);
-  
+
 
    //note: chroma has only half the width of luminance, it may need to be aligned separately
 
-   if ( ((hw) & mod) == 0 )  // no alignment padding needed
+   if(((hw) & mod) == 0)  // no alignment padding needed
    {
-      if ( in_aligned )  // no alignment needed
+      if(in_aligned)  // no alignment needed
       {
          ysrc = source;
          usrc = source+y_len;
@@ -180,7 +215,7 @@ DWORD CodecInst::CompressYV12(ICCOMPRESS* icinfo)
          vsrc = m_pBuffer+yu_len;
       }
    } 
-   else if ( (m_width & mod) == 0 ) // chroma needs alignment padding
+   else if((m_width & mod) == 0) // chroma needs alignment padding
    { 
       if ( in_aligned )
       {
@@ -194,7 +229,7 @@ DWORD CodecInst::CompressYV12(ICCOMPRESS* icinfo)
 
       m_pBuffer += y_len; // step over luminance (not always needed...)
 
-      for ( unsigned int y=0; y < DOUBLE(hh); y++) // TODO: Optimize?
+      for( unsigned int y=0; y < DOUBLE(hh); y++) // TODO: Optimize?
       {
          memcpy(m_pBuffer + y * c_stride, source + y * hw + y_len, hw);
          unsigned char val = m_pBuffer[y * c_stride + hw - 1];
@@ -214,7 +249,7 @@ DWORD CodecInst::CompressYV12(ICCOMPRESS* icinfo)
    {
       // align luminance
       unsigned int y;
-      for ( y = 0; y < m_height; y++)
+      for( y = 0; y < m_height; y++)
       {
          memcpy(m_pBuffer + y * y_stride, source + y * m_width, m_width);
          unsigned char val = m_pBuffer[y * y_stride + m_width - 1];
@@ -228,7 +263,7 @@ DWORD CodecInst::CompressYV12(ICCOMPRESS* icinfo)
       ysrc = m_pBuffer;
       m_pBuffer += ay_len;
 
-      for ( y = 0; y < DOUBLE(hh); y++)//Optimize?
+      for( y = 0; y < DOUBLE(hh); y++)//Optimize?
       {
          memcpy(m_pBuffer + y * c_stride,source + y * hw + y_len, hw);
          unsigned char val = m_pBuffer[y * c_stride + hw - 1];
@@ -269,6 +304,8 @@ DWORD CodecInst::CompressYV12(ICCOMPRESS* icinfo)
          vdest=m_pBuffer2 + ay_len + ac_len;
       }
 
+      //if( keyframe )
+      //{
       // perform prediction
       if ( m_SSE2 )
       {
@@ -282,8 +319,9 @@ DWORD CodecInst::CompressYV12(ICCOMPRESS* icinfo)
          MMX_BlockPredict(usrc, udest, c_stride, ac_len);
          MMX_BlockPredict(vsrc, vdest, c_stride, ac_len);
       }
-
+      //}
       memcpy(m_pBuffer2, m_pBuffer, len);
+
 
       // remove alignment padding, all data will end up in buffer2
       if (m_width & mod) // remove luminance padding 
@@ -311,17 +349,23 @@ DWORD CodecInst::CompressYV12(ICCOMPRESS* icinfo)
    } 
    else 
    {
+      bool keyframe = frameType & KEYFRAME;
+
       m_info_a.m_pSource = ysrc;
       m_info_a.m_pDest = m_pOut+9;
       m_info_a.m_length = y_len;
+      m_info_a.m_keyframe = keyframe;
       RESUME_THREAD(m_info_a.m_thread);
       m_info_b.m_pSource = usrc;
       m_info_b.m_pDest = m_pBuffer2;
       m_info_b.m_length = c_len;
+      m_info_b.m_keyframe = keyframe;
       RESUME_THREAD(m_info_b.m_thread);
 
       unsigned char *vdest = m_pBuffer2 + ayu_len;
 
+      //if( keyframe )
+      //{
       if (m_SSE2)
       {
          SSE2_BlockPredict(vsrc, vdest, c_stride, ac_len);
@@ -330,6 +374,13 @@ DWORD CodecInst::CompressYV12(ICCOMPRESS* icinfo)
       {
          MMX_BlockPredict(vsrc, vdest, c_stride, ac_len);
       }
+      //}
+      //else
+      //{
+      //   const unsigned char* temp = vsrc;
+      //   vsrc = vdest;
+      //   vdest = (unsigned char*)temp;
+      //}
 
       // remove alignment if needed
       if (hw & mod)  // remove chroma padding
@@ -354,7 +405,7 @@ DWORD CodecInst::CompressYV12(ICCOMPRESS* icinfo)
       }
 
       int sizea = m_info_a.m_size;
-      *(UINT32*)(m_pOut + 5)= 9 + sizea;
+      *(UINT32*)(m_pOut + 5) = 9 + sizea;
       memcpy(m_pOut + sizea + 9, vdest, size);
 
       while ( m_info_b.m_length )
@@ -369,7 +420,7 @@ DWORD CodecInst::CompressYV12(ICCOMPRESS* icinfo)
       size += sizea + sizeb + 9;
    }
 
-   m_pOut[0] = YV12_FRAME;
+   m_pOut[0] = frameType;
    icinfo->lpbiOutput->biSizeImage = size;
    return (DWORD)ICERR_OK;
 }
@@ -522,7 +573,7 @@ DWORD CodecInst::CompressReduced(ICCOMPRESS *icinfo)
       size += sizea + sizeb + 9;
    }
 
-   m_pOut[0] = REDUCED_RES;
+   m_pOut[0] = REDUCED_KEYFRAME;
    icinfo->lpbiOutput->biSizeImage = size;
    return (DWORD)ICERR_OK;
 }
@@ -531,9 +582,6 @@ DWORD CodecInst::CompressReduced(ICCOMPRESS *icinfo)
 // colorspace of the input video
 DWORD CodecInst::CompressLossy(ICCOMPRESS * icinfo )
 {
-   //unsigned char * lossy_buffer=_pPrev;
-
-   //const unsigned char * const stored_in=_pIn;
    const unsigned char * src=0;
    DWORD ret_val=0;
 
@@ -555,7 +603,7 @@ DWORD CodecInst::CompressLossy(ICCOMPRESS * icinfo )
    }
 
    unsigned int dw = DOUBLE(m_width);
-   unsigned char * dst2=m_pLossy_buffer;
+   unsigned char * dst2=m_pLossyBuffer;
    unsigned int yuy2_pitch = ALIGN_ROUND(dw,16);
    unsigned int y_pitch = ALIGN_ROUND(m_width,8);
    unsigned int uv_pitch = ALIGN_ROUND(HALF(m_width),8);
@@ -571,10 +619,10 @@ DWORD CodecInst::CompressLossy(ICCOMPRESS * icinfo )
       src = dst2;
       dst2 = m_pBuffer;
    }
-   
+
    isse_yuy2_to_yv12(src, dw, yuy2_pitch, dst2, dst2+y_pitch*m_height+ HALF(uv_pitch * m_height), dst2+y_pitch*m_height, y_pitch,uv_pitch, m_height);
 
-   unsigned char * dest = m_pLossy_buffer;
+   unsigned char * dest = m_pLossyBuffer;
    if ( !is_aligned )
    {
       unsigned int h;
@@ -594,7 +642,7 @@ DWORD CodecInst::CompressLossy(ICCOMPRESS * icinfo )
       }
    }
 
-   m_pIn = m_pLossy_buffer;
+   m_pIn = m_pLossyBuffer;
 
    if ( m_reduced ) //TODO:Optimize
    {
@@ -607,45 +655,14 @@ DWORD CodecInst::CompressLossy(ICCOMPRESS * icinfo )
    else
    {
       ret_val = CompressYV12(icinfo);
-      if( ret_val == ICERR_OK )
-      {
-         if ( icinfo->dwFlags == 1 /*AVIIF_LIST*/ ) // TODO: Optimize
-         {
-            *icinfo->lpdwFlags = AVIIF_KEYFRAME;
-         }
-         else
-         {
-            *icinfo->lpdwFlags = AVIIF_LASTPART;
-         }
-      }
    }
-   //_pIn=stored_in;
    return ret_val;
 }
 
 // called to compress a frame; the actual compression will be
 // handed off to other functions depending on the color space and settings
-
 DWORD CodecInst::Compress(ICCOMPRESS* icinfo, DWORD dwSize)
 {
-   // TMPGEnc (and probably some other programs) like to change the floating point
-   // precision. This can occasionally produce rounding errors when scaling the probability
-   // ranges to a power of 2, which in turn produces corrupted video. Here the code checks 
-   // the FPU control word and sets the precision correctly if needed.
-   unsigned int fpuword = _controlfp(0,0);
-   if ( !(fpuword & _PC_53) || (fpuword & _MCW_RC) )
-   {
-      _controlfp(_PC_53 | _RC_NEAR,_MCW_PC | _MCW_RC);
-#ifdef _DEBUG
-      static bool firsttime = true;
-      if ( firsttime )
-      {
-         firsttime = false;
-         MessageBox (HWND_DESKTOP, "Floating point control word is not set correctly, correcting it", "Error", MB_OK | MB_ICONEXCLAMATION);
-      }
-#endif
-   }
-
    m_pOut = (unsigned char *)icinfo->lpOutput;
    m_pIn  = (unsigned char *)icinfo->lpInput;
 
@@ -657,30 +674,12 @@ DWORD CodecInst::Compress(ICCOMPRESS* icinfo, DWORD dwSize)
             return error;
       }
    } 
-   /*else if ( _nullframes ){
-     // compare in two parts, video is more likely to change in middle than at bottom
-     unsigned int pos = _length/2+15;
-     pos&=(~15);
-     if (!memcmp(_pIn+pos,_pPrev+pos,_length-pos) && !memcmp(_pIn,_pPrev,pos) ){
-     icinfo->lpbiOutput->biSizeImage =0;
-     *icinfo->lpdwFlags = 0;
-     return ICERR_OK;
-     }
-     }*/
-   if ( icinfo->lpckid )
-   {
-      *icinfo->lpckid = 'cd';
-   }
 
    int ret_val = CompressLossy(icinfo);
 
-   //if ( _nullframes ){
-    memcpy( m_pPrev, m_pIn, m_length); // TODO: Optimize
-   //}
-
-   if ( !(fpuword & _PC_53) || (fpuword & _MCW_RC))
+   if ( m_nullframes || m_deltaframes )
    {
-      _controlfp(fpuword,_MCW_PC | _MCW_RC);
+      memcpy( m_pPrev, m_pIn, m_length); // TODO: Optimize
    }
 
    return (DWORD)ret_val;

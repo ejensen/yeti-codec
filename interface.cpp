@@ -23,9 +23,10 @@ CodecInst::CodecInst()
    m_pPrev=NULL;
    m_pDelta=NULL;
    m_pBuffer2=NULL;
-   m_pLossy_buffer=NULL;
+   m_pLossyBuffer=NULL;
    m_length=0;
-   m_nullframes=false;
+   m_nullframes=true;
+   m_deltaframes=true;
    m_reduced=false;
    m_started=false;
    m_SSE2=0;
@@ -138,6 +139,8 @@ static BOOL CALLBACK ConfigureDialogProc(HWND hwndDlg, UINT uMsg, WPARAM wParam,
       CheckDlgButton(hwndDlg, IDC_NULLFRAMES,GetPrivateProfileInt("settings", "nullframes", false, SettingsFile) ? BST_CHECKED : BST_UNCHECKED);
       CheckDlgButton(hwndDlg, IDC_MULTI,GetPrivateProfileInt("settings", "multithreading", false, SettingsFile) ? BST_CHECKED : BST_UNCHECKED);
       CheckDlgButton(hwndDlg, IDC_REDUCED,GetPrivateProfileInt("settings", "reduced", false, SettingsFile) ? BST_CHECKED : BST_UNCHECKED);
+      CheckDlgButton(hwndDlg, IDC_DELTAFRAMES,GetPrivateProfileInt("settings", "deltaframes", false, SettingsFile) ? BST_CHECKED : BST_UNCHECKED);
+
       HWND hwndTip = CreateTooltip(hwndDlg);
       for (int l=0; item2tip[l].item; l++ )
       {
@@ -152,6 +155,7 @@ static BOOL CALLBACK ConfigureDialogProc(HWND hwndDlg, UINT uMsg, WPARAM wParam,
          WritePrivateProfileString("settings", "nullframes",(IsDlgButtonChecked(hwndDlg, IDC_NULLFRAMES) == BST_CHECKED) ? "1" : NULL, SettingsFile);
          WritePrivateProfileString("settings", "multithreading",(IsDlgButtonChecked(hwndDlg, IDC_MULTI) == BST_CHECKED) ? "1" : NULL, SettingsFile);
          WritePrivateProfileString("settings", "reduced",(IsDlgButtonChecked(hwndDlg, IDC_REDUCED) == BST_CHECKED) ? "1" : NULL, SettingsFile);
+         WritePrivateProfileString("settings", "deltaframes",(IsDlgButtonChecked(hwndDlg, IDC_DELTAFRAMES) == BST_CHECKED) ? "1" : NULL, SettingsFile);
 
          EndDialog(hwndDlg, 0);
       } 
@@ -232,39 +236,43 @@ DWORD CodecInst::GetState(LPVOID pv, DWORD dwSize)
 {
    if ( pv == NULL )
    {
-      return 3*sizeof(int);
+      return 4 * sizeof(int);
    } 
-   else if ( dwSize < 3*sizeof(int) )
+   else if ( dwSize < 4 * sizeof(int) )
    {
       return (DWORD)ICERR_BADSIZE;
    }
 
    int * state = (int*)pv;
-   state[0]=GetPrivateProfileInt("settings", "nullframes", false, SettingsFile);
-   state[1]=GetPrivateProfileInt("settings", "multithreading", false, SettingsFile);
-   state[2]=GetPrivateProfileInt("settings", "reduced", false, SettingsFile);
+   state[0] = GetPrivateProfileInt("settings", "nullframes", false, SettingsFile);
+   state[1] = GetPrivateProfileInt("settings", "multithreading", false, SettingsFile);
+   state[2] = GetPrivateProfileInt("settings", "reduced", false, SettingsFile);
+   state[3] = GetPrivateProfileInt("settings", "deltaframes", false, SettingsFile);
    return 0;
 }
 
 DWORD CodecInst::SetState(LPVOID pv, DWORD dwSize) 
 {
-   if ( dwSize < 3*sizeof(int))
+   if ( dwSize < 4 * sizeof(int))
    {
-      return 3*sizeof(int);
+      return 4 * sizeof(int);
    }
    int * state = (int*)pv;
    char str[] = {0,0,0,0};
-   str[0]='0'+state[0];
+
+   str[0]='0' + state[0];
    WritePrivateProfileString("settings", "nullframes",str, SettingsFile);
-   str[0]='0'+state[1];
+   str[0]='0' + state[1];
    WritePrivateProfileString("settings", "multithreading",str, SettingsFile);
-   str[0]='0'+state[2];
+   str[0]='0' + state[2];
    WritePrivateProfileString("settings", "reduced",str, SettingsFile);
-   return 3*sizeof(int);
+   str[0]='0' + state[3];
+   WritePrivateProfileString("settings", "deltaframes",str, SettingsFile);
+
+   return 4 * sizeof(int);
 }
 
 // test for SSE, and SSE2 support
-
 void __stdcall detectFlags( bool * SSE2, bool * SSE)
 {
    int flags;
@@ -386,7 +394,7 @@ DWORD CodecInst::CompressGetFormat(LPBITMAPINFOHEADER lpbiIn, LPBITMAPINFOHEADER
 
    lpbiOut->biBitCount = lpbiIn->biBitCount;
 
-   *(UINT32*)(&lpbiOut[1])= m_reduced ? REDUCED_RES : YV12_FRAME; //Change?
+   //*(UINT32*)(&lpbiOut[1])= m_reduced ? REDUCED_RES : YV12_FRAME; //Change?
    return (DWORD)ICERR_OK;
 }
 
@@ -406,7 +414,7 @@ DWORD CodecInst::GetInfo(ICINFO* icinfo, DWORD dwSize)
    icinfo->dwSize       = sizeof(ICINFO);
    icinfo->fccType      = ICTYPE_VIDEO;
    icinfo->fccHandler	= FOURCC_YETI;
-   icinfo->dwFlags		= VIDCF_FASTTEMPORALC;
+   icinfo->dwFlags		=  VIDCF_FASTTEMPORALC | VIDCF_FASTTEMPORALD | VIDCF_TEMPORAL;
    icinfo->dwVersion		= 0x00010000;
    icinfo->dwVersionICM	= ICVERSION;
    memcpy(icinfo->szName, L"Yeti", sizeof(L"Yeti"));

@@ -152,11 +152,11 @@ void CompressClass::RangeDecode( const unsigned char * in, unsigned char * out, 
       {
          // 'hash' the value and use that to determine
          // where to start the linear search
-         unsigned int x=range_hash[tmp >> hash_shift];
+         unsigned int x = range_hash[tmp >> hash_shift];
          // use a linear search to find the decoded value
          for (; p_ranges[x+1] <= tmp; x++);
 
-         *out++=x; // output the decoded value
+         *out++ = x; // output the decoded value
 
          low -= help * p_ranges[x];
          range = help * (p_ranges[x+1]-p_ranges[x]);

@@ -202,7 +202,7 @@ unsigned int RLE2(const unsigned char * in, unsigned char * out, const unsigned 
 // been read in the byte stream, the following byte tells how many more
 // 0 bytes to output.
 
-unsigned int deRLE2(const unsigned char * in, unsigned char * out, const int length)
+unsigned int deRLE2(const unsigned char * in, unsigned char * out, const unsigned int length)
 {
    unsigned int a = 0;
    unsigned int b = 0;
@@ -235,7 +235,7 @@ unsigned int deRLE2(const unsigned char * in, unsigned char * out, const int len
    return a;
 }
 
-unsigned int deRLE3(const unsigned char * in, unsigned char * out, const int length)
+unsigned int deRLE3(const unsigned char * in, unsigned char * out, const unsigned int length)
 {
    unsigned int a = 0;
    unsigned int b = 0;

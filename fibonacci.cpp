@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <memory.h>
 #include <stdio.h>
+#define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #include <assert.h>
 
@@ -29,13 +30,14 @@
    }\
 }
 
-unsigned int FibonacciEncode2(unsigned int * in, unsigned char * out, unsigned int length)
+unsigned int FibonacciEncode(unsigned int * in, unsigned char * out, unsigned int length)
 {
    unsigned char output[12];
    unsigned int pos=0;
    unsigned int bitpos=0x80;
    out[0]=0;
    unsigned int series[]={1,2,3,5,8,13,21,34};
+
    for ( unsigned int b =0; b < length; b++ )
    {
       ZeroMemory(output,12);
@@ -50,7 +52,9 @@ unsigned int FibonacciEncode2(unsigned int * in, unsigned char * out, unsigned i
       }
 
       num<<=1;
+
       assert(bits);
+
       unsigned int bits2=bits;
 
       while(bits)
@@ -139,60 +143,10 @@ unsigned int FibonacciEncode2(unsigned int * in, unsigned char * out, unsigned i
    }\
 }
 
-//unsigned int FibonacciDecode(const unsigned char * in, int * out, int length)
-//{
-//   int pos =0;
-//   int bit;
-//   int bitpos = 0x80;
-//   int series[]={1,2,3,5,8,13,21,34};
-//   char input[32];
-//   memset(input,0,32);
-//
-//   try 
-//   {
-//      for ( int b =0; b < length; b++ )
-//      {
-//         bit=0;
-//         unsigned int prevbit=0;
-//         unsigned int bits=0;
-//         memset(input,0,32);
-//         unsigned int a;
-//
-//         for ( a =0; !(prevbit && bit); a++ )
-//         {
-//            prevbit = bit;
-//            readBit();
-//            input[a]=bit;
-//            if ( bit && !prevbit )
-//            {
-//               bits+=series[a];
-//            }
-//         }
-//
-//         bits--;
-//         int value=1;
-//
-//         for ( a= 0;a < bits; a++ )
-//         {
-//            readBit();
-//            value<<=1;
-//            if ( bit )
-//            {
-//               value++;
-//            }
-//         }
-//         out[b]= value-1;
-//      }
-//   } 
-//   catch (...)
-//   {
-//      return 0;
-//   }
-//   return pos+1;
-//}
-
-int FibonacciDecode2(const unsigned char * in, unsigned int * out){
-   try{
+unsigned int FibonacciDecode(const unsigned char * in, unsigned int * out)
+{
+   try
+   {
       unsigned int pos =0;
       unsigned int bit;
       unsigned int bitpos = 0x80;

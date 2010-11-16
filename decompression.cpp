@@ -2,10 +2,11 @@
 #include "yeti.h"
 #include "interface.h"
 #include "prediction.h"
+#include "resolution.h"
 #include "threading.h"
+
 #include "convert.h"
 #include "convert_yv12.h"
-#include <float.h>
 #include "huffyuv_a.h"
 #include "convert_xvid.h"
 
@@ -105,7 +106,7 @@ inline void CodecInst::InitDecompressionThreads(const unsigned char * in, unsign
    } 
    else 
    {
-      m_cObj.uncompact(in, out, length);
+      m_cObj.Uncompact(in, out, length);
    }
 }
 
@@ -133,10 +134,14 @@ void CodecInst::YV12Decompress(bool keyframe)
    size = *(unsigned int*)(m_pIn + 5);
    InitDecompressionThreads(m_pIn + size, dst + wxh + quarterArea, quarterArea, hw, hh, NULL, YV12, keyframe);
 
-   ASM_BlockRestore(dst + wxh + quarterArea, hw, quarterArea, 0);
+   if(keyframe)
+   {
+      ASM_BlockRestore(dst + wxh + quarterArea, hw, quarterArea, 0);
+   }
+
    WAIT_FOR_THREADS(2);
 
-   if (!m_multithreading /*&& keyframe*/ )
+   if (!m_multithreading && keyframe )
    {
       ASM_BlockRestore(dst, m_width, wxh, 0);
       ASM_BlockRestore(dst + wxh, hw, quarterArea, 0);
@@ -221,9 +226,9 @@ void CodecInst::ReduceResDecompress()
    unsigned char * udest = ydest + wxh;
    unsigned char * vdest = udest + FOURTH(wxh);
 
-   enlarge_res(ysrc, ydest, m_pBuffer2, HALF(m_width), HALF(m_height), m_SSE2); //TODO: optimize?
-   enlarge_res(usrc, udest, m_pBuffer2, FOURTH(m_width), FOURTH(m_height), m_SSE2); //TODO: optimize?
-   enlarge_res(vsrc, vdest, m_pBuffer2, FOURTH(m_width), FOURTH(m_height), m_SSE2); //TODO: optimize?
+   Enlarge_Res(ysrc, ydest, m_pBuffer2, HALF(m_width), HALF(m_height), m_SSE2); //TODO: optimize?
+   Enlarge_Res(usrc, udest, m_pBuffer2, FOURTH(m_width), FOURTH(m_height), m_SSE2); //TODO: optimize?
+   Enlarge_Res(vsrc, vdest, m_pBuffer2, FOURTH(m_width), FOURTH(m_height), m_SSE2); //TODO: optimize?
 
    ysrc = ydest;
    usrc = udest;

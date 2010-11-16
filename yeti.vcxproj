@@ -75,6 +75,12 @@
     <RunCodeAnalysis Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</RunCodeAnalysis>
     <RunCodeAnalysis Condition="'$(Configuration)|$(Platform)'=='Profiling|Win32'">false</RunCodeAnalysis>
     <RunCodeAnalysis Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</RunCodeAnalysis>
+    <IncludePath Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(IncludePath)</IncludePath>
+    <LibraryPath Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(LibraryPath)</LibraryPath>
+    <IncludePath Condition="'$(Configuration)|$(Platform)'=='Profiling|Win32'">$(IncludePath)</IncludePath>
+    <LibraryPath Condition="'$(Configuration)|$(Platform)'=='Profiling|Win32'">$(LibraryPath)</LibraryPath>
+    <IncludePath Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(IncludePath)</IncludePath>
+    <LibraryPath Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <Midl>
@@ -246,6 +252,7 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
       <TargetMachine>MachineX86</TargetMachine>
+      <OptimizeReferences>true</OptimizeReferences>
     </Link>
     <Bscmake>
       <SuppressStartupBanner>true</SuppressStartupBanner>
@@ -280,6 +287,7 @@
     <ClInclude Include="convert.h" />
     <ClInclude Include="convert_yuy2.h" />
     <ClInclude Include="fibonacci.h" />
+    <ClInclude Include="resolution.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="compact.h" />
     <ClInclude Include="convert_xvid.h" />
@@ -310,6 +318,7 @@
     <ClCompile Include="interface.cpp" />
     <ClCompile Include="prediction.cpp" />
     <ClCompile Include="range.cpp" />
+    <ClCompile Include="resolution.cpp" />
     <ClCompile Include="threading.cpp" />
     <ClCompile Include="zerorle.cpp" />
   </ItemGroup>

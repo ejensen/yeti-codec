@@ -1,10 +1,9 @@
 #ifndef _RANGE_CPP
 #define _RANGE_CPP
-#include "Compact.h"
 #include <memory.h>
+
+#include "compact.h"
 #include "yeti.h"
-//#pragma warning(disable:4731)
-//#pragma warning(disable:4096)
 
 #define TOP_VALUE		0x80000000
 #define BOTTOM_VALUE	0x00800000
@@ -14,35 +13,37 @@
 
 // Compress a byte stream using range coding. The frequency table
 // "prob_ranges" will previously have been set up by the calcProb function
-unsigned int CompressClass::encode( const unsigned char * in, unsigned char * out, const unsigned int length)
+unsigned int CompressClass::RangeEncode(const unsigned char * in, unsigned char * out, const unsigned int length)
 {
    unsigned int low = 0;
    unsigned int range = TOP_VALUE;
    unsigned int buffer = 0;
    unsigned int help = 0;
    unsigned char * const count = out;
-   const unsigned char * const ending = in+length;
+   const unsigned char * const ending = in + length;
    const unsigned int * const p_ranges = m_pProbRanges;
 
-   while( in<ending )
+   while(in < ending)
    {
       // encode symbol
       unsigned int r = range >> m_scale;
       unsigned int tmp = r * p_ranges[*in];
       low += tmp;
-      if ( *in < 255 ) 
+
+      if( *in < 255 ) 
       {
-         range = r * (p_ranges[*in+1]-p_ranges[*in]);
+         range = r * (p_ranges[*in+1] - p_ranges[*in]);
       }
       else 
       {
          range -= tmp;	
       }
+
       in++;
 
-      while ( range <= BOTTOM_VALUE ) 
+      while (range <= BOTTOM_VALUE) 
       {
-         if ( (low >> SHIFT_BITS) < 255  )
+         if((low >> SHIFT_BITS) < 255 )
          {
             OUTPUT_BYTE ( buffer );
             buffer = low >> SHIFT_BITS;
@@ -53,13 +54,13 @@ unsigned int CompressClass::encode( const unsigned char * in, unsigned char * ou
          } 
          else 
          { 
-            if ( low & TOP_VALUE )
+            if(low & TOP_VALUE)
             {
                OUTPUT_BYTE( buffer + 1 );
                buffer = low >> SHIFT_BITS;
-               for ( ; help ; help-- )
+               for ( ; help; help--)
                {
-                  OUTPUT_BYTE ( 0 );
+                  OUTPUT_BYTE (0);
                }
             }
             else 
@@ -89,6 +90,7 @@ unsigned int CompressClass::encode( const unsigned char * in, unsigned char * ou
          *out++ = 255;
       }
    }
+
    OUTPUT_BYTE( low >> 23 );
    OUTPUT_BYTE( low >> 15 );
    OUTPUT_BYTE( low >> 7 );
@@ -102,15 +104,14 @@ unsigned int CompressClass::encode( const unsigned char * in, unsigned char * ou
 // Decompress a byte stream that has had range coding applied to it.
 // The frequency table "prob_ranges" will have previously been set up using
 // the readProb function.
-
-void CompressClass::decode( const unsigned char * in, unsigned char * out, const unsigned int length)
+void CompressClass::RangeDecode( const unsigned char * in, unsigned char * out, const unsigned int length)
 {
    in++;	// 1st byte is garbage
    unsigned int buffer = IN_BYTE();
    unsigned int low = buffer >> 1;
    buffer &= 1;
    unsigned int range = 0x80;
-   const unsigned char * ending = out+length;
+   const unsigned char * ending = out + length;
    const unsigned int range_top = m_pProbRanges[255];
    const unsigned int * const p_ranges = m_pProbRanges;
    const unsigned int shift = m_scale;
@@ -122,14 +123,15 @@ void CompressClass::decode( const unsigned char * in, unsigned char * out, const
    // using a binary search with many more conditional jumps. For the 
    // majority of the values, the indexed value will be the desired
    // value, so the linear search will terminate with only 1 conditional.
-   const unsigned int hash_shift = shift>8?(shift-8):0; 
+   const unsigned int hash_shift = shift>8?(shift-8) : 0; 
    unsigned int prev = 0;
-   for ( unsigned int foo = 0; foo < 256;foo++)
+   for (unsigned int foo = 0; foo < 256; foo++)
    {
       unsigned int r = foo << hash_shift;
       for(; p_ranges[prev+1]<=r; prev++);
       r_hash[foo]= prev;
    }
+
    const unsigned int * const range_hash = r_hash;
 
    do 
@@ -152,7 +154,7 @@ void CompressClass::decode( const unsigned char * in, unsigned char * out, const
          // where to start the linear search
          unsigned int x=range_hash[tmp >> hash_shift];
          // use a linear search to find the decoded value
-         for (; p_ranges[x+1] <= tmp;x++);
+         for (; p_ranges[x+1] <= tmp; x++);
 
          *out++=x; // output the decoded value
 

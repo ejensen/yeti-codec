@@ -57,6 +57,9 @@
     <ClInclude Include="convert_yuy2.h">
       <Filter>Headers</Filter>
     </ClInclude>
+    <ClInclude Include="resolution.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="compact.cpp" />
@@ -72,6 +75,7 @@
     <ClCompile Include="convert_xvid.cpp" />
     <ClCompile Include="convert_yuy2.cpp" />
     <ClCompile Include="convert_yv12.cpp" />
+    <ClCompile Include="resolution.cpp" />
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="huffyuv_a.asm" />

@@ -19,15 +19,13 @@ public:
 	bool InitCompressBuffers(const unsigned int length);
 	void FreeCompressBuffers();
 
-	unsigned int compact( const unsigned char * in, unsigned char * out, const unsigned int length);
-	void uncompact( const unsigned char * in, unsigned char * out, const unsigned int length);
-	void calcprob(const unsigned char * in, const unsigned int length);
-	void calcprob2(const unsigned char * in, const unsigned int length);
-	void scaleprob(const unsigned int length);
-	unsigned int readprob(const unsigned char * in);
-	void readprob2(const unsigned char * in, const unsigned int length);
-	unsigned int encode( const unsigned char * in, unsigned char * out, const unsigned int length);
-	void decode(const unsigned char *in, unsigned char *out, const unsigned int length);
+	unsigned int Compact( const unsigned char * in, unsigned char * out, const unsigned int length);
+	void Uncompact( const unsigned char * in, unsigned char * out, const unsigned int length);
+	void CalcBitProbability(const unsigned char * in, const unsigned int length);
+	void ScaleBitProbability(const unsigned int length);
+	unsigned int ReadBitProbability(const unsigned char * in);
+	unsigned int RangeEncode( const unsigned char * in, unsigned char * out, const unsigned int length);
+	void RangeDecode(const unsigned char *in, unsigned char *out, const unsigned int length);
 };
 
 #endif

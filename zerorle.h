@@ -1,8 +1,7 @@
 #pragma once
 
-namespace zero
-{
-   int testRLE(const unsigned char * in, const int length, const int minReduction );
-   int RLE(const unsigned char * in, unsigned char * out, const unsigned int length, const int level);
-   int deRLE(const unsigned char * in, unsigned char * out, const int length, const int level);
-};
+unsigned int RLE2(const unsigned char * in, unsigned char * out, const unsigned int length);
+unsigned int RLE3(const unsigned char * in, unsigned char * out, const unsigned int length);
+
+unsigned int deRLE2(const unsigned char * in, unsigned char * out, const int length);
+unsigned int deRLE3(const unsigned char * in, unsigned char * out, const int length);

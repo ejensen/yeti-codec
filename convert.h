@@ -1,6 +1,6 @@
 #pragma once
 
-extern "C" {   // For use with convert.asm
+extern "C" {
 
 	/* RGB32toYUY2
 	* *src = pointer to rgb source frame (should be stored upside down)
@@ -44,12 +44,4 @@ extern "C" {   // For use with convert.asm
 	void isse_yv12_to_yuy2(const BYTE* srcY, const BYTE* srcU, const BYTE* srcV, int src_rowsize, 
 		int src_pitch, int src_pitch_uv, BYTE* dst, int dst_pitch, int height);
 
-	/* YUY2toRGB32
-	* *src = pointer to source YUY2 frame
-	* *dst = pointer to destination RGB32 frame
-	* *src_end = pointer to end of source YUY2 frame
-	* src_pitch = pitch of YUY2 frame
-	* rowsize = size in bytes of one row of yuy2 image e.g. width in pixels * 2
-	* rec709 = color coefficient matrix to use for transformation. 1=rec601 (equivalent to old method), 2=rec709, 4=pc_601, other = pc_709
-	*/
 }

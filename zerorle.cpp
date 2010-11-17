@@ -1,13 +1,8 @@
 #ifndef _ZERO_RLE
 #define _ZERO_RLE
 
-#include <stdlib.h>
-#include <memory.h>
-#include <stdio.h>
-#include <string.h>
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
-#include <math.h>
 
 #include "yeti.h"
 #include "zerorle.h"
@@ -60,31 +55,31 @@ unsigned int RLE3(const unsigned char * in, unsigned char * out, const unsigned 
    // one that handles the last couple bytes and thus needs to do bounds checking
    if ( length > 300)
    {
-      while ( a < length-300)
+      while ( a < length - 300)
       {
-         if ( in[a] ) 
+         if (in[a]) 
          {
             out[b++]=in[a++];
          } 
-         else if ( in[a+1] )
+         else if(in[a+1])
          {
-            out[b]=0;
-            out[b+1]=in[a+1];
-            b+=2;
-            a+=2;
+            out[b] = 0;
+            out[b+1] = in[a+1];
+            b += 2;
+            a += 2;
          } 
-         else if ( in[a+2] )
+         else if(in[a+2])
          {
-            out[b]=0;
-            out[b+1]=0;
-            out[b+2]=in[a+2];
-            b+=3;
-            a+=3;
+            out[b] = 0;
+            out[b+1] = 0;
+            out[b+2] = in[a+2];
+            b += 3;
+            a += 3;
          } 
          else 
          {
             int d=3;
-            for ( ; !in[a+d]&& d < 258; d++);
+            for ( ; !in[a+d] && d < 258; d++);
             a+=d;
             d-=2;
             out[b]=0;
@@ -95,20 +90,20 @@ unsigned int RLE3(const unsigned char * in, unsigned char * out, const unsigned 
          }
       }
    }
-   while ( a < length)
+   while(a < length)
    {
-      if ( in[a] ) 
+      if(in[a]) 
       {
          out[b++]=in[a++];
       } 
-      else if ( in[a+1] )
+      else if(in[a+1])
       {
          out[b]=0;
          out[b+1]=in[a+1];
          b+=2;
          a+=2;
       } 
-      else if ( in[a+2] )
+      else if(in[a+2])
       {
          out[b]=0;
          out[b+1]=0;
@@ -119,7 +114,7 @@ unsigned int RLE3(const unsigned char * in, unsigned char * out, const unsigned 
       else
       {
          int d=3;
-         for ( ;  a+d < length && !in[a+d]&& d < 258; d++);
+         for ( ;  a+d < length && !in[a+d] && d < 258; d++);
          a+=d;
          d-=2;
          out[b]=0;
@@ -140,15 +135,15 @@ unsigned int RLE2(const unsigned char * in, unsigned char * out, const unsigned 
 
    // these loops are spit into 2 parts, one which handles the bulk of the encoding, and
    // one that handles the last couple bytes and thus needs to do bounds checking
-   if ( length > 300 )
+   if( length > 300 )
    {
-      while ( a < length-300)
+      while(a < length-300)
       {
-         if ( in[a] ) 
+         if(in[a]) 
          {
             out[b++]=in[a++];
          } 
-         else if ( in[a+1] )
+         else if(in[a+1])
          {
             out[b]=0;
             out[b+1]=in[a+1];
@@ -168,13 +163,13 @@ unsigned int RLE2(const unsigned char * in, unsigned char * out, const unsigned 
          }
       }
    }
-   while ( a < length)
+   while(a < length)
    {
-      if ( in[a] )
+      if(in[a])
       {
          out[b++]=in[a++];
       } 
-      else if ( in[a+1] )
+      else if(in[a+1])
       {
          out[b]=0;
          out[b+1]=in[a+1];
@@ -184,7 +179,7 @@ unsigned int RLE2(const unsigned char * in, unsigned char * out, const unsigned 
       else 
       {
          int d=2;
-         for ( ;a+d < length && !in[a+d]&& d < 257; d++);
+         for ( ; a+d < length && !in[a+d]&& d < 257; d++);
          a+=d;
          d--;
          out[b]=0;
@@ -208,13 +203,13 @@ unsigned int deRLE2(const unsigned char * in, unsigned char * out, const unsigne
    unsigned int b = 0;
    ZeroMemory(out, length);
 
-   while ( b < length-1)
+   while(b < length - 1)
    {
-      if ( in[a] ) 
+      if(in[a]) 
       {
          out[b++]=in[a++];
       } 
-      else if ( in[a+1] )
+      else if(in[a+1])
       {
          out[b]=0;
          out[b+1]=in[a+1];
@@ -227,9 +222,10 @@ unsigned int deRLE2(const unsigned char * in, unsigned char * out, const unsigne
          a += 3;
       }
    }
-   if (b < length )
+
+   if(b < length)
    {
-      out[b]=in[a];
+      out[b] = in[a];
    }
 
    return a;
@@ -243,18 +239,18 @@ unsigned int deRLE3(const unsigned char * in, unsigned char * out, const unsigne
 
    while(b < length-2)
    {
-      if ( in[a] ) 
+      if(in[a]) 
       {
          out[b++]=in[a++];
       }
-      else if ( in[a+1] )
+      else if(in[a+1])
       {
          out[b]=0;
          out[b+1]=in[a+1];
          b+=2;
          a+=2;
       } 
-      else if ( in[a+2] )
+      else if(in[a+2])
       {
          out[b]=0;
          out[b+1]=0;
@@ -268,12 +264,13 @@ unsigned int deRLE3(const unsigned char * in, unsigned char * out, const unsigne
          a+=4;
       }
    }
-   if (b < length )
+
+   if(b < length)
    {
-      out[b]=in[a];
-      if (b < length-1 )
+      out[b] = in[a];
+      if(b < length-1)
       {
-         out[b+1]=in[a+1];
+         out[b+1] = in[a+1];
       }
    }
    return a;

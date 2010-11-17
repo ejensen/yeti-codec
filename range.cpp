@@ -1,6 +1,5 @@
 #ifndef _RANGE_CPP
 #define _RANGE_CPP
-#include <memory.h>
 
 #include "compact.h"
 #include "yeti.h"

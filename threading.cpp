@@ -1,6 +1,7 @@
+#include <stdint.h>
 #include "yeti.h"
-#include "prediction.h"
 #include "threading.h"
+#include "prediction.h"
 
 DWORD WINAPI encode_worker_thread( LPVOID i )
 {
@@ -16,15 +17,15 @@ DWORD WINAPI encode_worker_thread( LPVOID i )
    unsigned char * const buffer = (unsigned char *)info->m_pBuffer;
 //   const unsigned int format=info->m_format;
 
-   while( info->m_length != 0xFFFFFFFF ) //TODO: Optimize
+   while(info->m_length != UINT32_MAX) //TODO: Optimize
    {
       src = (const unsigned char *)info->m_pSource;
       dest = (unsigned char *)info->m_pDest;
 
       unsigned char * dst = (width == stride) ? buffer : (unsigned char *)ALIGN_ROUND(dest,16);
 
-      if( info->m_keyframe )
-      {
+      //if( info->m_keyframe )
+      //{
          if ( SSE2 )
          {
             SSE2_BlockPredict(src, dst, stride, stride * height);
@@ -43,11 +44,11 @@ DWORD WINAPI encode_worker_thread( LPVOID i )
                memcpy(stripped + y * width, padded + y * stride, width);
             }
          }
-      }
-      else
-      {
-         memcpy(buffer, src, stride * height);
-      }
+      //}
+      //else
+      //{
+      //   memcpy(buffer, src, stride * height);
+      //}
 
       info->m_size = info->m_cObj.Compact(buffer, dest, width * height);
 
@@ -73,7 +74,7 @@ DWORD WINAPI decode_worker_thread( LPVOID i )
    unsigned int format;
    unsigned int length;
 
-   while ( info->m_length != 0xFFFFFFFF ) //TODO:Optimize
+   while(info->m_length != UINT32_MAX) //TODO:Optimize
    {
       src = (unsigned char *)info->m_pSource;
       dest = (unsigned char *)info->m_pDest;
@@ -85,10 +86,10 @@ DWORD WINAPI decode_worker_thread( LPVOID i )
 
       info->m_cObj.Uncompact(src, dest, length);
 
-      if(info->m_keyframe)
-      {
+      //if(info->m_keyframe)
+      //{
          ASM_BlockRestore(dest, width, width*height, format != YV12);
-      }
+      //}
 
       info->m_length = 0;
       SuspendThread(info->m_thread);
@@ -100,7 +101,7 @@ DWORD WINAPI decode_worker_thread( LPVOID i )
    return 0;
 }
 
-DWORD CodecInst::InitThreads( int encode )
+DWORD CodecInst::InitThreads(int encode)
 {
    DWORD temp;
    m_info_a.m_length=0;
@@ -197,6 +198,7 @@ DWORD CodecInst::InitThreads( int encode )
          m_info_a.m_thread = CreateThread(NULL, 0, decode_worker_thread, &m_info_a, CREATE_SUSPENDED, &temp);
          m_info_b.m_thread = CreateThread(NULL, 0, decode_worker_thread, &m_info_b, CREATE_SUSPENDED, &temp);
       }
+
       if ( !m_info_a.m_thread || !m_info_b.m_thread || (m_format==RGB32 && !m_info_c.m_thread ))
       {
          m_info_a.m_cObj.FreeCompressBuffers();
@@ -214,6 +216,7 @@ DWORD CodecInst::InitThreads( int encode )
          return (DWORD)ICERR_INTERNAL;
       }
    }
+
    if ( use_format >= RGB24 )
    {
       SetThreadPriority(m_info_b.m_thread, THREAD_PRIORITY_ABOVE_NORMAL);
@@ -222,32 +225,33 @@ DWORD CodecInst::InitThreads( int encode )
    {
       SetThreadPriority(m_info_a.m_thread, THREAD_PRIORITY_ABOVE_NORMAL);
    }
+
    return (DWORD)ICERR_OK;
 }
 
 void CodecInst::EndThreads()
 {
-   m_info_a.m_length = 0xFFFFFFFF;
-   m_info_b.m_length = 0xFFFFFFFF;
-   m_info_c.m_length = 0xFFFFFFFF;
-   if ( m_info_a.m_thread )
+   m_info_a.m_length = UINT32_MAX;
+   m_info_b.m_length = UINT32_MAX;
+   m_info_c.m_length = UINT32_MAX;
+   if(m_info_a.m_thread)
    {
       RESUME_THREAD(m_info_a.m_thread);
    }
-   if ( m_info_b.m_thread )
+   if(m_info_b.m_thread)
    {
       RESUME_THREAD(m_info_b.m_thread);
    }
-   if ( m_info_c.m_thread && m_format == RGB32 )
+   if(m_info_c.m_thread && m_format == RGB32)
    {
       RESUME_THREAD(m_info_c.m_thread);
    }
-   while ( (m_info_a.m_length && m_info_a.m_thread) || (m_info_b.m_length && m_info_b.m_thread) || (m_info_c.m_length && m_format == RGB32 && m_info_c.m_thread) )
+   while ((m_info_a.m_length && m_info_a.m_thread) || (m_info_b.m_length && m_info_b.m_thread) || (m_info_c.m_length && m_format == RGB32 && m_info_c.m_thread))
    {
       Sleep(1);
    }
 
-   if ( !CloseHandle(m_info_a.m_thread) )
+   if (!CloseHandle(m_info_a.m_thread))
    {
 #ifdef _DEBUG
       /*LPVOID lpMsgBuf;
@@ -267,22 +271,22 @@ void CodecInst::EndThreads()
       MessageBox (HWND_DESKTOP, "CloseHandle failed for thread 0x0A", "Error", MB_OK | MB_ICONEXCLAMATION);
 #endif
    }
-   if ( !CloseHandle(m_info_b.m_thread) )
+   if (!CloseHandle(m_info_b.m_thread))
    {
 #ifdef _DEBUG
       MessageBox (HWND_DESKTOP, "CloseHandle failed for thread 0x0B", "Error", MB_OK | MB_ICONEXCLAMATION);
 #endif
    }
-   if ( m_info_c.m_thread && m_format == RGB32 )
+   if(m_info_c.m_thread && m_format == RGB32)
    {
-      if ( !CloseHandle(m_info_c.m_thread) )
+      if(!CloseHandle(m_info_c.m_thread))
       {
 #ifdef _DEBUG
          MessageBox (HWND_DESKTOP,"CloseHandle failed for thread 0x0C", "Error", MB_OK | MB_ICONEXCLAMATION);
 #endif
       }
    }
-                     
+
    m_info_a.m_thread = NULL;
    m_info_b.m_thread = NULL;
    m_info_c.m_thread = NULL;

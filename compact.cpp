@@ -18,17 +18,11 @@
 #ifndef _COMPACT_CPP
 #define _COMPACT_CPP
 
-#include <stdlib.h>
-#include <memory.h>
-#include <stdio.h>
-#include <string.h>
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
-#include <math.h>
 #include "yeti.h"
 #include "fibonacci.h"
 #include "zerorle.h"
-#include "rle.h"
 
 // scale the byte probabilities so the cumulative
 // probability is equal to a power of 2
@@ -44,10 +38,10 @@ void CompressClass::ScaleBitProbability(unsigned int length)
    }
 
    double factor = temp / (double)length;
-   unsigned int newlen=0;
+   unsigned int newlen = 0;
 
    int a;
-   for ( a = 1; a < 257; a++ )
+   for(a = 1; a < 257; a++)
    {
       m_pProbRanges[a]= (unsigned int)(m_pProbRanges[a]*factor);
       newlen+=m_pProbRanges[a];
@@ -70,7 +64,7 @@ void CompressClass::ScaleBitProbability(unsigned int length)
    unsigned int b=0;
    while(newlen)
    {
-      if ( m_pProbRanges[b+1] )
+      if(m_pProbRanges[b+1])
       {
          m_pProbRanges[b+1]++;
          newlen--;
@@ -88,13 +82,13 @@ void CompressClass::ScaleBitProbability(unsigned int length)
       }
    }
 
-   for (a = 0; temp; a++)
+   for(a = 0; temp; a++)
    {
-      temp>>=1;
+      temp >>= 1;
    }
 
    m_scale = a - 1;
-   for ( a = 1; a < 257; a++ )
+   for(a = 1; a < 257; a++)
    {
       m_pProbRanges[a] += m_pProbRanges[a-1];
    }
@@ -111,17 +105,17 @@ unsigned int CompressClass::ReadBitProbability(const unsigned char * in)
       m_pProbRanges[0] = 0;
 
       skip = FibonacciDecode(in,&m_pProbRanges[1]);
-      if ( !skip )
+      if (!skip)
       {
          return 0;
       }
 
-      for (unsigned int a = 1; a< 257; a++)
+      for(unsigned int a = 1; a< 257; a++)
       {
          length+=m_pProbRanges[a];
       }
 
-      if ( !length )
+      if(!length)
       {
          return 0;
       }
@@ -148,7 +142,7 @@ void CompressClass::CalcBitProbability(const unsigned char * const in, const uns
    m_pProbRanges[0] = 0;
    ZeroMemory(m_pBytecounts, 256 * sizeof(unsigned int));
 
-   for (unsigned int a = 0; a < length; a++)
+   for(unsigned int a = 0; a < length; a++)
    {
       m_pBytecounts[in[a]]++;
    }
@@ -165,7 +159,7 @@ unsigned int CompressClass::Compact(const unsigned char * in, unsigned char * ou
 {
    int min_size = length / 512;
 
-   if (min_size < 16)
+   if(min_size < 16)
    {
       min_size = 16;
    }
@@ -194,7 +188,7 @@ unsigned int CompressClass::Compact(const unsigned char * in, unsigned char * ou
    out[4 + skip] = tempc;
    skip += y + 5;
 
-   if ( size < skip )  // RLE size is less than range compressed size
+   if(size < skip)  // RLE size is less than range compressed size
    {
       out[0] += 4;
       memcpy(out + 1, source, size);
@@ -215,9 +209,9 @@ void CompressClass::Uncompact(const unsigned char * in, unsigned char * out, con
    try
    {
       char rle = in[0];
-      if ( rle >= 0 && rle < 8 )
+      if(rle >= 0 && rle < 8)
       {
-         if ( rle < 4 )
+         if(rle < 4)
          {
             unsigned int size = *(UINT32*)(in + 1);
             int skip;
@@ -272,7 +266,7 @@ bool CompressClass::InitCompressBuffers(const unsigned int length)
    m_pBuffer = (unsigned char *)aligned_malloc(m_pBuffer, length, 32, "Compress::temp");
    m_pProbRanges = (unsigned int *)aligned_malloc(m_pProbRanges, 260 * sizeof(unsigned int), 64, "Compress::ranges");
    m_pBytecounts = (unsigned int *)aligned_malloc(m_pBytecounts, 260 * sizeof(unsigned int), 64, "Compress::bytecounts");
-   if (!( m_pBuffer && m_pProbRanges && m_pBytecounts ))
+   if (!( m_pBuffer && m_pProbRanges && m_pBytecounts))
    {
       FreeCompressBuffers();
       return false;

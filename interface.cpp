@@ -23,7 +23,7 @@ CodecInst::CodecInst()
    m_pPrev=NULL;
    m_pDelta=NULL;
    m_pBuffer2=NULL;
-   m_pLossyBuffer=NULL;
+   m_pColorTransformBuffer=NULL;
    m_length=0;
    m_nullframes=true;
    m_deltaframes=true;
@@ -205,7 +205,7 @@ CodecInst::~CodecInst()
    {
       if ( m_started )
       {
-         if (m_pBuffer2)
+         if(m_pColorTransformBuffer)
          {
             CompressEnd();
          } 

@@ -58,7 +58,7 @@ inline void * aligned_malloc( void *ptr, int size, int align, char *str )
 #endif
       }
    }
-   return _aligned_malloc(size,align);
+   return _aligned_malloc(size, align);
 }
 
 #ifndef _DEBUG
@@ -82,6 +82,7 @@ inline void * aligned_malloc( void *ptr, int size, int align, char *str )
    ptr=NULL;\
 }
 #endif
+
 
 // y must be 2^n
 #define ALIGN_ROUND(x,y) ((((unsigned int)(x))+(y-1))&(~(y-1)))
@@ -145,7 +146,7 @@ public:
    unsigned char * m_pOut;
    unsigned char * m_pBuffer2;
    unsigned char * m_pDelta;
-   unsigned char * m_pLossyBuffer;
+   unsigned char * m_pColorTransformBuffer;
    unsigned int m_length;
    unsigned int m_width;
    unsigned int m_height;
@@ -165,6 +166,58 @@ public:
 
    CodecInst();
    ~CodecInst();
+
+   inline unsigned int COUNT_BITS(unsigned int v)
+   {
+      v = v - ((v >> 1) & 0x55555555);
+      v = (v & 0x33333333) + ((v >> 2) & 0x33333333);
+      return ((v + (v >> 4) & 0xF0F0F0F) * 0x1010101) >> 24;
+   }
+
+   void Fast_XOR(void* dest, const void* src1, const void* src2, const unsigned int len ) 
+   {
+      unsigned* tempDest = (unsigned*)dest;
+      unsigned* tempSrc1 = (unsigned*)src1;
+      unsigned* tempSrc2 = (unsigned*)src2;
+      for(unsigned i = 0; i < FOURTH(len); i++)
+      {
+         tempDest[i] = tempSrc1[i] ^ tempSrc2[i];
+      }
+   }
+
+   /*unsigned long Fast_XOR_Count(void* dest, const void* src1, const void* src2, const unsigned int len) 
+   {
+      unsigned* tempDest = (unsigned*)dest;
+      unsigned* tempSrc1 = (unsigned*)src1;
+      unsigned* tempSrc2 = (unsigned*)src2;
+
+      unsigned long bitCount= 0;
+
+      for(unsigned i = 0; i < FOURTH(len); i++)
+      {
+         tempDest[i] = tempSrc1[i] ^ tempSrc2[i];
+         bitCount += COUNT_BITS(tempDest[i]);
+      }
+
+      return bitCount;
+   }*/
+
+   const unsigned long Fast_XOR_Count(void* dest, const void* src1, const void* src2, const unsigned int len, const unsigned long max)
+   {
+      unsigned* tempDest = (unsigned*)dest;
+      unsigned* tempSrc1 = (unsigned*)src1;
+      unsigned* tempSrc2 = (unsigned*)src2;
+
+      unsigned long bitCount = 0;
+
+      for(unsigned int i = 0; bitCount < max && i < FOURTH(len); i++)
+      {
+         tempDest[i] = tempSrc1[i] ^ tempSrc2[i];
+         bitCount += COUNT_BITS(tempDest[i]);
+      }
+
+      return bitCount;
+   }
 
    DWORD GetState(LPVOID pv, DWORD dwSize);
    DWORD SetState(LPVOID pv, DWORD dwSize);
@@ -192,61 +245,6 @@ public:
    void EndThreads();
 
    DWORD CompressYV12(ICCOMPRESS* icinfo);
-
-   void Fast_XOR(void* dest, const void* src1, const void* src2, const unsigned int len ) 
-   {
-      unsigned* tempDest = (unsigned*)dest;
-      unsigned* tempSrc1 = (unsigned*)src1;
-      unsigned* tempSrc2 = (unsigned*)src2;
-      for(unsigned i = 0; i < FOURTH(len); i++)
-      {
-         tempDest[i] = tempSrc1[i] ^ tempSrc2[i];
-      }
-   }
-
-   unsigned long Fast_XOR_Count(void* dest, const void* src1, const void* src2, const unsigned int len) 
-   {
-      unsigned* tempDest = (unsigned*)dest;
-      unsigned* tempSrc1 = (unsigned*)src1;
-      unsigned* tempSrc2 = (unsigned*)src2;
-
-      unsigned long bitCount= 0;
-
-      for(unsigned i = 0; i < FOURTH(len); i++)
-      {
-         tempDest[i] = tempSrc1[i] ^ tempSrc2[i];
-         bitCount += COUNT_BITS(tempDest[i]);
-      }
-
-      return bitCount;
-   }
-
-   const unsigned long Fast_XOR_Count(void* dest, const void* src1, const void* src2, const unsigned int len, const unsigned long max)
-   {
-      unsigned* tempDest = (unsigned*)dest;
-      unsigned* tempSrc1 = (unsigned*)src1;
-      unsigned* tempSrc2 = (unsigned*)src2;
-
-      unsigned long bitCount = 0;
-
-      for(unsigned int i = 0; bitCount < max && i < FOURTH(len); i++)
-      {
-         tempDest[i] = tempSrc1[i] ^ tempSrc2[i];
-         bitCount += COUNT_BITS(tempDest[i]);
-      }
-
-      return bitCount;
-   }
-
-   template<class T>
-   inline unsigned int COUNT_BITS(T v)
-   {
-      v = v - ((v >> 1) & (T)~(T)0/3);
-      v = (v & (T)~(T)0/15*3) + ((v >> 2) & (T)~(T)0/15*3);
-      v = (v + (v >> 4)) & (T)~(T)0/255*15;
-      return (T)(v * ((T)~(T)0/255)) >> (sizeof(T) - 1) * CHAR_BIT;
-   }
-
    DWORD CompressLossy(ICCOMPRESS* icinfo);
    DWORD CompressReduced(ICCOMPRESS* icinfo);
 

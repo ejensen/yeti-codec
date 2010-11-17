@@ -1,10 +1,6 @@
 //This file contains functions that perform and undo median prediction.
 
-#include <mmintrin.h>
 #include <emmintrin.h>
-#include <xmmintrin.h>
-#include <stdlib.h>
-#include <memory.h>
 
 #include "yeti.h"
 #include "prediction.h"

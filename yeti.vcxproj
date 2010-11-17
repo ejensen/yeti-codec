@@ -271,6 +271,7 @@
     </ResourceCompile>
   </ItemGroup>
   <ItemGroup>
+    <None Include="..\TODO.txt" />
     <None Include="drvproc.def" />
     <CustomBuild Include="huffyuv_a.asm">
       <FileType>Document</FileType>

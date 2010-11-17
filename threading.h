@@ -1,4 +1,5 @@
 #pragma once
+#include "yeti.h"
 
 #define RESUME_THREAD(x) {\
 	while( ResumeThread(x) != 1){\

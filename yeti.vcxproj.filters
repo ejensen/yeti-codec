@@ -16,6 +16,7 @@
   <ItemGroup>
     <None Include="Yeti.inf" />
     <None Include="drvproc.def" />
+    <None Include="..\TODO.txt" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="compact.h">

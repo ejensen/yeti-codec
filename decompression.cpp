@@ -44,12 +44,12 @@ DWORD CodecInst::DecompressBegin(LPBITMAPINFOHEADER lpbiIn, LPBITMAPINFOHEADER l
       buffer_size = m_length + 2048;
    }
 
-   m_pBuffer = (unsigned char*)aligned_malloc(m_pBuffer, buffer_size, 16, "buffer");
-   m_pBuffer2 = (unsigned char*)aligned_malloc(m_pBuffer2, buffer_size, 16, "buffer2");
-   m_pPrev = (unsigned char*)aligned_malloc(m_pPrev, buffer_size, 16, "prev");
-   ZeroMemory(m_pPrev, buffer_size);
+   m_buffer = (unsigned char*)aligned_malloc(m_buffer, buffer_size, 16, "buffer");
+   m_buffer2 = (unsigned char*)aligned_malloc(m_buffer2, buffer_size, 16, "buffer2");
+   m_prevFrame = (unsigned char*)aligned_malloc(m_prevFrame, buffer_size, 16, "prev");
+   ZeroMemory(m_prevFrame, buffer_size);
 
-   if(!m_pBuffer || !m_pBuffer2 || !m_pPrev)
+   if(!m_buffer || !m_buffer2 || !m_prevFrame)
    {
       return (DWORD)ICERR_MEMORY;
    }
@@ -82,9 +82,9 @@ DWORD CodecInst::DecompressEnd()
          EndThreads();
       }
 
-      ALIGNED_FREE(m_pBuffer,"buffer");
-      ALIGNED_FREE(m_pBuffer2,"buffer2");
-      ALIGNED_FREE(m_pPrev, "prev");
+      ALIGNED_FREE(m_buffer,"buffer");
+      ALIGNED_FREE(m_buffer2,"buffer2");
+      ALIGNED_FREE(m_prevFrame, "prev");
       m_cObj.FreeCompressBuffers();
    }
 
@@ -96,8 +96,8 @@ inline void CodecInst::InitDecompressionThreads(const unsigned char * in, unsign
 {
    if (m_multithreading && thread)
    {
-      thread->m_pSource = (unsigned char *)in;
-      thread->m_pDest = out;
+      thread->m_source = in;
+      thread->m_dest = out;
       thread->m_length = length;
       thread->m_width = width;
       thread->m_height = height;
@@ -115,13 +115,13 @@ inline void CodecInst::InitDecompressionThreads(const unsigned char * in, unsign
 // Decompress a YV12 keyframe
 void CodecInst::YV12Decompress(bool keyframe)
 {
-   unsigned char * dst = m_pOut;
-   unsigned char * dst2 = m_pBuffer;
+   unsigned char * dst = m_out;
+   unsigned char * dst2 = m_buffer;
 
    if (m_format == YUY2)
    {
-      dst = m_pBuffer;
-      dst2 = m_pOut;
+      dst = m_buffer;
+      dst2 = m_out;
    }
 
    int size = *(unsigned int*)(m_pIn + 1);
@@ -153,14 +153,14 @@ void CodecInst::YV12Decompress(bool keyframe)
 
    if(!keyframe)
    {
-      Fast_XOR(dst, dst, m_pPrev, length);
+      Fast_XOR(dst, dst, m_prevFrame, length);
    }
    //else
    //{
    //   MessageBox (HWND_DESKTOP, "Keyframe", "info", MB_OK);
    //}
 
-   memcpy(m_pPrev, dst, length);
+   memcpy(m_prevFrame, dst, length);
 
    if(m_format == YV12)
    {
@@ -178,11 +178,11 @@ void CodecInst::YV12Decompress(bool keyframe)
    // upsample to RGB
    if(m_format == RGB32)
    {
-      mmx_YUY2toRGB32(dst2, m_pOut, dst2 + DOUBLE(wxh), DOUBLE(m_width));
+      mmx_YUY2toRGB32(dst2, m_out, dst2 + DOUBLE(wxh), DOUBLE(m_width));
    } 
    else 
    {
-      mmx_YUY2toRGB24(dst2, m_pOut, dst2 + DOUBLE(wxh), DOUBLE(m_width));
+      mmx_YUY2toRGB24(dst2, m_out, dst2 + DOUBLE(wxh), DOUBLE(m_width));
    }
 }
 
@@ -197,7 +197,7 @@ void CodecInst::ReduceResDecompress()
    unsigned int wxh = m_width * m_height;
    unsigned int quarterSize = FOURTH(wxh);
 
-   unsigned char * dest = (m_format == YV12) ? m_pBuffer : m_pOut;
+   unsigned char * dest = (m_format == YV12) ? m_buffer : m_out;
 
    InitDecompressionThreads(m_pIn + 9, dest, wxh, m_width, m_height, &m_info_a, YV12, true);
    InitDecompressionThreads(m_pIn + size, dest + wxh, quarterSize, hw, hh, &m_info_b, YV12, true);
@@ -219,7 +219,7 @@ void CodecInst::ReduceResDecompress()
    wxh = m_width * m_height;
 
    unsigned char* source = dest;
-   dest = (m_format == YV12) ? m_pOut: m_pBuffer;
+   dest = (m_format == YV12) ? m_out: m_buffer;
 
    unsigned char* ysrc = source;
    unsigned char* usrc = ysrc + FOURTH(wxh);
@@ -228,9 +228,9 @@ void CodecInst::ReduceResDecompress()
    unsigned char* udest = ydest + wxh;
    unsigned char* vdest = udest + FOURTH(wxh);
 
-   Enlarge_Res(ysrc, ydest, m_pBuffer2, HALF(m_width), HALF(m_height), m_SSE2);
-   Enlarge_Res(usrc, udest, m_pBuffer2, FOURTH(m_width), FOURTH(m_height), m_SSE2);
-   Enlarge_Res(vsrc, vdest, m_pBuffer2, FOURTH(m_width), FOURTH(m_height), m_SSE2);
+   Enlarge_Res(ysrc, ydest, m_buffer2, HALF(m_width), HALF(m_height), m_SSE2);
+   Enlarge_Res(usrc, udest, m_buffer2, FOURTH(m_width), FOURTH(m_height), m_SSE2);
+   Enlarge_Res(vsrc, vdest, m_buffer2, FOURTH(m_width), FOURTH(m_height), m_SSE2);
 
    ysrc = ydest;
    usrc = udest;
@@ -238,15 +238,15 @@ void CodecInst::ReduceResDecompress()
 
    if(m_format == RGB24)
    {
-      yv12_to_rgb24_mmx(m_pOut, m_width, ysrc, vsrc, usrc, m_width, HALF(m_width), m_width, -(int)m_height);
+      yv12_to_rgb24_mmx(m_out, m_width, ysrc, vsrc, usrc, m_width, HALF(m_width), m_width, -(int)m_height);
    } 
    else if(m_format == RGB32)
    {
-      yv12_to_rgb32_mmx(m_pOut, m_width, ysrc, vsrc, usrc, m_width, HALF(m_width), m_width, -(int)m_height);
+      yv12_to_rgb32_mmx(m_out, m_width, ysrc, vsrc, usrc, m_width, HALF(m_width), m_width, -(int)m_height);
    } 
    else if(m_format == YUY2)
    {
-      yv12_to_yuyv_mmx(m_pOut, m_width, ysrc, vsrc ,usrc, m_width, HALF(m_width), m_width, m_height);
+      yv12_to_yuyv_mmx(m_out, m_width, ysrc, vsrc ,usrc, m_width, HALF(m_width), m_width, m_height);
    }
 }
 
@@ -265,7 +265,7 @@ DWORD CodecInst::Decompress(ICDECOMPRESS* icinfo, DWORD dwSize)
          DecompressBegin(icinfo->lpbiInput, icinfo->lpbiOutput);
       }
 
-      m_pOut = (unsigned char *)icinfo->lpOutput;
+      m_out = (unsigned char *)icinfo->lpOutput;
       m_pIn  = (unsigned char *)icinfo->lpInput; 
       icinfo->lpbiOutput->biSizeImage = m_length;
 

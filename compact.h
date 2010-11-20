@@ -6,12 +6,11 @@
 class CompressClass 
 {
 public:
-	unsigned int * m_pProbRanges;		// Byte probability range table
+	unsigned int * m_probRanges;		// Byte probability range table
 	unsigned int m_scale;				// Used to replace some multiply/divides with binary shifts,
 	// (1<<scale) is equal to the cumulative probability of all bytes
-	unsigned int * m_pBytecounts;		// Byte frequency table
-	unsigned char * m_pBuffer;			// buffer to perform RLE
-
+	unsigned int * m_bytecounts;		// Byte frequency table
+	unsigned char * m_buffer;			// buffer to perform RLE
 
 	CompressClass();
 	~CompressClass();
@@ -24,8 +23,8 @@ public:
 	void CalcBitProbability(const unsigned char * in, const unsigned int length);
 	void ScaleBitProbability(const unsigned int length);
 	unsigned int ReadBitProbability(const unsigned char * in);
-	unsigned int RangeEncode( const unsigned char * in, unsigned char * out, const unsigned int length);
-	void RangeDecode(const unsigned char *in, unsigned char *out, const unsigned int length);
+	unsigned int __fastcall RangeEncode( const unsigned char * in, unsigned char * out, const unsigned int length);
+	void __fastcall RangeDecode(const unsigned char *in, unsigned char *out, const unsigned int length);
 };
 
 #endif

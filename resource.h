@@ -12,7 +12,6 @@
 #define IDC_REDUCED                     1004
 #define IDC_MULTI                       1005
 #define IDC_DELTAFRAMES                 1006
-#define IDC_REDUCEDQUALITY              1007
 #define IDC_CGROUPBOX                   1019
 #define IDC_DGROUPBOX                   1020
 

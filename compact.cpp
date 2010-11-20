@@ -43,8 +43,8 @@ void CompressClass::ScaleBitProbability(unsigned int length)
    int a;
    for(a = 1; a < 257; a++)
    {
-      m_pProbRanges[a]= (unsigned int)(m_pProbRanges[a]*factor);
-      newlen+=m_pProbRanges[a];
+      m_probRanges[a]= (unsigned int)(m_probRanges[a]*factor);
+      newlen+=m_probRanges[a];
    }
 
    newlen = temp-newlen;
@@ -53,7 +53,7 @@ void CompressClass::ScaleBitProbability(unsigned int length)
 
    if((signed int)newlen < 0 )  // should never happen
    {
-      m_pProbRanges[1] += newlen;
+      m_probRanges[1] += newlen;
       newlen = 0;
 #ifdef _DEBUG
       MessageBox (HWND_DESKTOP, "Newlen is less than 0", "Error", MB_OK | MB_ICONEXCLAMATION);
@@ -64,9 +64,9 @@ void CompressClass::ScaleBitProbability(unsigned int length)
    unsigned int b=0;
    while(newlen)
    {
-      if(m_pProbRanges[b+1])
+      if(m_probRanges[b+1])
       {
-         m_pProbRanges[b+1]++;
+         m_probRanges[b+1]++;
          newlen--;
       }
 
@@ -90,7 +90,7 @@ void CompressClass::ScaleBitProbability(unsigned int length)
    m_scale = a - 1;
    for(a = 1; a < 257; a++)
    {
-      m_pProbRanges[a] += m_pProbRanges[a-1];
+      m_probRanges[a] += m_probRanges[a-1];
    }
 }
 
@@ -102,9 +102,9 @@ unsigned int CompressClass::ReadBitProbability(const unsigned char * in)
       unsigned int length = 0;
       unsigned int skip;
 
-      m_pProbRanges[0] = 0;
+      m_probRanges[0] = 0;
 
-      skip = FibonacciDecode(in,&m_pProbRanges[1]);
+      skip = FibonacciDecode(in,&m_probRanges[1]);
       if (!skip)
       {
          return 0;
@@ -112,7 +112,7 @@ unsigned int CompressClass::ReadBitProbability(const unsigned char * in)
 
       for(unsigned int a = 1; a< 257; a++)
       {
-         length+=m_pProbRanges[a];
+         length+=m_probRanges[a];
       }
 
       if(!length)
@@ -131,7 +131,7 @@ unsigned int CompressClass::ReadBitProbability(const unsigned char * in)
 }
 
 // write the byte frequency header
-#define WRITE_PROB( x ) (FibonacciEncode(m_pBytecounts, x, 256))
+#define WRITE_PROB( x ) (FibonacciEncode(m_bytecounts, x, 256))
 
 
 // Determine the frequency of each byte in a byte stream; the frequencies are then scaled
@@ -139,15 +139,15 @@ unsigned int CompressClass::ReadBitProbability(const unsigned char * in)
 // multiply and divides in the compression/decompression routines
 void CompressClass::CalcBitProbability(const unsigned char * const in, const unsigned int length)
 {
-   m_pProbRanges[0] = 0;
-   ZeroMemory(m_pBytecounts, 256 * sizeof(unsigned int));
+   m_probRanges[0] = 0;
+   ZeroMemory(m_bytecounts, 256 * sizeof(unsigned int));
 
    for(unsigned int a = 0; a < length; a++)
    {
-      m_pBytecounts[in[a]]++;
+      m_bytecounts[in[a]]++;
    }
 
-   memcpy(&m_pProbRanges[1], m_pBytecounts, 256 * sizeof(unsigned int));
+   memcpy(&m_probRanges[1], m_bytecounts, 256 * sizeof(unsigned int));
 
    ScaleBitProbability(length);
 }
@@ -167,10 +167,10 @@ unsigned int CompressClass::Compact(const unsigned char * in, unsigned char * ou
    int bytes_used = 0;
    
    const unsigned char level = 2;
-   unsigned int size = RLE2(in, m_pBuffer, length);
+   unsigned int size = RLE2(in, m_buffer, length);
    out[0] = level;
 
-   const unsigned char* source = m_pBuffer;
+   const unsigned char* source = m_buffer;
 
    if( size >= length ) // RLE size is greater than uncompressed size
    {
@@ -190,6 +190,7 @@ unsigned int CompressClass::Compact(const unsigned char * in, unsigned char * ou
 
    if(size < skip)  // RLE size is less than range compressed size
    {
+      //MessageBox(HWND_DESKTOP, "RLE Smaller", "Info", MB_OK);
       out[0] += 4;
       memcpy(out + 1, source, size);
       skip = size + 1;
@@ -221,16 +222,16 @@ void CompressClass::Uncompact(const unsigned char * in, unsigned char * out, con
                return;
             }
 
-            unsigned char* dest = rle ? m_pBuffer : out;
+            unsigned char* dest = rle ? m_buffer : out;
             RangeDecode(in + 4 + skip, dest, size);
 
             if(rle == 2)
             {
-               deRLE2(m_pBuffer, out, length);
+               deRLE2(m_buffer, out, length);
             }
             else if( rle == 3)
             {
-               deRLE3(m_pBuffer, out, length);
+               deRLE3(m_buffer, out, length);
             }
          } 
          else  // RLE length is less than range compressed length
@@ -263,10 +264,10 @@ void CompressClass::Uncompact(const unsigned char * in, unsigned char * out, con
 // initialized the buffers used by RLE and range coding routines
 bool CompressClass::InitCompressBuffers(const unsigned int length)
 {
-   m_pBuffer = (unsigned char *)aligned_malloc(m_pBuffer, length, 32, "Compress::temp");
-   m_pProbRanges = (unsigned int *)aligned_malloc(m_pProbRanges, 260 * sizeof(unsigned int), 64, "Compress::ranges");
-   m_pBytecounts = (unsigned int *)aligned_malloc(m_pBytecounts, 260 * sizeof(unsigned int), 64, "Compress::bytecounts");
-   if (!( m_pBuffer && m_pProbRanges && m_pBytecounts))
+   m_buffer = (unsigned char *)aligned_malloc(m_buffer, length, 32, "Compress::temp");
+   m_probRanges = (unsigned int *)aligned_malloc(m_probRanges, 260 * sizeof(unsigned int), 64, "Compress::ranges");
+   m_bytecounts = (unsigned int *)aligned_malloc(m_bytecounts, 260 * sizeof(unsigned int), 64, "Compress::bytecounts");
+   if (!( m_buffer && m_probRanges && m_bytecounts))
    {
       FreeCompressBuffers();
       return false;
@@ -277,16 +278,16 @@ bool CompressClass::InitCompressBuffers(const unsigned int length)
 // free the buffers used by RLE and range coding routines
 void CompressClass::FreeCompressBuffers()
 {	
-   ALIGNED_FREE( m_pBuffer,"Compress::buffer");
-   ALIGNED_FREE( m_pProbRanges, "Compress::prob_ranges");
-   ALIGNED_FREE( m_pBytecounts, "Compress::bytecounts");
+   ALIGNED_FREE( m_buffer,"Compress::buffer");
+   ALIGNED_FREE( m_probRanges, "Compress::prob_ranges");
+   ALIGNED_FREE( m_bytecounts, "Compress::bytecounts");
 }
 
 CompressClass::CompressClass()
 {
-   m_pBuffer = NULL;
-   m_pProbRanges = NULL;
-   m_pBytecounts = NULL;
+   m_buffer = NULL;
+   m_probRanges = NULL;
+   m_bytecounts = NULL;
 }
 
 CompressClass::~CompressClass()

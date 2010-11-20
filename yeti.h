@@ -120,9 +120,9 @@ static const char SettingsFile[] = "yeti.ini";
 
 struct threadinfo
 {
-   volatile const unsigned char * m_pSource;	// data source
-   volatile unsigned char * m_pDest;		// data destination
-   unsigned char * m_pBuffer;	// buffer used for median prediction or restoration
+   volatile const unsigned char * m_source;	// data source
+   volatile unsigned char * m_dest;		// data destination
+   unsigned char * m_buffer;
    unsigned int m_width;
    unsigned int m_height;
    unsigned int m_format;
@@ -140,13 +140,13 @@ struct threadinfo
 class CodecInst
 {
 public:
-   unsigned char * m_pBuffer;
-   unsigned char * m_pPrev;
+   unsigned char * m_buffer;
+   unsigned char * m_prevFrame;
    unsigned char * m_pIn;
-   unsigned char * m_pOut;
-   unsigned char * m_pBuffer2;
-   unsigned char * m_pDelta;
-   unsigned char * m_pColorTransformBuffer;
+   unsigned char * m_out;
+   unsigned char * m_buffer2;
+   unsigned char * m_deltaBuffer;
+   unsigned char * m_colorTransBuffer;
    unsigned int m_length;
    unsigned int m_width;
    unsigned int m_height;
@@ -184,23 +184,6 @@ public:
          tempDest[i] = tempSrc1[i] ^ tempSrc2[i];
       }
    }
-
-   /*unsigned long Fast_XOR_Count(void* dest, const void* src1, const void* src2, const unsigned int len) 
-   {
-      unsigned* tempDest = (unsigned*)dest;
-      unsigned* tempSrc1 = (unsigned*)src1;
-      unsigned* tempSrc2 = (unsigned*)src2;
-
-      unsigned long bitCount= 0;
-
-      for(unsigned i = 0; i < FOURTH(len); i++)
-      {
-         tempDest[i] = tempSrc1[i] ^ tempSrc2[i];
-         bitCount += COUNT_BITS(tempDest[i]);
-      }
-
-      return bitCount;
-   }*/
 
    const unsigned long Fast_XOR_Count(void* dest, const void* src1, const void* src2, const unsigned int len, const unsigned long max)
    {

@@ -19,11 +19,11 @@ CodecInst::CodecInst()
    }
 #endif
 
-   m_pBuffer=NULL;
-   m_pPrev=NULL;
-   m_pDelta=NULL;
-   m_pBuffer2=NULL;
-   m_pColorTransformBuffer=NULL;
+   m_buffer=NULL;
+   m_prevFrame=NULL;
+   m_deltaBuffer=NULL;
+   m_buffer2=NULL;
+   m_colorTransBuffer=NULL;
    m_length=0;
    m_nullframes=true;
    m_deltaframes=true;
@@ -31,13 +31,13 @@ CodecInst::CodecInst()
    m_started=false;
    m_SSE2=0;
    m_SSE=0;
-   m_cObj.m_pProbRanges=NULL;
-   m_cObj.m_pBytecounts=NULL;
-   m_cObj.m_pBuffer=NULL;
+   m_cObj.m_probRanges=NULL;
+   m_cObj.m_bytecounts=NULL;
+   m_cObj.m_buffer=NULL;
 
    m_multithreading=0;
-   m_info_a.m_pSource=NULL;
-   m_info_a.m_pDest=NULL;
+   m_info_a.m_source=NULL;
+   m_info_a.m_dest=NULL;
    m_info_a.m_size=0;
    m_info_a.m_length=0;
    m_info_a.m_thread=0;
@@ -205,7 +205,7 @@ CodecInst::~CodecInst()
    {
       if ( m_started )
       {
-         if(m_pColorTransformBuffer)
+         if(m_colorTransBuffer)
          {
             CompressEnd();
          } 
@@ -384,8 +384,8 @@ DWORD CodecInst::CompressGetFormat(LPBITMAPINFOHEADER lpbiIn, LPBITMAPINFOHEADER
 
    if ( lpbiIn->biBitCount != 24 )
    {
-      lpbiOut->biSizeImage = EIGHTH( lpbiIn->biWidth * lpbiIn->biHeight * lpbiIn->biBitCount);
-      lpbiOut->biSizeImage = EIGHTH( lpbiIn->biWidth * lpbiIn->biHeight * lpbiIn->biBitCount);
+      lpbiOut->biSizeImage = EIGHTH(lpbiIn->biWidth * lpbiIn->biHeight * lpbiIn->biBitCount);
+      lpbiOut->biSizeImage = EIGHTH(lpbiIn->biWidth * lpbiIn->biHeight * lpbiIn->biBitCount);
    } 
    else 
    {

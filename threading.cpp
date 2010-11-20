@@ -14,13 +14,13 @@ DWORD WINAPI encode_worker_thread( LPVOID i )
 
    const unsigned char * src = NULL;
    unsigned char * dest = NULL;
-   unsigned char * const buffer = (unsigned char *)info->m_pBuffer;
+   unsigned char * const buffer = (unsigned char *)info->m_buffer;
 //   const unsigned int format=info->m_format;
 
    while(info->m_length != UINT32_MAX) //TODO: Optimize
    {
-      src = (const unsigned char *)info->m_pSource;
-      dest = (unsigned char *)info->m_pDest;
+      src = (const unsigned char *)info->m_source;
+      dest = (unsigned char *)info->m_dest;
 
       unsigned char * dst = (width == stride) ? buffer : (unsigned char *)ALIGN_ROUND(dest,16);
 
@@ -59,7 +59,7 @@ DWORD WINAPI encode_worker_thread( LPVOID i )
    }
 
    info->m_cObj.FreeCompressBuffers();
-   ALIGNED_FREE(info->m_pBuffer,"Thread Buffer");
+   ALIGNED_FREE(info->m_buffer,"Thread Buffer");
    info->m_length = 0;
    return 0;
 }
@@ -76,8 +76,8 @@ DWORD WINAPI decode_worker_thread( LPVOID i )
 
    while(info->m_length != UINT32_MAX) //TODO:Optimize
    {
-      src = (unsigned char *)info->m_pSource;
-      dest = (unsigned char *)info->m_pDest;
+      src = (unsigned char *)info->m_source;
+      dest = (unsigned char *)info->m_dest;
 
       length = info->m_length;
       format = info->m_format;
@@ -96,7 +96,7 @@ DWORD WINAPI decode_worker_thread( LPVOID i )
    }
 
    info->m_cObj.FreeCompressBuffers();
-   ALIGNED_FREE(info->m_pBuffer, "Thread Buffer");
+   ALIGNED_FREE(info->m_buffer, "Thread Buffer");
    info->m_length=0;
    return 0;
 }
@@ -137,9 +137,9 @@ DWORD CodecInst::InitThreads(int encode)
    m_info_a.m_thread = NULL;
    m_info_b.m_thread = NULL;
    m_info_c.m_thread = NULL;
-   m_info_a.m_pBuffer = NULL;
-   m_info_b.m_pBuffer = NULL;
-   m_info_c.m_pBuffer = NULL;
+   m_info_a.m_buffer = NULL;
+   m_info_b.m_buffer = NULL;
+   m_info_c.m_buffer = NULL;
 #ifdef _DEBUG 
    m_info_a.m_strName = "Thread A";
    m_info_b.m_strName = "Thread B";
@@ -150,13 +150,13 @@ DWORD CodecInst::InitThreads(int encode)
    int buffer_b = ALIGN_ROUND(m_info_b.m_width,16)*m_info_b.m_height+2048;
 
    if(!m_info_a.m_cObj.InitCompressBuffers(buffer_a*3) || !m_info_b.m_cObj.InitCompressBuffers(buffer_b*3) 
-      || !(m_info_a.m_pBuffer = (unsigned char *)aligned_malloc(m_info_a.m_pBuffer,buffer_a, 16,"Info_a.buffer"))
-      || !(m_info_b.m_pBuffer = (unsigned char *)aligned_malloc(m_info_b.m_pBuffer,buffer_b, 16,"Info_b.buffer")))
+      || !(m_info_a.m_buffer = (unsigned char *)aligned_malloc(m_info_a.m_buffer,buffer_a, 16,"Info_a.buffer"))
+      || !(m_info_b.m_buffer = (unsigned char *)aligned_malloc(m_info_b.m_buffer,buffer_b, 16,"Info_b.buffer")))
    {
       m_info_a.m_cObj.FreeCompressBuffers();
       m_info_b.m_cObj.FreeCompressBuffers();
-      ALIGNED_FREE(m_info_a.m_pBuffer,"Info_a.buffer");
-      ALIGNED_FREE(m_info_b.m_pBuffer,"Info_b.buffer");
+      ALIGNED_FREE(m_info_a.m_buffer,"Info_a.buffer");
+      ALIGNED_FREE(m_info_b.m_buffer,"Info_b.buffer");
       m_info_a.m_thread=NULL;
       m_info_b.m_thread=NULL;
       return (DWORD)ICERR_MEMORY;
@@ -166,14 +166,14 @@ DWORD CodecInst::InitThreads(int encode)
       if ( m_format == RGB32 )
       {
          if ( !m_info_c.m_cObj.InitCompressBuffers(buffer_a*3) 
-            || !(m_info_c.m_pBuffer=(unsigned char *)aligned_malloc(m_info_c.m_pBuffer, buffer_a, 16, "Info_c.buffer")))
+            || !(m_info_c.m_buffer=(unsigned char *)aligned_malloc(m_info_c.m_buffer, buffer_a, 16, "Info_c.buffer")))
          {
             m_info_a.m_cObj.FreeCompressBuffers();
             m_info_b.m_cObj.FreeCompressBuffers();
             m_info_c.m_cObj.FreeCompressBuffers();
-            ALIGNED_FREE(m_info_a.m_pBuffer, "Info_a.buffer");
-            ALIGNED_FREE(m_info_b.m_pBuffer, "Info_b.buffer");
-            ALIGNED_FREE(m_info_c.m_pBuffer, "Info_c.buffer");
+            ALIGNED_FREE(m_info_a.m_buffer, "Info_a.buffer");
+            ALIGNED_FREE(m_info_b.m_buffer, "Info_b.buffer");
+            ALIGNED_FREE(m_info_c.m_buffer, "Info_c.buffer");
             m_info_a.m_thread = NULL;
             m_info_b.m_thread = NULL;
             m_info_c.m_thread = NULL;
@@ -206,10 +206,10 @@ DWORD CodecInst::InitThreads(int encode)
          if (m_format == RGB32)
          {
             m_info_c.m_cObj.FreeCompressBuffers();
-            ALIGNED_FREE(m_info_c.m_pBuffer,"Info_c.buffer");
+            ALIGNED_FREE(m_info_c.m_buffer,"Info_c.buffer");
          }
-         ALIGNED_FREE(m_info_a.m_pBuffer,"Info_a.buffer");
-         ALIGNED_FREE(m_info_b.m_pBuffer,"Info_b.buffer");
+         ALIGNED_FREE(m_info_a.m_buffer,"Info_a.buffer");
+         ALIGNED_FREE(m_info_b.m_buffer,"Info_b.buffer");
          m_info_a.m_thread = NULL;
          m_info_b.m_thread = NULL;
          m_info_c.m_thread = NULL;

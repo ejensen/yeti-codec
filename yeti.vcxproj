@@ -285,9 +285,10 @@
     <None Include="Yeti.inf" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="bit_manager.h" />
     <ClInclude Include="convert.h" />
     <ClInclude Include="convert_yuy2.h" />
-    <ClInclude Include="fibonacci.h" />
+    <ClInclude Include="golomb.h" />
     <ClInclude Include="resolution.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="compact.h" />
@@ -301,6 +302,7 @@
     <ClInclude Include="zerorle.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="bit_manager.cpp" />
     <ClCompile Include="compact.cpp" />
     <ClCompile Include="compression.cpp" />
     <ClCompile Include="convert_xvid.cpp" />
@@ -315,7 +317,7 @@
       <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
-    <ClCompile Include="fibonacci.cpp" />
+    <ClCompile Include="golomb.cpp" />
     <ClCompile Include="interface.cpp" />
     <ClCompile Include="prediction.cpp" />
     <ClCompile Include="range.cpp" />

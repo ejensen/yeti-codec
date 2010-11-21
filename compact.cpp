@@ -1,8 +1,8 @@
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #include "yeti.h"
-#include "fibonacci.h"
 #include "zerorle.h"
+#include "golomb.h"
 
 // scale the byte probabilities so the cumulative
 // probability is equal to a power of 2
@@ -12,7 +12,7 @@ void CompressClass::ScaleBitProbability(unsigned int length)
    assert(length < 0x80000000);
 
    unsigned int temp = 1;
-   while ( temp < length )
+   while(temp < length)
    {
       temp <<= 1;
    }
@@ -23,25 +23,16 @@ void CompressClass::ScaleBitProbability(unsigned int length)
    int a;
    for(a = 1; a < 257; a++)
    {
-      m_probRanges[a]= (unsigned int)(m_probRanges[a]*factor);
-      newlen+=m_probRanges[a];
+      m_probRanges[a] = (unsigned int)(m_probRanges[a]*factor);
+      newlen += m_probRanges[a];
    }
 
-   newlen = temp-newlen;
+   newlen = temp - newlen;
 
    assert(newlen < 0x80000000);
 
-   if((signed int)newlen < 0 )  // should never happen
-   {
-      m_probRanges[1] += newlen;
-      newlen = 0;
-#ifdef _DEBUG
-      MessageBox (HWND_DESKTOP, "Newlen is less than 0", "Error", MB_OK | MB_ICONEXCLAMATION);
-#endif
-   }
-
-   a=0;
-   unsigned int b=0;
+   a= 0;
+   unsigned int b = 0;
    while(newlen)
    {
       if(m_probRanges[b+1])
@@ -80,12 +71,11 @@ unsigned int CompressClass::ReadBitProbability(const unsigned char * in)
    try 
    {
       unsigned int length = 0;
-      unsigned int skip;
-
       m_probRanges[0] = 0;
 
-      skip = FibonacciDecode(in, &m_probRanges[1]);
-      if (!skip)
+      unsigned int skip = GolombDecode(in, &m_probRanges[1], 256);
+
+      if(!skip)
       {
          return 0;
       }
@@ -109,10 +99,6 @@ unsigned int CompressClass::ReadBitProbability(const unsigned char * in)
       return 0;
    }
 }
-
-// write the byte frequency header
-#define WRITE_PROB(x) (FibonacciEncode(m_bytecounts, x, 256))
-
 
 // Determine the frequency of each byte in a byte stream; the frequencies are then scaled
 // so the total is a power of 2. This allows binary shifts to be used instead of some
@@ -145,7 +131,7 @@ unsigned int CompressClass::Compact(const unsigned char * in, unsigned char * ou
 
    const unsigned char* source = m_buffer;
 
-   if( size >= length ) // RLE size is greater than uncompressed size
+   if(size >= length) // RLE size is greater than uncompressed size
    {
       source = in;
       size = length;
@@ -154,7 +140,8 @@ unsigned int CompressClass::Compact(const unsigned char * in, unsigned char * ou
 
    *(UINT32*)(out + 1) = size;
    CalcBitProbability(source, size);
-   unsigned int skip = WRITE_PROB(out + 5);
+
+   unsigned int skip = GolombEncode(m_bytecounts, out + 5, 256);
 
    unsigned char tempc = out[4 + skip];
    unsigned int y = RangeEncode(source, out + 4 + skip, size);
@@ -172,7 +159,7 @@ unsigned int CompressClass::Compact(const unsigned char * in, unsigned char * ou
    bytes_used = skip;
 
    assert(bytes_used >= 2);
-   assert(out[0] == level || out[0]== level + 4 || out[0] == 0 );
+   assert(out[0] == level || out[0]== level + 4 || out[0] == 0);
 
    return bytes_used;
 }
@@ -188,9 +175,9 @@ void CompressClass::Uncompact(const unsigned char * in, unsigned char * out, con
          if(rle < 4)
          {
             unsigned int size = *(UINT32*)(in + 1);
-            int skip;
-            skip = ReadBitProbability(in+5);
-            if( !skip )
+            unsigned int skip = ReadBitProbability(in + 5);
+            
+            if(!skip)
             {
                return;
             }
@@ -214,7 +201,7 @@ void CompressClass::Uncompact(const unsigned char * in, unsigned char * out, con
             {
                deRLE2(in + 1, out, length);
             }
-            else if( rle == 3)
+            else if(rle == 3)
             {
                deRLE3(in + 1, out, length);
             }

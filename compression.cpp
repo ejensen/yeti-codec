@@ -34,18 +34,18 @@ DWORD CodecInst::CompressBegin(LPBITMAPINFOHEADER lpbiIn, LPBITMAPINFOHEADER lpb
    unsigned int buffer_size;
    if(m_format < RGB24)
    {
-      buffer_size = EIGHTH(ALIGN_ROUND(m_width,32) * m_height * m_format) + 1024;
+      buffer_size = EIGHTH(ALIGN_ROUND(m_width, 32) * m_height * m_format) + 1024;
    } 
    else
    {
       buffer_size = QUADRUPLE(ALIGN_ROUND(m_width, 16) * m_height) + 1024;
    }
 
-   m_buffer = (unsigned char *)aligned_malloc(m_buffer, buffer_size,16,"buffer");
-   m_buffer2 = (unsigned char *)aligned_malloc(m_buffer2, buffer_size,16,"buffer2");
-   m_deltaBuffer = (unsigned char *)aligned_malloc(m_deltaBuffer, buffer_size,16,"delta");
-   m_colorTransBuffer = (unsigned char *)aligned_malloc(m_colorTransBuffer, buffer_size,16,"colorT");
-   m_prevFrame = (unsigned char *)aligned_malloc(m_prevFrame, buffer_size,16,"prev");
+   m_buffer = (unsigned char *)aligned_malloc(m_buffer, buffer_size, 16, "buffer");
+   m_buffer2 = (unsigned char *)aligned_malloc(m_buffer2, buffer_size, 16, "buffer2");
+   m_deltaBuffer = (unsigned char *)aligned_malloc(m_deltaBuffer, buffer_size, 16, "delta");
+   m_colorTransBuffer = (unsigned char *)aligned_malloc(m_colorTransBuffer, buffer_size, 16, "colorT");
+   m_prevFrame = (unsigned char *)aligned_malloc(m_prevFrame, buffer_size, 16, "prev");
    ZeroMemory(m_prevFrame, buffer_size);
 
    if(!m_buffer || !m_buffer2 || !m_prevFrame || !m_deltaBuffer || !m_colorTransBuffer)

@@ -141,19 +141,19 @@ DWORD CodecInst::InitThreads(int encode)
    m_info_b.m_buffer = NULL;
    m_info_c.m_buffer = NULL;
 
-   int buffer_a = ALIGN_ROUND(m_width, 16) * (m_height) + 2048;
-   int buffer_b = ALIGN_ROUND(m_info_b.m_width, 16) * m_info_b.m_height + 2048;
+   int buffer_a = ALIGN_ROUND(m_width, 16) * m_height * 12 + 2048;
+   int buffer_b = ALIGN_ROUND(m_info_b.m_width, 16) * m_info_b.m_height * 12 +  2048;
 
    if(!m_info_a.m_compressWorker.InitCompressBuffers(buffer_a) || !m_info_b.m_compressWorker.InitCompressBuffers(buffer_b) 
-      || !(m_info_a.m_buffer = (unsigned char*)aligned_malloc(m_info_a.m_buffer,buffer_a, 16, "Info_a.buffer"))
-      || !(m_info_b.m_buffer = (unsigned char*)aligned_malloc(m_info_b.m_buffer,buffer_b, 16, "Info_b.buffer")))
+      || !(m_info_a.m_buffer = (unsigned char*)aligned_malloc(m_info_a.m_buffer, buffer_a, 16, "Info_a.buffer"))
+      || !(m_info_b.m_buffer = (unsigned char*)aligned_malloc(m_info_b.m_buffer, buffer_b, 16, "Info_b.buffer")))
    {
       m_info_a.m_compressWorker.FreeCompressBuffers();
       m_info_b.m_compressWorker.FreeCompressBuffers();
       ALIGNED_FREE(m_info_a.m_buffer, "Info_a.buffer");
       ALIGNED_FREE(m_info_b.m_buffer, "Info_b.buffer");
-      m_info_a.m_thread=NULL;
-      m_info_b.m_thread=NULL;
+      m_info_a.m_thread = NULL;
+      m_info_b.m_thread = NULL;
       return (DWORD)ICERR_MEMORY;
    } 
    else 
@@ -162,7 +162,7 @@ DWORD CodecInst::InitThreads(int encode)
       if(m_format == RGB32)
       {
          if(!m_info_c.m_compressWorker.InitCompressBuffers(buffer_a * 3) 
-            || !(m_info_c.m_buffer=(unsigned char *)aligned_malloc(m_info_c.m_buffer, buffer_a, 16, "Info_c.buffer")))
+            || !(m_info_c.m_buffer = (unsigned char *)aligned_malloc(m_info_c.m_buffer, buffer_a, 16, "Info_c.buffer")))
          {
             m_info_a.m_compressWorker.FreeCompressBuffers();
             m_info_b.m_compressWorker.FreeCompressBuffers();
@@ -182,7 +182,7 @@ DWORD CodecInst::InitThreads(int encode)
       m_info_a.m_thread = CreateThread(NULL, 0, threadDelegate, &m_info_a, CREATE_SUSPENDED, &temp);
       m_info_b.m_thread = CreateThread(NULL, 0, threadDelegate, &m_info_b, CREATE_SUSPENDED, &temp);
 
-      if(!m_info_a.m_thread || !m_info_b.m_thread || (m_format==RGB32 && !m_info_c.m_thread))
+      if(!m_info_a.m_thread || !m_info_b.m_thread || (m_format == RGB32 && !m_info_c.m_thread))
       {
          m_info_a.m_compressWorker.FreeCompressBuffers();
          m_info_b.m_compressWorker.FreeCompressBuffers();
@@ -208,6 +208,7 @@ void CodecInst::EndThreads()
    m_info_a.m_length = UINT32_MAX;
    m_info_b.m_length = UINT32_MAX;
    m_info_c.m_length = UINT32_MAX;
+
    if(m_info_a.m_thread)
    {
       RESUME_THREAD(m_info_a.m_thread);
@@ -220,12 +221,13 @@ void CodecInst::EndThreads()
    {
       RESUME_THREAD(m_info_c.m_thread);
    }
-   while ((m_info_a.m_length && m_info_a.m_thread) || (m_info_b.m_length && m_info_b.m_thread) || (m_info_c.m_length && m_format == RGB32 && m_info_c.m_thread))
+
+   while((m_info_a.m_length && m_info_a.m_thread) || (m_info_b.m_length && m_info_b.m_thread) || (m_info_c.m_length && m_format == RGB32 && m_info_c.m_thread))
    {
       Sleep(1);
    }
 
-   if (!CloseHandle(m_info_a.m_thread))
+   if(!CloseHandle(m_info_a.m_thread))
    {
 #ifdef _DEBUG
       /*LPVOID lpMsgBuf;
@@ -245,7 +247,7 @@ void CodecInst::EndThreads()
       MessageBox (HWND_DESKTOP, "CloseHandle failed for thread 0x0A", "Error", MB_OK | MB_ICONEXCLAMATION);
 #endif
    }
-   if (!CloseHandle(m_info_b.m_thread))
+   if(!CloseHandle(m_info_b.m_thread))
    {
 #ifdef _DEBUG
       MessageBox (HWND_DESKTOP, "CloseHandle failed for thread 0x0B", "Error", MB_OK | MB_ICONEXCLAMATION);

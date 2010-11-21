@@ -1,6 +1,3 @@
-#ifndef _RANGE_CPP
-#define _RANGE_CPP
-
 #include "compact.h"
 #include "yeti.h"
 
@@ -161,4 +158,3 @@ void __fastcall CompressClass::RangeDecode( const unsigned char * in, unsigned c
    } 
    while( out < ending );
 }
-#endif

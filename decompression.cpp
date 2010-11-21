@@ -54,7 +54,7 @@ DWORD CodecInst::DecompressBegin(LPBITMAPINFOHEADER lpbiIn, LPBITMAPINFOHEADER l
       return (DWORD)ICERR_MEMORY;
    }
 
-   if(!m_cObj.InitCompressBuffers( m_width * m_height * 5/4 ))
+   if(!m_compressWorker.InitCompressBuffers( m_width * m_height * 5/4 ))
    {
       return (DWORD)ICERR_MEMORY;
    }
@@ -85,14 +85,14 @@ DWORD CodecInst::DecompressEnd()
       ALIGNED_FREE(m_buffer,"buffer");
       ALIGNED_FREE(m_buffer2,"buffer2");
       ALIGNED_FREE(m_prevFrame, "prev");
-      m_cObj.FreeCompressBuffers();
+      m_compressWorker.FreeCompressBuffers();
    }
 
    m_started = false;
    return ICERR_OK;
 }
 
-inline void CodecInst::InitDecompressionThreads(const unsigned char * in, unsigned char * out, unsigned int length, unsigned int width, unsigned int height, threadinfo * thread, int format, bool keyframe)
+inline void CodecInst::InitDecompressionThreads(const unsigned char * in, unsigned char * out, unsigned int length, unsigned int width, unsigned int height, threadInfo * thread, int format, bool keyframe)
 {
    if (m_multithreading && thread)
    {
@@ -104,11 +104,11 @@ inline void CodecInst::InitDecompressionThreads(const unsigned char * in, unsign
       thread->m_format = format;
       thread->m_keyframe = keyframe;
 
-      RESUME_THREAD(((threadinfo *)thread)->m_thread);
+      RESUME_THREAD(((threadInfo *)thread)->m_thread);
    } 
    else 
    {
-      m_cObj.Uncompact(in, out, length);
+      m_compressWorker.Uncompact(in, out, length);
    }
 }
 
@@ -153,7 +153,7 @@ void CodecInst::YV12Decompress(bool keyframe)
 
    if(!keyframe)
    {
-      Fast_XOR(dst, dst, m_prevFrame, length);
+      Fast_XOR(dst, dst, m_prevFrame, FOURTH(length));
    }
    //else
    //{
@@ -228,9 +228,9 @@ void CodecInst::ReduceResDecompress()
    unsigned char* udest = ydest + wxh;
    unsigned char* vdest = udest + FOURTH(wxh);
 
-   Enlarge_Res(ysrc, ydest, m_buffer2, HALF(m_width), HALF(m_height), m_SSE2);
-   Enlarge_Res(usrc, udest, m_buffer2, FOURTH(m_width), FOURTH(m_height), m_SSE2);
-   Enlarge_Res(vsrc, vdest, m_buffer2, FOURTH(m_width), FOURTH(m_height), m_SSE2);
+   EnlargeRes(ysrc, ydest, m_buffer2, HALF(m_width), HALF(m_height), m_SSE2);
+   EnlargeRes(usrc, udest, m_buffer2, FOURTH(m_width), FOURTH(m_height), m_SSE2);
+   EnlargeRes(vsrc, vdest, m_buffer2, FOURTH(m_width), FOURTH(m_height), m_SSE2);
 
    ysrc = ydest;
    usrc = udest;

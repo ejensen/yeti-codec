@@ -117,16 +117,7 @@ LRESULT WINAPI DriverProc(DWORD dwDriverID, HDRVR hDriver, UINT uiMessage, LPARA
          return DRV_OK;
       }
    case ICM_CONFIGURE:
-      {
-         if (lParam1 == -1)
-         {
-            return ICERR_OK;
-         }
-         else
-         {
-            return pCodecInst->Configure((HWND)lParam1);
-         }
-      }
+         return (lParam1 == -1) ? ICERR_OK : pCodecInst->Configure((HWND)lParam1);
    case ICM_ABOUT:
          return ICERR_UNSUPPORTED;
    case ICM_GETSTATE:
@@ -139,7 +130,7 @@ LRESULT WINAPI DriverProc(DWORD dwDriverID, HDRVR hDriver, UINT uiMessage, LPARA
       {
          if (lParam1) 
          {
-            *((LPDWORD)lParam1) = 10000;
+            *((LPDWORD)lParam1) = ICQUALITY_HIGH;
             return ICERR_OK;
          }
          break;
@@ -176,6 +167,6 @@ LRESULT WINAPI DriverProc(DWORD dwDriverID, HDRVR hDriver, UINT uiMessage, LPARA
 
 void WINAPI ShowConfiguration(HWND hwnd, HINSTANCE hinst, LPSTR lpszCmdLine, int nCmdShow)
 {
-   CodecInst pi;
-   pi.Configure(hwnd);
+   CodecInst codecInst;
+   codecInst.Configure(hwnd);
 }

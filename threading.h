@@ -19,5 +19,5 @@
 	} \
 }
 
-DWORD WINAPI encode_worker_thread( LPVOID i );
-DWORD WINAPI decode_worker_thread( LPVOID i );
+DWORD WINAPI EncodeWorkerTread( LPVOID i );
+DWORD WINAPI DecodeWorkerThread( LPVOID i );

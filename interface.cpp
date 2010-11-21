@@ -1,6 +1,3 @@
-#ifndef _YETI_GUI
-#define _YETI_GUI
-
 #include "yeti.h"
 #include <commctrl.h>
 #include <shellapi.h>
@@ -19,6 +16,9 @@ CodecInst::CodecInst()
    }
 #endif
 
+   m_compressWorker.m_probRanges=NULL;
+   m_compressWorker.m_bytecounts=NULL;
+   m_compressWorker.m_buffer=NULL;
    m_buffer=NULL;
    m_prevFrame=NULL;
    m_deltaBuffer=NULL;
@@ -31,9 +31,6 @@ CodecInst::CodecInst()
    m_started=false;
    m_SSE2=0;
    m_SSE=0;
-   m_cObj.m_probRanges=NULL;
-   m_cObj.m_bytecounts=NULL;
-   m_cObj.m_buffer=NULL;
 
    m_multithreading=0;
    m_info_a.m_source=NULL;
@@ -44,92 +41,17 @@ CodecInst::CodecInst()
    m_info_b=m_info_a;
    m_info_c=m_info_a;
 
-   memcpy((void*)&m_info_a.m_cObj,&m_cObj,sizeof(m_cObj));
-   memcpy((void*)&m_info_b.m_cObj,&m_cObj,sizeof(m_cObj));
-   memcpy((void*)&m_info_c.m_cObj,&m_cObj,sizeof(m_cObj));
+   memcpy((void*)&m_info_a.m_compressWorker,&m_compressWorker,sizeof(m_compressWorker));
+   memcpy((void*)&m_info_b.m_compressWorker,&m_compressWorker,sizeof(m_compressWorker));
+   memcpy((void*)&m_info_c.m_compressWorker,&m_compressWorker,sizeof(m_compressWorker));
 }
 
-HMODULE hmoduleHuffYUY=0;
+HMODULE hmoduleYeti=0;
 
 BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD, LPVOID) 
 {
-   hmoduleHuffYUY = (HMODULE) hinstDLL;
+   hmoduleYeti = (HMODULE) hinstDLL;
    return TRUE;
-}
-
-HWND CreateTooltip(HWND hwnd)
-{
-   // initialize common controls
-   INITCOMMONCONTROLSEX	iccex;		// struct specifying control classes to register
-   iccex.dwICC		= ICC_WIN95_CLASSES;
-   iccex.dwSize	= sizeof(INITCOMMONCONTROLSEX);
-   InitCommonControlsEx(&iccex);
-
-#ifdef X64_BUILD
-   HINSTANCE	ghThisInstance=(HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE);
-#else 
-   HINSTANCE	ghThisInstance=(HINSTANCE)GetWindowLong(hwnd, GWL_HINSTANCE);
-#endif
-   HWND		hwndTT;					// handle to the tooltip control
-
-   // create a tooltip window
-   hwndTT = CreateWindowEx(WS_EX_TOPMOST, TOOLTIPS_CLASS, NULL, WS_POPUP | TTS_NOPREFIX | TTS_ALWAYSTIP,
-      CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
-      hwnd, NULL, ghThisInstance, NULL);
-
-   SetWindowPos(hwndTT, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
-
-   // set some timeouts so tooltips appear fast and stay long (32767 seems to be a limit here)
-   SendMessage(hwndTT, TTM_SETDELAYTIME, (WPARAM)(DWORD)TTDT_INITIAL, (LPARAM)500);
-   SendMessage(hwndTT, TTM_SETDELAYTIME, (WPARAM)(DWORD)TTDT_AUTOPOP, (LPARAM)30*1000);
-
-   return hwndTT;
-}
-
-struct { UINT item; UINT tip; } item2tip[] = 
-{
-   { IDC_NULLFRAMES,	IDS_TIP_NULLFRAMES },
-   { IDC_MULTI,		IDS_TIP_MULTI	 }, 
-   { IDC_REDUCED,	   IDS_TIP_REDUCED },
-   { 0,0 }
-};
-
-int AddTooltip(HWND tooltip, HWND client, UINT stringid)
-{
-#ifdef X64_BUILD
-   HINSTANCE ghThisInstance=(HINSTANCE)GetWindowLongPtr(client,GWLP_HINSTANCE);
-#else
-   HINSTANCE ghThisInstance=(HINSTANCE)GetWindowLong(client, GWL_HINSTANCE);
-#endif
-
-   TOOLINFO				ti;			// struct specifying info about tool in tooltip control
-   static unsigned int		uid	= 0;	// for ti initialization
-   RECT					rect;		// for client area coordinates
-   TCHAR					buf[2000];	// a static buffer is sufficient, TTM_ADDTOOL seems to copy it
-
-   // load the string manually, passing the id directly to TTM_ADDTOOL truncates the message :(
-   if ( !LoadString(ghThisInstance, stringid, buf, 2000) ) return -1;
-
-   // get coordinates of the main client area
-   GetClientRect(client, &rect);
-
-   // initialize members of the toolinfo structure
-   ti.cbSize		= sizeof(TOOLINFO);
-   ti.uFlags		= TTF_SUBCLASS;
-   ti.hwnd			= client;
-   ti.hinst		= ghThisInstance;		// not necessary if lpszText is not a resource id
-   ti.uId			= uid;
-   ti.lpszText		= buf;
-
-   // Tooltip control will cover the whole window
-   ti.rect.left	= rect.left;    
-   ti.rect.top		= rect.top;
-   ti.rect.right	= rect.right;
-   ti.rect.bottom	= rect.bottom;
-
-   // send a addtool message to the tooltip control window
-   SendMessage(tooltip, TTM_ADDTOOL, 0, (LPARAM) (LPTOOLINFO) &ti);	
-   return uid++;
 }
 
 static BOOL CALLBACK ConfigureDialogProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
@@ -140,13 +62,6 @@ static BOOL CALLBACK ConfigureDialogProc(HWND hwndDlg, UINT uMsg, WPARAM wParam,
       CheckDlgButton(hwndDlg, IDC_MULTI,GetPrivateProfileInt("settings", "multithreading", false, SettingsFile) ? BST_CHECKED : BST_UNCHECKED);
       CheckDlgButton(hwndDlg, IDC_REDUCED,GetPrivateProfileInt("settings", "reduced", false, SettingsFile) ? BST_CHECKED : BST_UNCHECKED);
       CheckDlgButton(hwndDlg, IDC_DELTAFRAMES,GetPrivateProfileInt("settings", "deltaframes", false, SettingsFile) ? BST_CHECKED : BST_UNCHECKED);
-
-      HWND hwndTip = CreateTooltip(hwndDlg);
-      for (int l=0; item2tip[l].item; l++ )
-      {
-         AddTooltip(hwndTip, GetDlgItem(hwndDlg, item2tip[l].item),	item2tip[l].tip);
-      }
-      SendMessage(hwndTip, TTM_SETMAXTIPWIDTH, 0, (LPARAM)(INT)350);	//TODO: Change
    } 
    else if (uMsg == WM_COMMAND) 
    {
@@ -178,7 +93,7 @@ BOOL CodecInst::QueryConfigure()
 
 DWORD CodecInst::Configure(HWND hwnd) 
 {
-   DialogBox(hmoduleHuffYUY, MAKEINTRESOURCE(IDD_SETTINGS_DIALOG), hwnd, (DLGPROC)ConfigureDialogProc);
+   DialogBox(hmoduleYeti, MAKEINTRESOURCE(IDD_SETTINGS_DIALOG), hwnd, (DLGPROC)ConfigureDialogProc);
    return ICERR_OK;
 }
 
@@ -546,5 +461,3 @@ DWORD CodecInst::DecompressGetPalette(LPBITMAPINFOHEADER lpbiIn, LPBITMAPINFOHEA
 {
    RETURN_ERROR()
 }
-
-#endif

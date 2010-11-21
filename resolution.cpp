@@ -4,7 +4,7 @@
 #include "resolution.h"
 
 // halves the resolution and aligns the resulting data
-void Reduce_Res(const unsigned char * src, unsigned char * dest, unsigned char * buffer, unsigned int width, unsigned int height, const bool SSE2)
+void ReduceRes(const unsigned char * src, unsigned char * dest, unsigned char * buffer, unsigned int width, unsigned int height, const bool SSE2)
 {
    const unsigned char * source;
 
@@ -102,7 +102,7 @@ void Reduce_Res(const unsigned char * src, unsigned char * dest, unsigned char *
 }
 
 // doubles the resolution
-void Enlarge_Res(const unsigned char * src, unsigned char * dst, unsigned char * buffer, unsigned int width, unsigned int height, const bool SSE2)
+void EnlargeRes(const unsigned char * src, unsigned char * dst, unsigned char * buffer, unsigned int width, unsigned int height, const bool SSE2)
 {
    const unsigned char * source;
    unsigned char * dest;

@@ -1,7 +1,5 @@
 // Much of this was based off of Ben Rudiak-Gould's huffyuv source code
-
-#ifndef _MAIN_HEADER
-#define _MAIN_HEADER
+#pragma once
 
 #include <process.h>
 #include <malloc.h>
@@ -85,7 +83,7 @@ inline void * aligned_malloc( void *ptr, int size, int align, char *str )
 
 
 // y must be 2^n
-#define ALIGN_ROUND(x,y) ((((unsigned int)(x))+(y-1))&(~(y-1)))
+#define ALIGN_ROUND(x, y) ((((unsigned int)(x))+(y-1))&(~(y-1)))
 
 #define HALF(x) (x>>1)
 #define FOURTH(x) (x>>2)
@@ -118,28 +116,31 @@ static const char SettingsFile[] = "yeti.ini";
 #define YUY2	16
 #define YV12	12
 
-struct threadinfo
+struct threadInfo
 {
-   volatile const unsigned char * m_source;	// data source
-   volatile unsigned char * m_dest;		// data destination
-   unsigned char * m_buffer;
+   HANDLE m_thread;
+   CompressClass m_compressWorker;
+
+   volatile const unsigned char* m_source;	// data source
+   volatile unsigned char* m_dest;		// data destination
+   unsigned char* m_buffer;
    unsigned int m_width;
    unsigned int m_height;
    unsigned int m_format;
-   bool m_keyframe;
-   bool m_SSE2;
    volatile unsigned int m_length;	// uncompressed data length
    volatile unsigned int m_size;		// compressed data length
-#ifdef _DEBUG
-   char * m_strName;
-#endif
-   HANDLE m_thread;
-   CompressClass m_cObj;
+   bool m_keyframe;
+   bool m_SSE2;
 };
 
 class CodecInst
 {
 public:
+   threadInfo m_info_a;
+   threadInfo m_info_b;
+   threadInfo m_info_c;
+   CompressClass m_compressWorker;
+
    unsigned char * m_buffer;
    unsigned char * m_prevFrame;
    unsigned char * m_pIn;
@@ -156,51 +157,11 @@ public:
    bool m_reduced;
    bool m_multithreading;
    bool m_started;			//if the codec has been properly initialized yet
-   threadinfo m_info_a;
-   threadinfo m_info_b;
-   threadinfo m_info_c;
-   CompressClass m_cObj;
-
    bool m_SSE2;	
    bool m_SSE;
 
    CodecInst();
    ~CodecInst();
-
-   inline unsigned int COUNT_BITS(unsigned int v)
-   {
-      v = v - ((v >> 1) & 0x55555555);
-      v = (v & 0x33333333) + ((v >> 2) & 0x33333333);
-      return ((v + (v >> 4) & 0xF0F0F0F) * 0x1010101) >> 24;
-   }
-
-   void Fast_XOR(void* dest, const void* src1, const void* src2, const unsigned int len ) 
-   {
-      unsigned* tempDest = (unsigned*)dest;
-      unsigned* tempSrc1 = (unsigned*)src1;
-      unsigned* tempSrc2 = (unsigned*)src2;
-      for(unsigned i = 0; i < FOURTH(len); i++)
-      {
-         tempDest[i] = tempSrc1[i] ^ tempSrc2[i];
-      }
-   }
-
-   const unsigned long Fast_XOR_Count(void* dest, const void* src1, const void* src2, const unsigned int len, const unsigned long max)
-   {
-      unsigned* tempDest = (unsigned*)dest;
-      unsigned* tempSrc1 = (unsigned*)src1;
-      unsigned* tempSrc2 = (unsigned*)src2;
-
-      unsigned long bitCount = 0;
-
-      for(unsigned int i = 0; bitCount < max && i < FOURTH(len); i++)
-      {
-         tempDest[i] = tempSrc1[i] ^ tempSrc2[i];
-         bitCount += COUNT_BITS(tempDest[i]);
-      }
-
-      return bitCount;
-   }
 
    DWORD GetState(LPVOID pv, DWORD dwSize);
    DWORD SetState(LPVOID pv, DWORD dwSize);
@@ -223,7 +184,7 @@ public:
 
    BOOL QueryConfigure();
 
-   void InitDecompressionThreads(const unsigned char * in, unsigned char * out, unsigned int length, unsigned int width, unsigned int height, threadinfo * thread, int format, bool keyframe);
+   void InitDecompressionThreads(const unsigned char * in, unsigned char * out, unsigned int length, unsigned int width, unsigned int height, threadInfo * thread, int format, bool keyframe);
    DWORD InitThreads(int encode);
    void EndThreads();
 
@@ -237,5 +198,3 @@ public:
 
 CodecInst* Open(ICOPEN* icinfo);
 DWORD Close(CodecInst* pinst);
-
-#endif

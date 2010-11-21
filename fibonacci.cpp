@@ -1,6 +1,3 @@
-#ifndef _FIBONACCI_CPP
-#define _FIBONACCI_CPP
-
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #include <assert.h>
@@ -232,4 +229,3 @@ unsigned int FibonacciDecode(const unsigned char * in, unsigned int * out)
       return 0;
    }
 }
-#endif

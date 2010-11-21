@@ -127,12 +127,6 @@ END
 // String Table
 //
 
-STRINGTABLE
-BEGIN
-    IDS_TIP_NULLFRAMES      "When a frame is identical to the preceding frame, it can be replaced with a nullframe. This indicates that the program reading the video should simply reuse the previous frame. Nullframes can increase compression and speed."
-    IDS_TIP_MULTI           "Use multiple threads to compress/decompress video; this can improve speed on systems that have multiple processors.\nSingle processor systems should leave this disabled."
-    IDS_TIP_REDUCED         "Reduce resolution to half the original size.\nThis can greatly increase compression and speed."
-END
 
 #endif    // English (United States) resources
 /////////////////////////////////////////////////////////////////////////////

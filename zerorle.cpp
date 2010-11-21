@@ -1,6 +1,3 @@
-#ifndef _ZERO_RLE
-#define _ZERO_RLE
-
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 
@@ -275,4 +272,3 @@ unsigned int deRLE3(const unsigned char * in, unsigned char * out, const unsigne
    }
    return a;
 }
-#endif

@@ -60,7 +60,7 @@ DWORD CodecInst::CompressBegin(LPBITMAPINFOHEADER lpbiIn, LPBITMAPINFOHEADER lpb
 
    int cb_size = m_width * m_height * 5/4;
 
-   if (!m_cObj.InitCompressBuffers(cb_size))
+   if (!m_compressWorker.InitCompressBuffers(cb_size))
    {
       return (DWORD)ICERR_MEMORY;
    }
@@ -102,7 +102,7 @@ DWORD CodecInst::CompressEnd()
       ALIGNED_FREE(m_deltaBuffer, "delta");
       ALIGNED_FREE(m_prevFrame, "prev");
       ALIGNED_FREE(m_colorTransBuffer, "colorT");
-      m_cObj.FreeCompressBuffers();
+      m_compressWorker.FreeCompressBuffers();
 
    }
 
@@ -228,7 +228,7 @@ DWORD CodecInst::CompressYV12(ICCOMPRESS* icinfo)
       if(m_deltaframes)
       {
          unsigned long maxDelta = DOUBLE(len) - HALF(len);
-         unsigned long bitCount = Fast_XOR_Count(source, m_pIn, m_prevFrame, len, maxDelta);
+         unsigned long bitCount = Fast_XOR_Count(source, m_pIn, m_prevFrame, FOURTH(len), maxDelta);
 
          if(bitCount >= maxDelta)
          {
@@ -443,11 +443,11 @@ DWORD CodecInst::CompressYV12(ICCOMPRESS* icinfo)
       //}
 
       size = 9;
-      size += m_cObj.Compact(m_buffer2, m_out + size, y_len);
+      size += m_compressWorker.Compact(m_buffer2, m_out + size, y_len);
       *(UINT32*)(m_out + 1) = size;
-      size += m_cObj.Compact(m_buffer2 + y_len, m_out + size, c_len);
+      size += m_compressWorker.Compact(m_buffer2 + y_len, m_out + size, c_len);
       *(UINT32*)(m_out + 5) = size;
-      size += m_cObj.Compact(m_buffer2 + yu_len, m_out + size , c_len);
+      size += m_compressWorker.Compact(m_buffer2 + yu_len, m_out + size , c_len);
    } 
    else 
    {
@@ -498,7 +498,7 @@ DWORD CodecInst::CompressYV12(ICCOMPRESS* icinfo)
       //   memcpy(vdest, vsrc, c_len);
       //}
 
-      size = m_cObj.Compact(vsrc, vdest, c_len);
+      size = m_compressWorker.Compact(vsrc, vdest, c_len);
 
       while (m_info_a.m_length)
       {
@@ -549,9 +549,9 @@ DWORD CodecInst::CompressReduced(ICCOMPRESS *icinfo)
    unsigned char * usrc = m_buffer + ry_size;
    unsigned char * vsrc = m_buffer + ryu_size;
 
-   Reduce_Res(m_pIn, ysrc, m_buffer2, m_width, m_height, m_SSE2);
-   Reduce_Res(m_pIn + y_size, usrc, m_buffer2, hw, hh, m_SSE2);
-   Reduce_Res(m_pIn + yu_size, vsrc, m_buffer2, hw, hh, m_SSE2);
+   ReduceRes(m_pIn, ysrc, m_buffer2, m_width, m_height, m_SSE2);
+   ReduceRes(m_pIn + y_size, usrc, m_buffer2, hw, hh, m_SSE2);
+   ReduceRes(m_pIn + yu_size, vsrc, m_buffer2, hw, hh, m_SSE2);
 
    unsigned int size;
 
@@ -608,11 +608,11 @@ DWORD CodecInst::CompressReduced(ICCOMPRESS *icinfo)
       }
 
       size = 9;
-      size += m_cObj.Compact(ysrc, m_out + size, ry_bytes);
+      size += m_compressWorker.Compact(ysrc, m_out + size, ry_bytes);
       *(UINT32*)(m_out + 1) = size;
-      size += m_cObj.Compact(usrc, m_out + size, rc_bytes);
+      size += m_compressWorker.Compact(usrc, m_out + size, rc_bytes);
       *(UINT32*)(m_out + 5) = size;
-      size += m_cObj.Compact(vsrc, m_out + size, rc_bytes);
+      size += m_compressWorker.Compact(vsrc, m_out + size, rc_bytes);
    } 
    else
    {
@@ -654,7 +654,7 @@ DWORD CodecInst::CompressReduced(ICCOMPRESS *icinfo)
       vsrc = vdest;
       vdest = m_buffer2 + DOUBLE(rc_size);
 
-      size = m_cObj.Compact(vsrc, vdest, rc_bytes);
+      size = m_compressWorker.Compact(vsrc, vdest, rc_bytes);
       while (m_info_a.m_length)
       {
          Sleep(0);

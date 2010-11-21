@@ -62,8 +62,6 @@
 ; ****************************************************************************/
 ;
 
-//#include "stdafx.h"
-
 #include "convert_xvid.h"
 
 __declspec(align(8)) static __int64 Y_SUB = 0x0010001000100010;
@@ -73,7 +71,6 @@ __declspec(align(8)) static __int64 UG_MUL = 0x0019001900190019;
 __declspec(align(8)) static __int64 VG_MUL = 0x0034003400340034;
 __declspec(align(8)) static __int64 UB_MUL = 0x0081008100810081;
 __declspec(align(8)) static __int64 VR_MUL = 0x0066006600660066;
-
 
 
 void __declspec(naked) _cdecl yv12_to_rgb32_mmx(BYTE *dst, 

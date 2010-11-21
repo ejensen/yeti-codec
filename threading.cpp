@@ -103,7 +103,6 @@ DWORD WINAPI DecodeWorkerThread(LPVOID i)
 
 DWORD CodecInst::InitThreads(int encode)
 {
-   DWORD temp;
    m_info_a.m_length=0;
    m_info_b.m_length=0;
    m_info_c.m_length=0;
@@ -141,8 +140,8 @@ DWORD CodecInst::InitThreads(int encode)
    m_info_b.m_buffer = NULL;
    m_info_c.m_buffer = NULL;
 
-   int buffer_a = ALIGN_ROUND(m_width, 16) * m_height * 12 + 2048;
-   int buffer_b = ALIGN_ROUND(m_info_b.m_width, 16) * m_info_b.m_height * 12 +  2048;
+   unsigned int buffer_a = ALIGN_ROUND(m_width, 16) * m_height * use_format + 2048;
+   unsigned int buffer_b = ALIGN_ROUND(m_info_b.m_width, 16) * m_info_b.m_height * use_format +  2048;
 
    if(!m_info_a.m_compressWorker.InitCompressBuffers(buffer_a) || !m_info_b.m_compressWorker.InitCompressBuffers(buffer_b) 
       || !(m_info_a.m_buffer = (unsigned char*)aligned_malloc(m_info_a.m_buffer, buffer_a, 16, "Info_a.buffer"))
@@ -176,11 +175,11 @@ DWORD CodecInst::InitThreads(int encode)
             return (DWORD)ICERR_MEMORY;
          }
 
-         m_info_c.m_thread = CreateThread(NULL, 0, threadDelegate, &m_info_c, CREATE_SUSPENDED, &temp);
+         m_info_c.m_thread = CreateThread(NULL, 0, threadDelegate, &m_info_c, CREATE_SUSPENDED, NULL);
       }
 
-      m_info_a.m_thread = CreateThread(NULL, 0, threadDelegate, &m_info_a, CREATE_SUSPENDED, &temp);
-      m_info_b.m_thread = CreateThread(NULL, 0, threadDelegate, &m_info_b, CREATE_SUSPENDED, &temp);
+      m_info_a.m_thread = CreateThread(NULL, 0, threadDelegate, &m_info_a, CREATE_SUSPENDED, NULL);
+      m_info_b.m_thread = CreateThread(NULL, 0, threadDelegate, &m_info_b, CREATE_SUSPENDED, NULL);
 
       if(!m_info_a.m_thread || !m_info_b.m_thread || (m_format == RGB32 && !m_info_c.m_thread))
       {
@@ -199,6 +198,8 @@ DWORD CodecInst::InitThreads(int encode)
          return (DWORD)ICERR_INTERNAL;
       }
    }
+
+   SetThreadPriority(m_info_a.m_thread, THREAD_PRIORITY_ABOVE_NORMAL); 
 
    return (DWORD)ICERR_OK;
 }

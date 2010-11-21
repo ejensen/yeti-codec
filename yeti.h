@@ -126,7 +126,7 @@ struct threadInfo
    unsigned char* m_buffer;
    unsigned int m_width;
    unsigned int m_height;
-   unsigned int m_format;
+   //unsigned int m_format;
    volatile unsigned int m_length;	// uncompressed data length
    volatile unsigned int m_size;		// compressed data length
    bool m_keyframe;

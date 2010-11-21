@@ -10,7 +10,7 @@ DWORD WINAPI EncodeWorkerTread(LPVOID i)
    const unsigned int height = info->m_height;
 
    const unsigned int SSE2 = info->m_SSE2;
-   const unsigned int stride = ALIGN_ROUND(width, (SSE2?16:8));
+   const unsigned int stride = ALIGN_ROUND(width, (SSE2 ? 16 : 8));
 
    const unsigned char * src = NULL;
    unsigned char * dest = NULL;
@@ -71,7 +71,7 @@ DWORD WINAPI DecodeWorkerThread(LPVOID i)
    unsigned int height;
    unsigned char * src = NULL;
    unsigned char * dest = NULL;
-   unsigned int format;
+   unsigned int format = YV12;
    unsigned int length;
 
    while(info->m_length != UINT32_MAX) //TODO:Optimize
@@ -80,7 +80,7 @@ DWORD WINAPI DecodeWorkerThread(LPVOID i)
       dest = (unsigned char*)info->m_dest;
 
       length = info->m_length;
-      format = info->m_format;
+      //format = info->m_format;
       width = info->m_width;
       height = info->m_height;
 
@@ -103,9 +103,9 @@ DWORD WINAPI DecodeWorkerThread(LPVOID i)
 
 DWORD CodecInst::InitThreads(int encode)
 {
-   m_info_a.m_length=0;
-   m_info_b.m_length=0;
-   m_info_c.m_length=0;
+   m_info_a.m_length = 0;
+   m_info_b.m_length = 0;
+   m_info_c.m_length = 0;
 
    unsigned int use_format = YV12;
 
@@ -125,9 +125,9 @@ DWORD CodecInst::InitThreads(int encode)
       m_info_b.m_height = FOURTH(m_height);
    }
 
-   m_info_a.m_format = use_format;
-   m_info_b.m_format = use_format;
-   m_info_c.m_format = use_format;
+   //m_info_a.m_format = use_format;
+   //m_info_b.m_format = use_format;
+   //m_info_c.m_format = use_format;
 
    m_info_a.m_SSE2 = m_SSE2;
    m_info_b.m_SSE2 = m_SSE2;
@@ -140,8 +140,8 @@ DWORD CodecInst::InitThreads(int encode)
    m_info_b.m_buffer = NULL;
    m_info_c.m_buffer = NULL;
 
-   unsigned int buffer_a = ALIGN_ROUND(m_width, 16) * m_height * use_format + 2048;
-   unsigned int buffer_b = ALIGN_ROUND(m_info_b.m_width, 16) * m_info_b.m_height * use_format +  2048;
+   unsigned int buffer_a = ALIGN_ROUND(m_info_a.m_width, 16) * m_info_a.m_height * use_format + 2048;
+   unsigned int buffer_b = ALIGN_ROUND(m_info_b.m_width, 16) * m_info_b.m_height * use_format + 2048;
 
    if(!m_info_a.m_compressWorker.InitCompressBuffers(buffer_a) || !m_info_b.m_compressWorker.InitCompressBuffers(buffer_b) 
       || !(m_info_a.m_buffer = (unsigned char*)aligned_malloc(m_info_a.m_buffer, buffer_a, 16, "Info_a.buffer"))

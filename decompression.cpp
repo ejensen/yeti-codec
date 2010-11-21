@@ -101,7 +101,7 @@ inline void CodecInst::InitDecompressionThreads(const unsigned char * in, unsign
       thread->m_length = length;
       thread->m_width = width;
       thread->m_height = height;
-      thread->m_format = format;
+      //thread->m_format = format;
       thread->m_keyframe = keyframe;
 
       RESUME_THREAD(((threadInfo *)thread)->m_thread);

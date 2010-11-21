@@ -1,5 +1,4 @@
 #include "golomb.h"
-#include "yeti.h"
 
 static void UnsignedGolombEncode(const unsigned int in, BitOutputManager& bitManger)
 {
@@ -16,7 +15,6 @@ static void UnsignedGolombEncode(const unsigned int in, BitOutputManager& bitMan
 
     info = in - (1<<M) + 1;
 
-    //add length M+1 prefix
     for(unsigned int i = 1; i <= M ; ++i)
     {
        bitManger.OutputBit(0);
@@ -24,7 +22,6 @@ static void UnsignedGolombEncode(const unsigned int in, BitOutputManager& bitMan
 
     bitManger.OutputBit(1);
 
-    //add info bits
     for(unsigned int i = 0 ; i < M; ++i)
     {
        bitManger.OutputBit((info & (1<<i)) != 0);
@@ -53,14 +50,13 @@ static unsigned int UnsignedGolombDecode(BitInputManager& bitManger)
     do
     {
        bit = bitManger.InputBit();
-       if (!bit)
+       if(!bit)
        {
             ++M;
        }
     }
-    while(!bit && M < 64);//terminate if the number is too big!
-
-    //now get the M info bits    
+    while(!bit && M < 64);//terminate if the number is too big
+  
     for(unsigned int i = 0 ; i < M; ++i)
     {
         if(bitManger.InputBit())

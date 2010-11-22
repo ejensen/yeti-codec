@@ -55,6 +55,6 @@ public:
    void CalcBitProbability(const unsigned char * in, const unsigned int length);
    void ScaleBitProbability(const unsigned int length);
    unsigned int ReadBitProbability(const unsigned char * in);
-   unsigned int __fastcall RangeEncode( const unsigned char * in, unsigned char * out, const unsigned int length);
-   void __fastcall RangeDecode(const unsigned char *in, unsigned char *out, const unsigned int length);
+   unsigned int RangeEncode( const unsigned char * in, unsigned char * out, const unsigned int length);
+   void RangeDecode(const unsigned char *in, unsigned char *out, const unsigned int length);
 };

@@ -32,9 +32,6 @@ static const unsigned char dist_restore[]={0,2,4,6,8,10,12,14,16,18,20,22,24,26,
    71,69,67,65,63,61,59,57,55,53,51,49,47,45,43,41,39,37,35,33,31,29,27,25,23,21,
    19,17,15,13,11,9,7,5,3,1};
 
-#define distribution_match(x) (dist_match[x])
-#define distribution_restore(x) (dist_restore[x])
-
 // This performs a modified Run Length Encoding on a byte stream.
 // Only runs of 0 values are encoded, all other values are ignored.
 // The 'level' parameter tells how many 0's must be read before it
@@ -50,75 +47,75 @@ unsigned int RLE3(const unsigned char * in, unsigned char * out, const unsigned 
 
    // these loops are spit into 2 parts, one which handles the bulk of the encoding, and
    // one that handles the last couple bytes and thus needs to do bounds checking
-   if ( length > 300)
+   if( length > 300)
    {
-      while ( a < length - 300)
+      while(a < length - 300)
       {
-         if (in[a]) 
+         if(in[a]) 
          {
-            out[b++]=in[a++];
+            out[b++] = in[a++];
          } 
          else if(in[a+1])
          {
             out[b] = 0;
-            out[b+1] = in[a+1];
+            out[b + 1] = in[a + 1];
             b += 2;
             a += 2;
          } 
-         else if(in[a+2])
+         else if(in[a + 2])
          {
             out[b] = 0;
-            out[b+1] = 0;
-            out[b+2] = in[a+2];
+            out[b + 1] = 0;
+            out[b + 2] = in[a + 2];
             b += 3;
             a += 3;
          } 
          else 
          {
-            int d=3;
-            for ( ; !in[a+d] && d < 258; d++);
-            a+=d;
-            d-=2;
-            out[b]=0;
-            out[b+1]=0;
-            out[b+2]=0;
-            out[b+3]=distribution_match(d);
-            b+=4;
+            int d = 3;
+            for( ; !in[a + d] && d < 258; d++);
+            a += d;
+            d -= 2;
+            out[b] = 0;
+            out[b + 1] = 0;
+            out[b + 2] = 0;
+            out[b + 3] = dist_match[d];
+            b += 4;
          }
       }
    }
    while(a < length)
    {
-      if(in[a]) 
+      if(in[a])
       {
-         out[b++]=in[a++];
+         out[b++] = in[a++];
       } 
-      else if(in[a+1])
+      else if(in[a + 1])
       {
-         out[b]=0;
-         out[b+1]=in[a+1];
-         b+=2;
-         a+=2;
+         out[b] = 0;
+         out[b + 1] = in[a + 1];
+         b += 2;
+         a += 2;
       } 
       else if(in[a+2])
       {
-         out[b]=0;
-         out[b+1]=0;
-         out[b+2]=in[a+2];
+         out[b] = 0;
+         out[b + 1] = 0;
+         out[b + 2] = in[a + 2];
          b+=3;
          a+=3;
       } 
       else
       {
-         int d=3;
-         for ( ;  a+d < length && !in[a+d] && d < 258; d++);
-         a+=d;
-         d-=2;
-         out[b]=0;
-         out[b+1]=0;
-         out[b+2]=0;
-         out[b+3]=distribution_match(d);
-         b+=4;
+         int d = 3;
+         for ( ;  a + d < length && !in[a + d] && d < 258; d++);
+         a += d;
+         d -= 2;
+         out[b] = 0;
+         out[b + 1] = 0;
+         out[b + 2] = 0;
+         out[b + 3] = dist_match[d];
+         b += 4;
       }
    }
    return b;
@@ -132,31 +129,31 @@ unsigned int RLE2(const unsigned char * in, unsigned char * out, const unsigned 
 
    // these loops are spit into 2 parts, one which handles the bulk of the encoding, and
    // one that handles the last couple bytes and thus needs to do bounds checking
-   if( length > 300 )
+   if(length > 300 )
    {
-      while(a < length-300)
+      while(a < length - 300)
       {
          if(in[a]) 
          {
-            out[b++]=in[a++];
+            out[b++] = in[a++];
          } 
-         else if(in[a+1])
+         else if(in[a + 1])
          {
-            out[b]=0;
-            out[b+1]=in[a+1];
-            b+=2;
-            a+=2;
+            out[b] = 0;
+            out[b + 1] = in[a + 1];
+            b += 2;
+            a += 2;
          } 
          else 
          {
-            int d=2;
-            for ( ; !in[a+d] && d<257; d++);
-            a+=d;
+            int d = 2;
+            for ( ; !in[a + d] && d < 257; d++);
+            a += d;
             d--;
-            out[b]=0;
-            out[b+1]=0;
-            out[b+2]=distribution_match(d);
-            b+=3;
+            out[b] = 0;
+            out[b + 1] = 0;
+            out[b + 2] = dist_match[d];
+            b += 3;
          }
       }
    }
@@ -164,25 +161,25 @@ unsigned int RLE2(const unsigned char * in, unsigned char * out, const unsigned 
    {
       if(in[a])
       {
-         out[b++]=in[a++];
+         out[b++] = in[a++];
       } 
       else if(in[a+1])
       {
-         out[b]=0;
-         out[b+1]=in[a+1];
-         b+=2;
-         a+=2;
+         out[b] = 0;
+         out[b + 1] = in[a + 1];
+         b += 2;
+         a += 2;
       } 
       else 
       {
-         int d=2;
-         for ( ; a+d < length && !in[a+d]&& d < 257; d++);
-         a+=d;
+         int d = 2;
+         for( ; a + d < length && !in[a + d] && d < 257; d++);
+         a += d;
          d--;
-         out[b]=0;
-         out[b+1]=0;
-         out[b+2]=distribution_match(d);
-         b+=3;
+         out[b] = 0;
+         out[b + 1] = 0;
+         out[b + 2] = dist_match[d];
+         b += 3;
       }
    }
    return b;
@@ -204,18 +201,18 @@ unsigned int deRLE2(const unsigned char * in, unsigned char * out, const unsigne
    {
       if(in[a]) 
       {
-         out[b++]=in[a++];
+         out[b++] = in[a++];
       } 
-      else if(in[a+1])
+      else if(in[a + 1])
       {
-         out[b]=0;
-         out[b+1]=in[a+1];
-         b+=2;
-         a+=2;
+         out[b] = 0;
+         out[b + 1] = in[a + 1];
+         b += 2;
+         a += 2;
       } 
       else
       {
-         b += distribution_restore(in[a+2]) + 2;
+         b += dist_restore[in[a + 2]] + 2;
          a += 3;
       }
    }
@@ -238,36 +235,36 @@ unsigned int deRLE3(const unsigned char * in, unsigned char * out, const unsigne
    {
       if(in[a]) 
       {
-         out[b++]=in[a++];
+         out[b++] = in[a++];
       }
-      else if(in[a+1])
+      else if(in[a + 1])
       {
-         out[b]=0;
-         out[b+1]=in[a+1];
-         b+=2;
-         a+=2;
+         out[b] = 0;
+         out[b + 1] = in[a + 1];
+         b += 2;
+         a += 2;
       } 
-      else if(in[a+2])
+      else if(in[a + 2])
       {
-         out[b]=0;
-         out[b+1]=0;
-         out[b+2]=in[a+2];
-         b+=3;
-         a+=3;
+         out[b] = 0;
+         out[b + 1] = 0;
+         out[b + 2] = in[a + 2];
+         b += 3;
+         a += 3;
       } 
       else
       {
-         b+=distribution_restore(in[a+3])+3;
-         a+=4;
+         b += dist_restore[in[a + 3]] + 3;
+         a += 4;
       }
    }
 
    if(b < length)
    {
       out[b] = in[a];
-      if(b < length-1)
+      if(b < length - 1)
       {
-         out[b+1] = in[a+1];
+         out[b + 1] = in[a + 1];
       }
    }
    return a;

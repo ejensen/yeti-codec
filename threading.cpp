@@ -26,7 +26,7 @@ DWORD WINAPI EncodeWorkerTread(LPVOID i)
 
       //if( info->m_keyframe )
       //{
-         if ( SSE2 )
+         if( SSE2 )
          {
             SSE2_BlockPredict(src, dst, stride, stride * height);
          } 
@@ -35,7 +35,7 @@ DWORD WINAPI EncodeWorkerTread(LPVOID i)
             MMX_BlockPredict(src, dst, stride, stride * height);
          }
 
-         if (width != stride)
+         if(width != stride)
          {
             unsigned char * padded = dst;
             unsigned char * stripped = buffer;
@@ -107,8 +107,6 @@ DWORD CodecInst::InitThreads(int encode)
    m_info_b.m_length = 0;
    m_info_c.m_length = 0;
 
-   unsigned int use_format = YV12;
-
    m_info_a.m_width = m_width;
    m_info_b.m_width = HALF(m_width);
    m_info_c.m_width = m_width;
@@ -140,8 +138,8 @@ DWORD CodecInst::InitThreads(int encode)
    m_info_b.m_buffer = NULL;
    m_info_c.m_buffer = NULL;
 
-   unsigned int buffer_a = ALIGN_ROUND(m_info_a.m_width, 16) * m_info_a.m_height * use_format + 2048;
-   unsigned int buffer_b = ALIGN_ROUND(m_info_b.m_width, 16) * m_info_b.m_height * use_format + 2048;
+   unsigned int buffer_a = ALIGN_ROUND(m_info_a.m_width, 16) * m_info_a.m_height * YV12 + 2048;
+   unsigned int buffer_b = ALIGN_ROUND(m_info_b.m_width, 16) * m_info_b.m_height * YV12 + 2048;
 
    if(!m_info_a.m_compressWorker.InitCompressBuffers(buffer_a) || !m_info_b.m_compressWorker.InitCompressBuffers(buffer_b) 
       || !(m_info_a.m_buffer = (unsigned char*)aligned_malloc(m_info_a.m_buffer, buffer_a, 16, "Info_a.buffer"))
@@ -231,20 +229,6 @@ void CodecInst::EndThreads()
    if(!CloseHandle(m_info_a.m_thread))
    {
 #ifdef _DEBUG
-      /*LPVOID lpMsgBuf;
-      FormatMessage( 
-      FORMAT_MESSAGE_ALLOCATE_BUFFER | 
-      FORMAT_MESSAGE_FROM_SYSTEM | 
-      FORMAT_MESSAGE_IGNORE_INSERTS,
-      NULL,
-      GetLastError(),
-      0, // Default language
-      (LPTSTR) &lpMsgBuf,
-      0,
-      NULL 
-      );
-      MessageBox( NULL, (char *)lpMsgBuf, "Error", MB_OK | MB_ICONINFORMATION );
-      LocalFree( lpMsgBuf );*/
       MessageBox (HWND_DESKTOP, "CloseHandle failed for thread 0x0A", "Error", MB_OK | MB_ICONEXCLAMATION);
 #endif
    }

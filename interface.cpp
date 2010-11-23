@@ -10,9 +10,7 @@ CodecInst::CodecInst()
 #ifdef _DEBUG
    if(m_started)
    {
-      char msg[128];
-      sprintf_s(msg,128,"Attempting to instantiate a codec instance that has not been destroyed");
-      MessageBox (HWND_DESKTOP, msg, "Error", MB_OK | MB_ICONEXCLAMATION);
+
    }
 #endif
 
@@ -188,18 +186,18 @@ DWORD CodecInst::SetState(LPVOID pv, DWORD dwSize)
 }
 
 // test for SSE, and SSE2 support
-void __stdcall detectFlags( bool * SSE2, bool * SSE)
+void __stdcall detectFlags(bool * SSE2, bool * SSE)
 {
    int flags;
    __asm{
-      mov			eax,1
+         mov			eax,1
          cpuid
          mov			flags,edx
    }
-   if ( flags & (1 << 25) )
+   if(flags & (1 << 25))
    {
       *SSE = true;
-      if ( flags & (1 << 26) )
+      if(flags & (1 << 26))
       {
          *SSE2 = true;
       }

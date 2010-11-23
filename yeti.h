@@ -19,14 +19,14 @@
 #define TRY_CATCH( f ) \
    try { f }\
    catch ( char * tc_cmsg){\
-   char * tc_msg = (char *)malloc(strlen(tc_cmsg)+128);\
-   sprintf_s(tc_msg,strlen(tc_cmsg)+128"Exception passed up to %s, line %d.\nOriginal exception: %s\n", __FILE__, __LINE__,tc_cmsg);\
+   char * tc_msg = (char*)malloc(strlen(tc_cmsg) + 128);\
+   sprintf_s(tc_msg, strlen(tc_cmsg) + 128"Exception passed up to %s, line %d.\nOriginal exception: %s\n", __FILE__, __LINE__,tc_cmsg);\
    MessageBox (HWND_DESKTOP, tc_msg, "Error", MB_OK | MB_ICONEXCLAMATION);\
    throw tc_msg;\
 }\
    catch (...){\
    char * tc_msg = (char*)malloc(128);\
-   sprintf_s(tc_msg,128,"Exception caught in %s, line %d", __FILE__, __LINE__);\
+   sprintf_s(tc_msg, 128,"Exception caught in %s, line %d", __FILE__, __LINE__);\
    MessageBox (HWND_DESKTOP, tc_msg, "Error", MB_OK | MB_ICONEXCLAMATION); \
    throw tc_msg;\
 }
@@ -42,7 +42,7 @@ inline void * aligned_malloc( void *ptr, int size, int align, char *str )
       {
 #ifdef _DEBUG
          char msg[128];
-         sprintf_s(msg,128,"Buffer '%s' is not null, attempting to free it...",str);
+         sprintf_s(msg, 128, "Buffer '%s' is not null, attempting to free it...", str);
          MessageBox (HWND_DESKTOP, msg, "Error", MB_OK | MB_ICONEXCLAMATION);
 #endif
          _aligned_free(ptr);
@@ -51,7 +51,7 @@ inline void * aligned_malloc( void *ptr, int size, int align, char *str )
       {
 #ifdef _DEBUG
          char msg[256];
-         sprintf_s(msg,128,"An exception occurred when attempting to free non-null buffer '%s' in aligned_malloc",str);
+         sprintf_s(msg,128,"An exception occurred when attempting to free non-null buffer '%s' in aligned_malloc", str);
          MessageBox (HWND_DESKTOP, msg, "Error", MB_OK | MB_ICONEXCLAMATION);
 #endif
       }
@@ -73,7 +73,7 @@ inline void * aligned_malloc( void *ptr, int size, int align, char *str )
    if ( ptr ){ \
    try { _aligned_free(ptr); } catch ( ... ){\
    char err_msg[256];\
-   sprintf_s(err_msg,256,"Error when attempting to free pointer %s, value = 0x%X - file %s line %d",str,ptr,__FILE__, __LINE__);\
+   sprintf_s(err_msg, 256, "Error when attempting to free pointer %s, value = 0x%X - file %s line %d", str, ptr, __FILE__, __LINE__);\
    MessageBox (HWND_DESKTOP, err_msg, "Error", MB_OK | MB_ICONEXCLAMATION);\
 } \
    } \
@@ -129,7 +129,7 @@ struct threadInfo
    //unsigned int m_format;
    volatile unsigned int m_length;	// uncompressed data length
    volatile unsigned int m_size;		// compressed data length
-   bool m_keyframe;
+   //bool m_keyframe;
    bool m_SSE2;
 };
 
@@ -143,7 +143,7 @@ public:
 
    unsigned char * m_buffer;
    unsigned char * m_prevFrame;
-   unsigned char * m_pIn;
+   unsigned char * m_in;
    unsigned char * m_out;
    unsigned char * m_buffer2;
    unsigned char * m_deltaBuffer;
@@ -178,21 +178,20 @@ public:
    DWORD DecompressQuery(LPBITMAPINFOHEADER lpbiIn, LPBITMAPINFOHEADER lpbiOut);
    DWORD DecompressGetFormat(LPBITMAPINFOHEADER lpbiIn, LPBITMAPINFOHEADER lpbiOut);
    DWORD DecompressBegin(LPBITMAPINFOHEADER lpbiIn, LPBITMAPINFOHEADER lpbiOut);
-   DWORD Decompress(ICDECOMPRESS* icinfo, DWORD dwSize);
+   DWORD Decompress(ICDECOMPRESS* idcinfo, DWORD dwSize);
    DWORD DecompressGetPalette(LPBITMAPINFOHEADER lpbiIn, LPBITMAPINFOHEADER lpbiOut);
    DWORD DecompressEnd();
 
    BOOL QueryConfigure();
 
-   void InitDecompressionThreads(const unsigned char * in, unsigned char * out, unsigned int length, unsigned int width, unsigned int height, threadInfo * thread, int format, bool keyframe);
-   DWORD InitThreads(int encode);
+   void InitDecompressionThreads(const unsigned char * in, unsigned char * out, unsigned int length, unsigned int width, unsigned int height, threadInfo * thread, int format/*, bool keyframe*/);
+   DWORD InitThreads(bool encode);
    void EndThreads();
 
    DWORD CompressYV12(ICCOMPRESS* icinfo);
-   DWORD CompressLossy(ICCOMPRESS* icinfo);
    DWORD CompressReduced(ICCOMPRESS* icinfo);
 
-   void YV12Decompress(bool keyframe);
+   void YV12Decompress(DWORD flags);
    void ReduceResDecompress();
 };
 

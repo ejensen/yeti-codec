@@ -2,14 +2,14 @@
 signature="$CHICAGO$"
 
 [DefaultInstall]
-CopyFiles=YETI.Files.Inf,YETI.Files.Dll
-AddReg=YETI.Reg
-UpdateInis=Yeti.INIs
+CopyFiles=YETICODEC.Files.Inf,YETICODEC.Files.Dll
+AddReg=YETICODEC.Reg
+UpdateInis=YETICODEC.INIs
 
 [DefaultUnInstall]
-DelFiles=YETI.Files.Dll,YETI.Files.Inf,YETI.Files.Ini
-DelReg=YETI.Reg
-UpdateInis=YETI.INIs.Del
+DelFiles=YETICODEC.Files.Dll,YETICODEC.Files.Inf,YETICODEC.Files.Ini
+DelReg=YETICODEC.Reg
+UpdateInis=YETICODEC.INIs.Del
 
 [SourceDisksNames]
 1="Yeti Video Codec","",1
@@ -19,9 +19,9 @@ Yeti.inf=1
 Yeti.dll=1
 
 [DestinationDirs]
-YETI.Files.Inf=17
-YETI.Files.Dll=11
-YETI.Files.Ini=25
+YETICODEC.Files.Inf=17
+YETICODEC.Files.Dll=11
+YETICODEC.Files.Ini=25
 
 [YETI.Files.Inf]
 Yeti.inf

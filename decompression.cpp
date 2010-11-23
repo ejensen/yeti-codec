@@ -92,7 +92,7 @@ DWORD CodecInst::DecompressEnd()
    return ICERR_OK;
 }
 
-inline void CodecInst::InitDecompressionThreads(const unsigned char * in, unsigned char * out, unsigned int length, unsigned int width, unsigned int height, threadInfo * thread, int format, bool keyframe)
+inline void CodecInst::InitDecompressionThreads(const unsigned char* in, unsigned char* out, unsigned int length, unsigned int width, unsigned int height, threadInfo* thread, int format/*, bool keyframe*/)
 {
    if (m_multithreading && thread)
    {
@@ -102,9 +102,9 @@ inline void CodecInst::InitDecompressionThreads(const unsigned char * in, unsign
       thread->m_width = width;
       thread->m_height = height;
       //thread->m_format = format;
-      thread->m_keyframe = keyframe;
+      //thread->m_keyframe = keyframe;
 
-      RESUME_THREAD(((threadInfo *)thread)->m_thread);
+      RESUME_THREAD(((threadInfo*)thread)->m_thread);
    } 
    else 
    {
@@ -113,7 +113,7 @@ inline void CodecInst::InitDecompressionThreads(const unsigned char * in, unsign
 }
 
 // Decompress a YV12 keyframe
-void CodecInst::YV12Decompress(bool keyframe)
+void CodecInst::YV12Decompress(DWORD flags)
 {
    unsigned char * dst = m_out;
    unsigned char * dst2 = m_buffer;
@@ -124,17 +124,19 @@ void CodecInst::YV12Decompress(bool keyframe)
       dst2 = m_out;
    }
 
-   int size = *(unsigned int*)(m_pIn + 1);
+   int size = *(unsigned int*)(m_in + 1);
    unsigned int hh = HALF(m_height);
    unsigned int hw = HALF(m_width);
    unsigned int wxh = m_width * m_height;
    unsigned int quarterArea = FOURTH(wxh);
 
-   InitDecompressionThreads(m_pIn + 9, dst, wxh, m_width, m_height, &m_info_a, YV12, keyframe);
-   InitDecompressionThreads(m_pIn + size, dst + wxh, quarterArea, hw, hh, &m_info_b, YV12, keyframe);
+   //bool keyframe = (flags & ICDECOMPRESS_NOTKEYFRAME) != ICDECOMPRESS_NOTKEYFRAME;
 
-   size = *(unsigned int*)(m_pIn + 5);
-   InitDecompressionThreads(m_pIn + size, dst + wxh + quarterArea, quarterArea, hw, hh, NULL, YV12, keyframe);
+   InitDecompressionThreads(m_in + 9, dst, wxh, m_width, m_height, &m_info_a, YV12/*, keyframe*/);
+   InitDecompressionThreads(m_in + size, dst + wxh, quarterArea, hw, hh, &m_info_b, YV12/*, keyframe*/);
+
+   size = *(unsigned int*)(m_in + 5);
+   InitDecompressionThreads(m_in + size, dst + wxh + quarterArea, quarterArea, hw, hh, NULL, YV12/*, keyframe*/);
 
    //if(keyframe)
    //{
@@ -151,7 +153,7 @@ void CodecInst::YV12Decompress(bool keyframe)
 
    unsigned int length = EIGHTH(wxh * YV12);
 
-   if(!keyframe)
+   if((flags & ICDECOMPRESS_NOTKEYFRAME) == ICDECOMPRESS_NOTKEYFRAME)
    {
       Fast_XOR(dst, dst, m_prevFrame, FOURTH(length));
    }
@@ -162,7 +164,8 @@ void CodecInst::YV12Decompress(bool keyframe)
 
    memcpy(m_prevFrame, dst, length);
 
-   if(m_format == YV12)
+
+   if((flags & ICDECOMPRESS_PREROLL) == ICDECOMPRESS_PREROLL || m_format == YV12)
    {
       return;
    }
@@ -191,18 +194,18 @@ void CodecInst::ReduceResDecompress()
    m_width = HALF(m_width);
    m_height = HALF(m_height);
 
-   int size = *(unsigned int*)(m_pIn + 1);
+   int size = *(unsigned int*)(m_in + 1);
    unsigned int hh = HALF(m_height);
    unsigned int hw = HALF(m_width);
    unsigned int wxh = m_width * m_height;
    unsigned int quarterSize = FOURTH(wxh);
 
-   unsigned char * dest = (m_format == YV12) ? m_buffer : m_out;
+   unsigned char* dest = (m_format == YV12) ? m_buffer : m_out;
 
-   InitDecompressionThreads(m_pIn + 9, dest, wxh, m_width, m_height, &m_info_a, YV12, true);
-   InitDecompressionThreads(m_pIn + size, dest + wxh, quarterSize, hw, hh, &m_info_b, YV12, true);
-   size = *(unsigned int*)(m_pIn + 5);
-   InitDecompressionThreads(m_pIn + size, dest + wxh + quarterSize, quarterSize, hw, hh, NULL, YV12, true);
+   InitDecompressionThreads(m_in + 9, dest, wxh, m_width, m_height, &m_info_a, YV12);
+   InitDecompressionThreads(m_in + size, dest + wxh, quarterSize, hw, hh, &m_info_b, YV12);
+   size = *(unsigned int*)(m_in + 5);
+   InitDecompressionThreads(m_in + size, dest + wxh + quarterSize, quarterSize, hw, hh, NULL, YV12);
 
    ASM_BlockRestore(dest + m_width * m_height + quarterSize, hw, quarterSize, 0);
 
@@ -252,7 +255,7 @@ void CodecInst::ReduceResDecompress()
 
 // Called to decompress a frame, the actual decompression will be
 // handed off to other functions based on the frame type.
-DWORD CodecInst::Decompress(ICDECOMPRESS* icinfo, DWORD dwSize) 
+DWORD CodecInst::Decompress(ICDECOMPRESS* idcinfo, DWORD dwSize) 
 {
 #ifdef _DEBUG
    try 
@@ -262,25 +265,40 @@ DWORD CodecInst::Decompress(ICDECOMPRESS* icinfo, DWORD dwSize)
 
       if(!m_started)
       {
-         DecompressBegin(icinfo->lpbiInput, icinfo->lpbiOutput);
+         DecompressBegin(idcinfo->lpbiInput, idcinfo->lpbiOutput);
       }
 
-      m_out = (unsigned char *)icinfo->lpOutput;
-      m_pIn  = (unsigned char *)icinfo->lpInput; 
-      icinfo->lpbiOutput->biSizeImage = m_length;
+      m_out = (unsigned char *)idcinfo->lpOutput;
+      m_in  = (unsigned char *)idcinfo->lpInput; 
+      idcinfo->lpbiOutput->biSizeImage = m_length;
 
       // according to the avi specs, the calling application is responsible for handling null frames.
-      if(icinfo->lpbiInput->biSizeImage == 0)
+      if(idcinfo->lpbiInput->biSizeImage == 0)
       {
          return ICERR_OK;
       }
 
-      switch(m_pIn[0])
+      switch(m_in[0])
       {
       case YV12_DELTAFRAME:
       case YV12_KEYFRAME:
          {
-            YV12Decompress( m_pIn[0] & KEYFRAME );
+
+#ifdef _DEBUG
+            if((idcinfo->dwFlags & ICDECOMPRESS_HURRYUP) == ICDECOMPRESS_HURRYUP)
+            {
+               OutputDebugString("Hurry Up!\n");
+            }
+            else if((idcinfo->dwFlags & ICDECOMPRESS_UPDATE) == ICDECOMPRESS_UPDATE)
+            {
+               OutputDebugString("UPDATE!\n");
+            }
+            else if((idcinfo->dwFlags & ICDECOMPRESS_NULLFRAME) == ICDECOMPRESS_NULLFRAME)
+            {
+               OutputDebugString("null!\n");
+            }
+#endif
+            YV12Decompress(idcinfo->dwFlags);
             break;
          }
       case REDUCED_DELTAFRAME:
@@ -293,7 +311,7 @@ DWORD CodecInst::Decompress(ICDECOMPRESS* icinfo, DWORD dwSize)
          {
 #ifdef _DEBUG
             char emsg[128];
-            sprintf_s(emsg,128,"Unrecognized frame type: %d",m_pIn[0]);
+            sprintf_s(emsg, 128, "Unrecognized frame type: %d", m_in[0]);
             MessageBox (HWND_DESKTOP, emsg, "Error", MB_OK | MB_ICONEXCLAMATION);
 #endif
             return_code = (DWORD)ICERR_ERROR;

@@ -101,7 +101,7 @@ DWORD WINAPI DecodeWorkerThread(LPVOID i)
    return 0;
 }
 
-DWORD CodecInst::InitThreads(int encode)
+DWORD CodecInst::InitThreads(bool encode)
 {
    m_info_a.m_length = 0;
    m_info_b.m_length = 0;
@@ -138,8 +138,8 @@ DWORD CodecInst::InitThreads(int encode)
    m_info_b.m_buffer = NULL;
    m_info_c.m_buffer = NULL;
 
-   unsigned int buffer_a = ALIGN_ROUND(m_info_a.m_width, 16) * m_info_a.m_height * YV12 + 2048;
-   unsigned int buffer_b = ALIGN_ROUND(m_info_b.m_width, 16) * m_info_b.m_height * YV12 + 2048;
+   unsigned int buffer_a = DOUBLE(ALIGN_ROUND(m_info_a.m_width, 16) * m_info_a.m_height) + 2048;
+   unsigned int buffer_b = DOUBLE(ALIGN_ROUND(m_info_b.m_width, 16) * m_info_b.m_height) + 2048;
 
    if(!m_info_a.m_compressWorker.InitCompressBuffers(buffer_a) || !m_info_b.m_compressWorker.InitCompressBuffers(buffer_b) 
       || !(m_info_a.m_buffer = (unsigned char*)aligned_malloc(m_info_a.m_buffer, buffer_a, 16, "Info_a.buffer"))

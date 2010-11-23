@@ -1,5 +1,7 @@
 #pragma once
 
+#include <limits.h>
+
 static inline unsigned int COUNT_BITS(unsigned int v)
 {
    v = v - ((v >> 1) & 0x55555555);
@@ -18,21 +20,23 @@ static inline void Fast_XOR(void* dest, const void* src1, const void* src2, cons
    }
 }
 
-static const inline unsigned long Fast_XOR_Count(void* dest, const void* src1, const void* src2, const unsigned int len, const unsigned long max)
+static inline unsigned long Fast_XOR_Count(void* dest, const void* src1, const void* src2, const unsigned int len, const unsigned long minDelta)
 {
-   unsigned* tempDest = (unsigned*)dest;
-   unsigned* tempSrc1 = (unsigned*)src1;
-   unsigned* tempSrc2 = (unsigned*)src2;
+   unsigned int* tempDest = (unsigned int*)dest;
+   unsigned int* tempSrc1 = (unsigned int*)src1;
+   unsigned int* tempSrc2 = (unsigned int*)src2;
 
-   unsigned long bitCount = 0;
+   unsigned long oldTotalBits = 0;
+   unsigned long totalBits = 0;
 
-   for(unsigned int i = 0; bitCount < max && i < len; i++)
+   for(unsigned int i = 0; i < len; i++)
    {
+      oldTotalBits += COUNT_BITS(tempSrc1[i]);
       tempDest[i] = tempSrc1[i] ^ tempSrc2[i];
-      bitCount += COUNT_BITS(tempDest[i]);
+      totalBits += COUNT_BITS(tempDest[i]);
    }
 
-   return bitCount;
+   return (oldTotalBits - totalBits < minDelta) ? ULONG_MAX : totalBits;
 }
 
 class CompressClass 

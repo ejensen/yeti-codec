@@ -189,7 +189,7 @@ void CodecInst::YV12Decompress(DWORD flags)
    }
 }
 
-void CodecInst::ReduceResDecompress()
+void CodecInst::ReduceResDecompress(DWORD flags)
 {
    m_width = HALF(m_width);
    m_height = HALF(m_height);
@@ -207,7 +207,7 @@ void CodecInst::ReduceResDecompress()
    size = *(unsigned int*)(m_in + 5);
    InitDecompressionThreads(m_in + size, dest + wxh + quarterSize, quarterSize, hw, hh, NULL, YV12);
 
-   ASM_BlockRestore(dest + m_width * m_height + quarterSize, hw, quarterSize, 0);
+   ASM_BlockRestore(dest + wxh + quarterSize, hw, quarterSize, 0);
 
    WAIT_FOR_THREADS(2);
 
@@ -216,6 +216,14 @@ void CodecInst::ReduceResDecompress()
       ASM_BlockRestore(dest, m_width, wxh, 0);
       ASM_BlockRestore(dest + wxh, hw, quarterSize, 0);
    }
+
+   unsigned int length = wxh + HALF(wxh);
+   if((flags & ICDECOMPRESS_NOTKEYFRAME) == ICDECOMPRESS_NOTKEYFRAME)
+   {
+      Fast_XOR(dest, dest, m_prevFrame, FOURTH(length));
+   }
+
+   memcpy(m_prevFrame, dest, length);
 
    m_width = DOUBLE(m_width);
    m_height = DOUBLE(m_height);
@@ -304,7 +312,7 @@ DWORD CodecInst::Decompress(ICDECOMPRESS* idcinfo, DWORD dwSize)
       case REDUCED_DELTAFRAME:
       case REDUCED_KEYFRAME:
          {
-            ReduceResDecompress();
+            ReduceResDecompress(idcinfo->dwFlags);
             break;
          }
       default:

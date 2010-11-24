@@ -184,30 +184,8 @@ DWORD CodecInst::Compress(ICCOMPRESS* icinfo, DWORD dwSize)
    }
 
    m_in = m_colorTransBuffer;
-   DWORD ret_val = 0;
 
-   if(m_reduced)
-   {
-      ret_val = CompressReduced(icinfo);
-      if(ret_val == ICERR_OK)
-      {
-         *icinfo->lpdwFlags = AVIIF_KEYFRAME;
-         icinfo->dwFlags = ICCOMPRESS_KEYFRAME;
-      }
-   } 
-   else
-   {
-      ret_val = CompressYV12(icinfo);
-   }
-
-   if(m_nullframes || m_deltaframes)
-   {
-      unsigned char* temp = m_prevFrame;
-      m_prevFrame = m_colorTransBuffer;
-      m_colorTransBuffer = temp;
-   }
-
-   return ret_val;
+   return m_reduced ? CompressReduced(icinfo) : CompressYV12(icinfo);
 }
 
 
@@ -215,14 +193,15 @@ DWORD CodecInst::Compress(ICCOMPRESS* icinfo, DWORD dwSize)
 DWORD CodecInst::CompressYV12(ICCOMPRESS* icinfo)
 {
    //TODO: Optimize for subsequent calls
-   const unsigned int y_len	= m_width*m_height;
+   const unsigned int y_len	= m_width * m_height;
    const unsigned int c_len	= FOURTH(y_len);
-   const unsigned int yu_len	= y_len+c_len;
-   const unsigned int len		= yu_len+c_len;
+   const unsigned int yu_len	= y_len + c_len;
+   const unsigned int len		= yu_len + c_len;
 
    unsigned char* source = m_deltaBuffer;
    unsigned frameType;
 
+   //TODO: Remove duplication.
    if(icinfo->dwFlags != ICCOMPRESS_KEYFRAME && icinfo->lFrameNum > 0) //TODO: Optimize
    {
       if(m_deltaframes)
@@ -256,7 +235,7 @@ DWORD CodecInst::CompressYV12(ICCOMPRESS* icinfo)
             // compare in two parts, video is more likely to change in middle than at bottom
             unsigned int pos = HALF(len) + 15;
             pos &= (~15);
-            if (!memcmp(m_in + pos, m_prevFrame + pos, len - pos) && !memcmp(m_in, m_prevFrame, pos))
+            if(!memcmp(m_in + pos, m_prevFrame + pos, len - pos) && !memcmp(m_in, m_prevFrame, pos))
             {
                icinfo->lpbiOutput->biSizeImage = 0;
                *icinfo->lpdwFlags = 0;
@@ -278,6 +257,13 @@ DWORD CodecInst::CompressYV12(ICCOMPRESS* icinfo)
       frameType = YV12_KEYFRAME;
    }
 
+   if(m_nullframes || m_deltaframes)
+   {
+      unsigned char* temp = m_prevFrame;
+      m_prevFrame = m_colorTransBuffer;
+      m_colorTransBuffer = temp;
+   }
+
    //TODO: Optimize for subsequent calls
    const unsigned int mod = (m_SSE2?16:8) - 1;
 
@@ -296,7 +282,6 @@ DWORD CodecInst::CompressYV12(ICCOMPRESS* icinfo)
    const unsigned char * vsrc;
 
    const unsigned int in_aligned = !((int)m_in & mod);
-
 
    //note: chroma has only half the width of luminance, it may need to be aligned separately
 
@@ -384,7 +369,7 @@ DWORD CodecInst::CompressYV12(ICCOMPRESS* icinfo)
    int size;
    if(!m_multithreading)
    {
-      unsigned char *buffer3 = (unsigned char *)ALIGN_ROUND(m_out,16);
+      unsigned char *buffer3 = (unsigned char *)ALIGN_ROUND(m_out, 16);
 
       //set up dest buffers based on if alignment padding needs removal later
       unsigned char * ydest;
@@ -451,7 +436,6 @@ DWORD CodecInst::CompressYV12(ICCOMPRESS* icinfo)
    } 
    else 
    {
-      bool keyframe = frameType & KEYFRAME;
 
       m_info_a.m_source = ysrc;
       m_info_a.m_dest = m_out + 9;
@@ -477,6 +461,7 @@ DWORD CodecInst::CompressYV12(ICCOMPRESS* icinfo)
             MMX_BlockPredict(vsrc, vdest, c_stride, ac_len);
          }
 
+         bool keyframe = frameType & KEYFRAME;
          // remove alignment if needed
          if(hw & mod)  // remove chroma padding
          {
@@ -535,31 +520,94 @@ DWORD CodecInst::CompressReduced(ICCOMPRESS *icinfo)
 
    const unsigned int ry_stride = ALIGN_ROUND(hw, mod);
    const unsigned int rc_stride = ALIGN_ROUND(FOURTH(m_width), mod);
-   const unsigned int ry_size   = ry_stride*hh;
+   const unsigned int ry_size   = ry_stride * hh;
    const unsigned int rc_size   = FOURTH(rc_stride * m_height);
-   const unsigned int ryu_size  = ry_size+rc_size;
-   const unsigned int y_size    = m_width*m_height;
+   const unsigned int ryu_size  = ry_size + rc_size;
+   const unsigned int y_size    = m_width * m_height;
    const unsigned int quarterSize = FOURTH(y_size);
    const unsigned int c_size    = quarterSize;
-   const unsigned int yu_size   = y_size+c_size;
+   const unsigned int yu_size   = y_size + c_size;
    const unsigned int ry_bytes  = quarterSize;
    const unsigned int rc_bytes  = FOURTH(quarterSize); 
 
-   unsigned char * ysrc = m_buffer;
-   unsigned char * usrc = m_buffer + ry_size;
-   unsigned char * vsrc = m_buffer + ryu_size;
+   unsigned char* ysrc = m_buffer;
+   unsigned char* usrc = m_buffer + ry_size;
+   unsigned char* vsrc = m_buffer + ryu_size;
 
    ReduceRes(m_in, ysrc, m_buffer2, m_width, m_height, m_SSE2);
    ReduceRes(m_in + y_size, usrc, m_buffer2, hw, hh, m_SSE2);
    ReduceRes(m_in + yu_size, vsrc, m_buffer2, hw, hh, m_SSE2);
 
+   //TODO: Remove duplication.
+   unsigned int frameType;
+   unsigned int len = ry_size + DOUBLE(rc_size);
+   if(icinfo->dwFlags != ICCOMPRESS_KEYFRAME && icinfo->lFrameNum > 0) //TODO: Optimize
+   {
+      if(m_deltaframes)
+      {
+         unsigned long minDelta = len * 3;
+         unsigned long bitCount = Fast_XOR_Count(m_deltaBuffer, ysrc, m_prevFrame, FOURTH(len), minDelta);
+
+         if(bitCount == ULONG_MAX)
+         {
+            *icinfo->lpdwFlags |= AVIIF_KEYFRAME;
+            icinfo->dwFlags |= ICCOMPRESS_KEYFRAME;
+            frameType = REDUCED_KEYFRAME;
+         }
+         else if(bitCount == 0 && m_nullframes)
+         {
+            icinfo->lpbiOutput->biSizeImage = 0;
+            *icinfo->lpdwFlags = 0;
+            return (DWORD)ICERR_OK;
+         }
+         else
+         {
+            ysrc = m_deltaBuffer;
+            usrc = m_deltaBuffer + ry_size;
+            vsrc = m_deltaBuffer + ryu_size;
+            *icinfo->lpdwFlags |= AVIIF_LASTPART;
+            frameType = REDUCED_DELTAFRAME;
+         }
+      }
+      else
+      {
+         if(m_nullframes)
+         {
+            // compare in two parts, video is more likely to change in middle than at bottom
+            unsigned int pos = HALF(len) + 15;
+            pos &= (~15);
+            if(!memcmp(ysrc + pos, m_prevFrame + pos, len - pos) && !memcmp(ysrc, m_prevFrame, pos))
+            {
+               icinfo->lpbiOutput->biSizeImage = 0;
+               *icinfo->lpdwFlags = 0;
+               return (DWORD)ICERR_OK;
+            }
+         }
+
+         *icinfo->lpdwFlags |= AVIIF_KEYFRAME;
+         icinfo->dwFlags |= ICCOMPRESS_KEYFRAME;
+         frameType = REDUCED_KEYFRAME;
+      }
+   }
+   else
+   {
+      *icinfo->lpdwFlags |= AVIIF_KEYFRAME;
+      icinfo->dwFlags |= ICCOMPRESS_KEYFRAME;
+      frameType = REDUCED_KEYFRAME;
+   }
+
+   if(m_nullframes || m_deltaframes)
+   {
+      memcpy(m_prevFrame, m_buffer, len);
+   }
+
    unsigned int size;
 
    if(!m_multithreading)
    {
-      unsigned char * ydest = m_buffer2;
-      unsigned char * udest = m_buffer2 + ry_size;
-      unsigned char * vdest = m_buffer2 + ryu_size;
+      unsigned char* ydest = m_buffer2;
+      unsigned char* udest = m_buffer2 + ry_size;
+      unsigned char* vdest = m_buffer2 + ryu_size;
 
       if(m_SSE2)
       {
@@ -623,7 +671,7 @@ DWORD CodecInst::CompressReduced(ICCOMPRESS *icinfo)
       RESUME_THREAD(m_info_a.m_thread);
 
       m_info_b.m_source = usrc;
-      m_info_b.m_dest = m_prevFrame;
+      m_info_b.m_dest = m_colorTransBuffer; //TODO: change
       m_info_b.m_length = rc_bytes;
      // m_info_a.m_keyframe = true;
       RESUME_THREAD(m_info_b.m_thread);
@@ -671,12 +719,12 @@ DWORD CodecInst::CompressReduced(ICCOMPRESS *icinfo)
 
       int sizeb = m_info_b.m_size;
       *(UINT32*)(m_out + 1)= sizea + 9 + size;
-      memcpy(m_out + sizea + 9 + size, m_prevFrame, sizeb);
+      memcpy(m_out + sizea + 9 + size, m_colorTransBuffer, sizeb);
 
       size += sizea + sizeb + 9;
    }
 
-   m_out[0] = REDUCED_KEYFRAME;
+   m_out[0] = frameType;
    icinfo->lpbiOutput->biSizeImage = size;
    return (DWORD)ICERR_OK;
 }

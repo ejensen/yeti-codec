@@ -192,7 +192,7 @@ public:
    DWORD CompressReduced(ICCOMPRESS* icinfo);
 
    void YV12Decompress(DWORD flags);
-   void ReduceResDecompress();
+   void ReduceResDecompress(DWORD flags);
 };
 
 CodecInst* Open(ICOPEN* icinfo);

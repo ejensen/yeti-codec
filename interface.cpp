@@ -157,10 +157,10 @@ DWORD CodecInst::GetState(LPVOID pv, DWORD dwSize)
    }
 
    int * state = (int*)pv;
-   state[0] = GetPrivateProfileInt("settings", "nullframes", true, SettingsFile);
-   state[1] = GetPrivateProfileInt("settings", "multithreading", true, SettingsFile);
+   state[0] = GetPrivateProfileInt("settings", "nullframes", false, SettingsFile);
+   state[1] = GetPrivateProfileInt("settings", "multithreading", false, SettingsFile);
    state[2] = GetPrivateProfileInt("settings", "reduced", false, SettingsFile);
-   state[3] = GetPrivateProfileInt("settings", "deltaframes", true, SettingsFile);
+   state[3] = GetPrivateProfileInt("settings", "deltaframes", false, SettingsFile);
    return 0;
 }
 

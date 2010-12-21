@@ -328,10 +328,14 @@ DWORD CodecInst::Decompress(ICDECOMPRESS* idcinfo)
          return ICERR_OK;
       }
 
-      switch(m_in[0])
+      switch(m_in[0] & ~KEYFRAME)
       {
-      case YV12_DELTAFRAME:
-      case YV12_KEYFRAME:
+      case YUY2:
+            {
+               YUY2Decompress(idcinfo->dwFlags);
+               break;
+            }
+      case YV12:
          {
 
 #ifdef _DEBUG
@@ -351,8 +355,7 @@ DWORD CodecInst::Decompress(ICDECOMPRESS* idcinfo)
             YV12Decompress(idcinfo->dwFlags);
             break;
          }
-      case REDUCED_DELTAFRAME:
-      case REDUCED_KEYFRAME:
+      case REDUCED:
          {
             ReduceResDecompress(idcinfo->dwFlags);
             break;

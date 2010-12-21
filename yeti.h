@@ -65,7 +65,7 @@ inline void * aligned_malloc( void *ptr, int size, int align, char *str )
    _aligned_free(ptr);\
 } catch ( ... ){ } \
    } \
-   ptr =N ULL;\
+   ptr = NULL;\
 }
 #else
 #define ALIGNED_FREE(ptr, str) { \

@@ -19,8 +19,6 @@ DWORD CodecInst::CompressBegin(LPBITMAPINFOHEADER lpbiIn, LPBITMAPINFOHEADER lpb
    m_deltaframes = GetPrivateProfileInt("settings", "deltaframes", TRUE, SettingsFile) > 0;
    m_multithreading = GetPrivateProfileInt("settings", "multithreading", TRUE, SettingsFile) > 0;
 
-   m_compressFormat = GetPrivateProfileInt("settings", "format", YUY2_FRAME, SettingsFile);
-
    if (int error = CompressQuery(lpbiIn, lpbiOut) != ICERR_OK)
    {
       return error;

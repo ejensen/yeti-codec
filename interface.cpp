@@ -367,6 +367,8 @@ DWORD CodecInst::DecompressQuery(const LPBITMAPINFOHEADER lpbiIn, const LPBITMAP
          RETURN_ERROR();
    }
 
+   m_compressFormat = GetPrivateProfileInt("settings", "format", YUY2_FRAME, SettingsFile);
+
    // make sure the input bitdepth is valid
    if(lpbiIn->biBitCount != RGB24 && lpbiIn->biBitCount != RGB32 && lpbiIn->biBitCount != YUY2 && lpbiIn->biBitCount != YV12)
    {

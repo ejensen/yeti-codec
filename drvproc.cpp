@@ -99,7 +99,7 @@ LRESULT WINAPI DriverProc(DWORD dwDriverID, HDRVR hDriver, UINT uiMessage, LPARA
    case ICM_DECOMPRESS_GET_PALETTE:
          return pCodecInst->DecompressGetPalette((LPBITMAPINFOHEADER)lParam1, (LPBITMAPINFOHEADER)lParam2);
    case ICM_DECOMPRESS:
-         return pCodecInst->Decompress((ICDECOMPRESS*)lParam1, (DWORD)lParam2);
+         return pCodecInst->Decompress((ICDECOMPRESS*)lParam1);
    case ICM_DECOMPRESS_END:
          return pCodecInst->DecompressEnd();
 

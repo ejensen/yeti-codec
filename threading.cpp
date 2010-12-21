@@ -14,8 +14,9 @@ DWORD WINAPI EncodeWorkerTread(LPVOID i)
 
    const unsigned char * src = NULL;
    unsigned char * dest = NULL;
+   const unsigned int format=info->m_format;
+   const unsigned int lum = info->m_lum;
    unsigned char * const buffer = (unsigned char*)info->m_buffer;
-//   const unsigned int format=info->m_format;
 
    while(info->m_length != UINT32_MAX) //TODO: Optimize
    {
@@ -24,8 +25,16 @@ DWORD WINAPI EncodeWorkerTread(LPVOID i)
 
       unsigned char * dst = (width == stride) ? buffer : (unsigned char*)ALIGN_ROUND(dest, 16);
 
-      //if( info->m_keyframe )
-      //{
+       if(format == YUY2) //TODO: Optimize
+       {
+         if ( SSE2 ){
+            SSE2_Predict_YUY2(src, dst, stride, height, lum);
+         } else {
+            MMX_Predict_YUY2(src, dst, stride, height, lum);
+         }
+       }
+       else
+       {
          if( SSE2 )
          {
             SSE2_BlockPredict(src, dst, stride, stride * height);
@@ -34,6 +43,7 @@ DWORD WINAPI EncodeWorkerTread(LPVOID i)
          {
             MMX_BlockPredict(src, dst, stride, stride * height);
          }
+       }
 
          if(width != stride)
          {
@@ -44,11 +54,6 @@ DWORD WINAPI EncodeWorkerTread(LPVOID i)
                memcpy(stripped + y * width, padded + y * stride, width);
             }
          }
-      //}
-      //else
-      //{
-      //   memcpy(buffer, src, stride * height);
-      //}
 
       info->m_size = info->m_compressWorker.Compact(buffer, dest, width * height);
 
@@ -71,7 +76,7 @@ DWORD WINAPI DecodeWorkerThread(LPVOID i)
    unsigned int height;
    unsigned char * src = NULL;
    unsigned char * dest = NULL;
-   unsigned int format = YV12;
+   unsigned int format = info->m_format;
    unsigned int length;
 
    while(info->m_length != UINT32_MAX) //TODO:Optimize
@@ -79,17 +84,16 @@ DWORD WINAPI DecodeWorkerThread(LPVOID i)
       src = (unsigned char*)info->m_source;
       dest = (unsigned char*)info->m_dest;
 
-      length = info->m_length;
-      //format = info->m_format;
+      length = info->m_length; //TODO: Optimize
       width = info->m_width;
       height = info->m_height;
 
       info->m_compressWorker.Uncompact(src, dest, length);
 
-      //if(info->m_keyframe)
-      //{
-         ASM_BlockRestore(dest, width, width*height, format != YV12);
-      //}
+      if ( format != YUY2 )
+      {
+         ASM_BlockRestore(dest, width, width * height, format != YV12); //TODO: Optimize
+      }
 
       info->m_length = 0;
       SuspendThread(info->m_thread);
@@ -115,7 +119,7 @@ DWORD CodecInst::InitThreads(bool encode)
    m_info_b.m_height = HALF(m_height);
    m_info_c.m_height = m_height;
 
-   if(m_reduced)
+   if(m_compressFormat == REDUCED_FRAME)
    {
       m_info_a.m_width = HALF(m_width);
       m_info_a.m_height = HALF(m_height);
@@ -123,9 +127,9 @@ DWORD CodecInst::InitThreads(bool encode)
       m_info_b.m_height = FOURTH(m_height);
    }
 
-   //m_info_a.m_format = use_format;
-   //m_info_b.m_format = use_format;
-   //m_info_c.m_format = use_format;
+   m_info_a.m_format = m_format;
+   m_info_b.m_format = m_format;
+   m_info_c.m_format = m_format;
 
    m_info_a.m_SSE2 = m_SSE2;
    m_info_b.m_SSE2 = m_SSE2;

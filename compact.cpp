@@ -118,9 +118,6 @@ void CompressClass::CalcBitProbability(const unsigned char * const in, const uns
    ScaleBitProbability(length);
 }
 
-// This function encapsulates compressing a byte stream.
-// It applies a modified run length encoding if it saves enough bytes, 
-// writes the frequency header, and range compresses the byte stream.
 unsigned int CompressClass::Compact(const unsigned char * in, unsigned char * out, const unsigned int length)
 {
    int bytes_used = 0;
@@ -164,7 +161,6 @@ unsigned int CompressClass::Compact(const unsigned char * in, unsigned char * ou
    return bytes_used;
 }
 
-// this function encapsulates decompressing a byte stream
 void CompressClass::Uncompact(const unsigned char * in, unsigned char * out, const unsigned int length)
 {
    try
@@ -221,7 +217,6 @@ void CompressClass::Uncompact(const unsigned char * in, unsigned char * out, con
    catch(...){};
 }
 
-// initialized the buffers used by RLE and range coding routines
 bool CompressClass::InitCompressBuffers(const unsigned int length)
 {
    m_buffer = (unsigned char *)aligned_malloc(m_buffer, length, 32, "Compress::temp");
@@ -235,7 +230,6 @@ bool CompressClass::InitCompressBuffers(const unsigned int length)
    return true;
 }
 
-// free the buffers used by RLE and range coding routines
 void CompressClass::FreeCompressBuffers()
 {	
    ALIGNED_FREE( m_buffer,"Compress::buffer");

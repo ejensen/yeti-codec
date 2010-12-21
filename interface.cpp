@@ -7,12 +7,12 @@
 
 CodecInst::CodecInst()
 {
-#ifdef _DEBUG
-   if(m_started)
-   {
-
-   }
-#endif
+//#ifdef _DEBUG
+//   if(m_started)
+//   {
+//
+//   }
+//#endif
 
    m_compressWorker.m_probRanges = NULL;
    m_compressWorker.m_bytecounts = NULL;
@@ -25,7 +25,7 @@ CodecInst::CodecInst()
    m_length = 0;
    m_nullframes = false;
    m_deltaframes = false;
-   m_reduced = false;
+   m_compressFormat = 0;
    m_started = false;
    m_SSE2 = 0;
    m_SSE = 0;
@@ -56,23 +56,44 @@ static BOOL CALLBACK ConfigureDialogProc(HWND hwndDlg, UINT uMsg, WPARAM wParam,
 {
    if(uMsg == WM_INITDIALOG)
    {
-      CheckDlgButton(hwndDlg, IDC_NULLFRAMES,GetPrivateProfileInt("settings", "nullframes", false, SettingsFile) ? BST_CHECKED : BST_UNCHECKED);
-      CheckDlgButton(hwndDlg, IDC_MULTI,GetPrivateProfileInt("settings", "multithreading", false, SettingsFile) ? BST_CHECKED : BST_UNCHECKED);
-      CheckDlgButton(hwndDlg, IDC_REDUCED,GetPrivateProfileInt("settings", "reduced", false, SettingsFile) ? BST_CHECKED : BST_UNCHECKED);
-      CheckDlgButton(hwndDlg, IDC_DELTAFRAMES,GetPrivateProfileInt("settings", "deltaframes", false, SettingsFile) ? BST_CHECKED : BST_UNCHECKED);
+      CheckDlgButton(hwndDlg, IDC_NULLFRAMES, GetPrivateProfileInt("settings", "nullframes", FALSE, SettingsFile) ? BST_CHECKED : BST_UNCHECKED);
+      CheckDlgButton(hwndDlg, IDC_DELTAFRAMES, GetPrivateProfileInt("settings", "deltaframes", FALSE, SettingsFile) ? BST_CHECKED : BST_UNCHECKED);
+      CheckDlgButton(hwndDlg, IDC_MULTI, GetPrivateProfileInt("settings", "multithreading", FALSE, SettingsFile) ? BST_CHECKED : BST_UNCHECKED);
+
+      unsigned int compressFormat = GetPrivateProfileInt("settings", "format", YUY2, SettingsFile);
+
+      int id = IDC_YUY2;
+
+      if(compressFormat == YV12)
+         id = IDC_YV12;
+      else if(compressFormat == REDUCED)
+         id = IDC_REDUCED;
+
+      CheckRadioButton(hwndDlg, IDC_YUY2, IDC_REDUCED, id);
+      CheckDlgButton(hwndDlg, id, BST_CHECKED);
    } 
    else if(uMsg == WM_COMMAND) 
    {
-      if(LOWORD(wParam)==IDC_OK)
+      if(LOWORD(wParam) == IDC_OK)
       {
          WritePrivateProfileString("settings", "nullframes", (IsDlgButtonChecked(hwndDlg, IDC_NULLFRAMES) == BST_CHECKED) ? "1" : NULL, SettingsFile);
-         WritePrivateProfileString("settings", "multithreading", (IsDlgButtonChecked(hwndDlg, IDC_MULTI) == BST_CHECKED) ? "1" : NULL, SettingsFile);
-         WritePrivateProfileString("settings", "reduced", (IsDlgButtonChecked(hwndDlg, IDC_REDUCED) == BST_CHECKED) ? "1" : NULL, SettingsFile);
          WritePrivateProfileString("settings", "deltaframes", (IsDlgButtonChecked(hwndDlg, IDC_DELTAFRAMES) == BST_CHECKED) ? "1" : NULL, SettingsFile);
+         WritePrivateProfileString("settings", "multithreading", (IsDlgButtonChecked(hwndDlg, IDC_MULTI) == BST_CHECKED) ? "1" : NULL, SettingsFile);
+
+         int format = YUY2;
+
+         if(IsDlgButtonChecked(hwndDlg, IDC_YV12) == BST_CHECKED)
+            format = YV12;
+         else if(IsDlgButtonChecked(hwndDlg, IDC_REDUCED) == BST_CHECKED)
+            format = REDUCED;
+
+         char buffer[11];
+         _itoa_s(format, buffer, 11, 10);
+         WritePrivateProfileString("settings", "format", buffer, SettingsFile);
 
          EndDialog(hwndDlg, 0);
       } 
-      else if(LOWORD(wParam)==IDC_CANCEL)
+      else if(LOWORD(wParam) == IDC_CANCEL)
       {
          EndDialog(hwndDlg, 0);
       } 
@@ -157,10 +178,10 @@ DWORD CodecInst::GetState(LPVOID pv, DWORD dwSize)
    }
 
    int * state = (int*)pv;
-   state[0] = GetPrivateProfileInt("settings", "nullframes", false, SettingsFile);
-   state[1] = GetPrivateProfileInt("settings", "multithreading", false, SettingsFile);
-   state[2] = GetPrivateProfileInt("settings", "reduced", false, SettingsFile);
-   state[3] = GetPrivateProfileInt("settings", "deltaframes", false, SettingsFile);
+   state[0] = GetPrivateProfileInt("settings", "nullframes", FALSE, SettingsFile);
+   state[1] = GetPrivateProfileInt("settings", "deltaframes", FALSE, SettingsFile);
+   state[2] = GetPrivateProfileInt("settings", "multithreading", FALSE, SettingsFile);
+   state[3] = GetPrivateProfileInt("settings", "format", YUY2, SettingsFile);
    return 0;
 }
 
@@ -171,16 +192,16 @@ DWORD CodecInst::SetState(LPVOID pv, DWORD dwSize)
       return 4 * sizeof(int);
    }
    int * state = (int*)pv;
-   char str[] = {0,0,0,0};
+   char str[] = {0, 0, 0, 0};
 
-   str[0]='0' + state[0];
-   WritePrivateProfileString("settings", "nullframes",str, SettingsFile);
-   str[0]='0' + state[1];
-   WritePrivateProfileString("settings", "multithreading",str, SettingsFile);
-   str[0]='0' + state[2];
-   WritePrivateProfileString("settings", "reduced",str, SettingsFile);
-   str[0]='0' + state[3];
-   WritePrivateProfileString("settings", "deltaframes",str, SettingsFile);
+   str[0] = '0' + state[0];
+   WritePrivateProfileString("settings", "nullframes", str, SettingsFile);
+   str[0] = '0' + state[1];
+   WritePrivateProfileString("settings", "deltaframes", str, SettingsFile);
+   str[0] = '0' + state[2];
+   WritePrivateProfileString("settings", "multithreading", str, SettingsFile);
+   str[0] = '0' + state[3];
+   WritePrivateProfileString("settings", "format", str, SettingsFile);
 
    return 4 * sizeof(int);
 }
@@ -276,7 +297,7 @@ DWORD CodecInst::CompressGetFormat(LPBITMAPINFOHEADER lpbiIn, LPBITMAPINFOHEADER
 {
    if(!lpbiOut)
    {
-      return sizeof(BITMAPINFOHEADER)+sizeof(UINT32);	
+      return sizeof(BITMAPINFOHEADER) + sizeof(UINT32);	
    }
 
    // make sure the input is an acceptable format
@@ -286,7 +307,7 @@ DWORD CodecInst::CompressGetFormat(LPBITMAPINFOHEADER lpbiIn, LPBITMAPINFOHEADER
    }
 
    *lpbiOut = *lpbiIn;
-   lpbiOut->biSize = sizeof(BITMAPINFOHEADER)+sizeof(UINT32);
+   lpbiOut->biSize = sizeof(BITMAPINFOHEADER) + sizeof(UINT32);
    lpbiOut->biPlanes = 1;
    lpbiOut->biCompression = FOURCC_YETI;
 
@@ -297,7 +318,7 @@ DWORD CodecInst::CompressGetFormat(LPBITMAPINFOHEADER lpbiIn, LPBITMAPINFOHEADER
    } 
    else 
    {
-      lpbiOut->biSizeImage = ALIGN_ROUND(EIGHTH(lpbiIn->biWidth * lpbiIn->biBitCount),4)* lpbiIn->biHeight;
+      lpbiOut->biSizeImage = ALIGN_ROUND(EIGHTH(lpbiIn->biWidth * lpbiIn->biBitCount), 4)* lpbiIn->biHeight;
    }
 
    lpbiOut->biBitCount = lpbiIn->biBitCount;

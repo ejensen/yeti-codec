@@ -92,7 +92,7 @@ DWORD CodecInst::DecompressEnd()
    return ICERR_OK;
 }
 
-inline void CodecInst::InitDecompressionThreads(const unsigned char* in, unsigned char* out, unsigned int length, unsigned int width, unsigned int height, threadInfo* thread, int format/*, bool keyframe*/)
+inline void CodecInst::InitDecompressionThreads(const unsigned char* in, unsigned char* out, unsigned int length, unsigned int width, unsigned int height, threadInfo* thread, int format)
 {
    if (m_multithreading && thread)
    {
@@ -101,8 +101,7 @@ inline void CodecInst::InitDecompressionThreads(const unsigned char* in, unsigne
       thread->m_length = length;
       thread->m_width = width;
       thread->m_height = height;
-      //thread->m_format = format;
-      //thread->m_keyframe = keyframe;
+      thread->m_format = format;
 
       RESUME_THREAD(((threadInfo*)thread)->m_thread);
    } 
@@ -112,7 +111,61 @@ inline void CodecInst::InitDecompressionThreads(const unsigned char* in, unsigne
    }
 }
 
-// Decompress a YV12 keyframe
+void CodecInst::YUY2Decompress(DWORD flags)
+{
+   unsigned char * dst = m_out;
+   unsigned char * dst2 = m_buffer;
+   if(m_format == YUY2)
+   {
+      dst = m_buffer;
+      dst2= m_out;
+   }
+
+   unsigned char *y,*u,*v;
+   y = dst;
+   u = y + m_width * m_height;
+   v = u + m_width * m_height / 2;
+
+   int size=*(UINT32*)(m_in + 1);
+   InitDecompressionThreads(m_in + 9, y, m_width * m_height, m_width, m_height, &m_info_a, YUY2);
+   // special case: RLE detected a solid Y value (compressed size = 2),
+   // need to set 2nd Y value for restoration to work right
+   if(size == 11)
+   { 
+      dst[1] = dst[0];
+   }
+
+   InitDecompressionThreads(m_in + size, u, m_width / 2 * m_height, m_width / 2, m_height, &m_info_b, YUY2);
+   size = *(UINT32*)(m_in + 5);
+   InitDecompressionThreads(m_in + size, v, m_width / 2 * m_height, m_width / 2, m_height, NULL, YUY2);
+
+   WAIT_FOR_THREADS(2);
+
+   for(unsigned int a = 0; a < m_width * m_height * 2; a += 4)
+   {
+      dst2[a] = *y;
+      dst2[a+1] = *u;
+      dst2[a+2] = *(y+1);
+      dst2[a+3] = *v;
+      y += 2;
+      u++;
+      v++;
+   }
+
+   asm_MedianRestore(dst2, dst2 + m_width * m_height * 2, m_width * 2);
+   if(m_format != YUY2)
+   {
+      if(m_format == RGB24)
+      {
+         mmx_YUY2toRGB24(m_buffer, m_out, m_buffer + m_width * m_height * 2, m_width * 2);
+      } 
+      else 
+      {
+         mmx_YUY2toRGB32(m_buffer, m_out, m_buffer + m_width * m_height * 2, m_width * 2);
+      } 
+   }
+}
+
 void CodecInst::YV12Decompress(DWORD flags)
 {
    unsigned char * dst = m_out;
@@ -130,22 +183,17 @@ void CodecInst::YV12Decompress(DWORD flags)
    unsigned int wxh = m_width * m_height;
    unsigned int quarterArea = FOURTH(wxh);
 
-   //bool keyframe = (flags & ICDECOMPRESS_NOTKEYFRAME) != ICDECOMPRESS_NOTKEYFRAME;
-
    InitDecompressionThreads(m_in + 9, dst, wxh, m_width, m_height, &m_info_a, YV12/*, keyframe*/);
    InitDecompressionThreads(m_in + size, dst + wxh, quarterArea, hw, hh, &m_info_b, YV12/*, keyframe*/);
 
    size = *(unsigned int*)(m_in + 5);
    InitDecompressionThreads(m_in + size, dst + wxh + quarterArea, quarterArea, hw, hh, NULL, YV12/*, keyframe*/);
 
-   //if(keyframe)
-   //{
-      ASM_BlockRestore(dst + wxh + quarterArea, hw, quarterArea, 0);
-   //}
+   ASM_BlockRestore(dst + wxh + quarterArea, hw, quarterArea, 0);
 
    WAIT_FOR_THREADS(2);
 
-   if ( /*keyframe &&*/ !m_multithreading )
+   if ( !m_multithreading )
    {
       ASM_BlockRestore(dst, m_width, wxh, 0);
       ASM_BlockRestore(dst + wxh, hw, quarterArea, 0);
@@ -157,10 +205,6 @@ void CodecInst::YV12Decompress(DWORD flags)
    {
       Fast_XOR(dst, dst, m_prevFrame, FOURTH(length));
    }
-   //else
-   //{
-   //   MessageBox (HWND_DESKTOP, "Keyframe", "info", MB_OK);
-   //}
 
    memcpy(m_prevFrame, dst, length);
 
@@ -261,9 +305,7 @@ void CodecInst::ReduceResDecompress(DWORD flags)
    }
 }
 
-// Called to decompress a frame, the actual decompression will be
-// handed off to other functions based on the frame type.
-DWORD CodecInst::Decompress(ICDECOMPRESS* idcinfo, DWORD dwSize) 
+DWORD CodecInst::Decompress(ICDECOMPRESS* idcinfo) 
 {
 #ifdef _DEBUG
    try 

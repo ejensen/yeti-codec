@@ -7,7 +7,15 @@
 
 #pragma warning(disable:4731)
 
-void SSE2_BlockPredict( const unsigned char * source, unsigned char * dest, const unsigned int stride, const unsigned int length)
+inline int median(int x, int y, int z) 
+{
+   int i = (x <= y) ? x : y;	//i = min(x,y);
+   int j = (x >= y) ? x : y;	//j = max(x,y);
+       i = (i >= z) ? i : z;	//i = max(i,z);
+   return  (i <= j) ? i : j;	//j = min(i,j);
+}
+
+void SSE2_BlockPredict(const unsigned char* source, unsigned char* dest, const unsigned int stride, const unsigned int length)
 {
    unsigned int a;
    __m128i t0;
@@ -86,7 +94,7 @@ void SSE2_BlockPredict( const unsigned char * source, unsigned char * dest, cons
    }
 }
 
-void MMX_BlockPredict( const unsigned char * source, unsigned char * dest, const unsigned int stride, const unsigned int length)
+void MMX_BlockPredict(const unsigned char* source, unsigned char* dest, const unsigned int stride, const unsigned int length)
 {
    unsigned int a;
    __m64 t0;
@@ -165,6 +173,163 @@ void MMX_BlockPredict( const unsigned char * source, unsigned char * dest, const
       *(__m64*)(dest+a)=_mm_sub_pi8( *(__m64*)(source+a),j);
    }
 
+   _mm_empty();
+}
+
+void SSE2_Predict_YUY2(const unsigned char* source, unsigned char* dest, const unsigned int width, const unsigned height, int lum)
+{
+   dest[0] = source[0];
+
+   unsigned int a = 0;
+   __m128i ta = _mm_setzero_si128();
+
+   if ( lum )
+   {
+      dest[1]=source[1];
+      for(a = 2; a < 16; a++)
+      {
+         dest[a] = source[a] - source[a - 1];
+      }
+      ta = *(__m128i*)(source);
+      ta = _mm_srli_si128(ta, 15);
+   }
+
+   for (; a < width + 1; a += 16)
+   { // dest bytes width+2 to width+16 will be overwritten with correct values
+      __m128i x = *(__m128i *)(source + a);
+      __m128i w = x;
+      x = _mm_slli_si128(x, 1);
+      x = _mm_or_si128(x, ta);
+      ta = _mm_srli_si128(w, 15);
+      w = _mm_sub_epi8(w, x);
+      *(__m128i *)(dest + a) = w;
+   }
+
+   for(a = width + 2 + lum * 2; a < width + 16; a++)
+   {
+      unsigned char t = source[a - 1];
+      unsigned char u = source[a - width];
+      unsigned char v = t;
+      v += u;
+      v -= source[a - width - 1];
+      dest[a] = source[a] - median(t, u, v);
+   }
+
+   ta = *(__m128i *)(source + width);
+   __m128i tb = *(__m128i *)(source);
+   ta = _mm_srli_si128(ta, 15);
+   tb = _mm_srli_si128(tb, 15);
+
+   for(a = width + 16; a < width * height; a += 16)
+   {
+      __m128i x = *(__m128i *)(source + a);
+      __m128i w = x;
+      __m128i y = *(__m128i *)(source + a - width);
+      __m128i z;
+
+      x = _mm_slli_si128(x, 1);
+      z = _mm_slli_si128(y, 1);
+
+      x = _mm_or_si128(x, ta);
+      z = _mm_or_si128(z, tb);
+
+      ta = _mm_srli_si128(w, 15);
+      tb = _mm_srli_si128(y, 15);
+
+      z = _mm_sub_epi8(y, z);
+      z = _mm_add_epi8(x, z);
+
+      __m128i i;
+      __m128i j;
+
+      i = _mm_min_epu8(x, y);
+      j = _mm_max_epu8(x, y);
+      i = _mm_max_epu8(i, z);
+      j = _mm_min_epu8(i, j);
+                          
+      j = _mm_sub_epi8(w, j);
+
+
+      *(__m128i *)(dest + a) = j;
+   }
+}
+
+void MMX_Predict_YUY2(const unsigned char* source,unsigned char* dest, const unsigned int width, const unsigned height, int lum)
+{
+   dest[0] = source[0];
+
+   unsigned int a = 0;
+   __m64 ta = _mm_setzero_si64();
+
+   if (lum)
+   {
+      dest[1] = source[1];
+      for(a = 2; a < 8; a++)
+      {
+         dest[a] = source[a] - source[a - 1];
+      }
+      ta = *(__m64*)(source);
+      ta = _mm_srli_si64(ta, 7 * 8);
+   }
+
+   for ( ;a < width + 1; a += 8)
+   { // dest bytes width+2 to width+16 will be overwritten with correct values
+      __m64 x = *(__m64 *)(source + a);
+      __m64 w = x;
+      x = _mm_slli_si64(x, 8);
+      x = _mm_or_si64(x, ta);
+      ta = _mm_srli_si64(w, 7 * 8);
+      w = _mm_sub_pi8(w, x);
+      *(__m64 *)(dest + a) = w;
+   }
+
+   for(a = width + 2 + lum * 2; a < width + 8; a++)
+   {
+      unsigned char t = source[a - 1];
+      unsigned char u = source[a - width];
+      unsigned char v = t;
+      v += u;
+      v -= source[a - width - 1];
+      dest[a] = source[a] - median(t, u, v);
+   }
+
+   ta = *(__m64 *)(source + width);
+   __m64 tb = *(__m64 *)(source);
+   ta = _mm_srli_si64(ta, 7 * 8);
+   tb = _mm_srli_si64(tb ,7 * 8);
+
+   for(a = width + 8; a < width * height; a += 8)
+   {
+      __m64 x = *(__m64 *)(source + a);
+      __m64 w = x;
+      __m64 y = *(__m64 *)(source + a - width);
+      __m64 z;
+
+      x = _mm_slli_si64(x, 8);
+      z = _mm_slli_si64(y, 8);
+
+      x = _mm_or_si64(x, ta);
+      z = _mm_or_si64(z, tb);
+
+      ta = _mm_srli_si64(w, 7 * 8);
+      tb = _mm_srli_si64(y, 7 * 8);
+
+      z = _mm_sub_pi8(y, z);
+      z = _mm_add_pi8(x, z);
+
+      __m64 i;
+      __m64 j;
+
+      i = _mm_min_pu8(x, y);
+      j = _mm_max_pu8(x, y);
+      i = _mm_max_pu8(i, z);
+      j = _mm_min_pu8(i, j);
+
+      j = _mm_sub_pi8(w, j);
+
+
+      *(__m64 *)(dest + a) = j;
+   }
    _mm_empty();
 }
 

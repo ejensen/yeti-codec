@@ -217,6 +217,102 @@ _&procname	ENDP
 YUV2RGB_PROC	mmx_YUY2toRGB24,0,0
 YUV2RGB_PROC	mmx_YUY2toRGB32,0,1
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+salc	MACRO		; see http://www.df.lth.se/~john_e/gems/gem0004.html
+	db	0d6h
+	ENDM
+
+MEDIAN_RESTORE	MACRO	ofs1,ofs2,increment
+
+	mov	ah,[esi+&ofs2]
+	mov	ch,[esi+ebx+&ofs1]
+	mov	dh,[esi+ebx+&ofs2]
+	neg	dh		; compute ah+ch-dh
+	mov	cl,ch		; (interleaved) exchange ah,ch if necessary so ah<ch
+	add	dh,ch
+	add	dh,ah
+	sub	cl,ah
+	salc
+	and	cl,al
+	sub	ch,cl
+	add	ah,cl
+	mov	cl,dh		; exchange ch,dh (but toss dh)
+	sub	cl,ch
+	salc
+IF &increment
+	add	esi,&increment
+ENDIF
+	and	cl,al
+	add	ch,cl
+	mov	cl,ch		; exchange ah,ch (but toss ah)
+	sub	cl,ah
+	salc
+	and	cl,al
+	sub	ch,cl		; now ch = median
+	add	[esi+&ofs1-&increment],ch
+
+	ENDM
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+	PUBLIC	C _asm_MedianRestore
+
+;void __cdecl asm_MedianRestore(
+;	[esp+ 4] unsigned char* buf,
+;	[esp+ 8] unsigned char* buf_end,
+;	[esp+12] int stride);
+
+_asm_MedianRestore	PROC
+
+	push	ebp
+	mov	ebp,esp
+	push	esi
+	push	edi
+	push	ebx
+
+	mov	esi,[ebp+4+4]
+	mov	ebx,[ebp+12+4]
+	lea	edi,[esi+ebx+8]
+	add	esi,4
+	neg	ebx
+
+	; process first row (left predict)
+
+loop0:
+	mov	al,[esi-2]
+	mov	ah,[esi-3]
+	mov	dl,[esi]
+	mov	dh,[esi-1]
+	add	dl,al
+	add	[esi+1],ah
+	mov	[esi],dl
+	add	[esi+2],dl
+	add	[esi+3],dh
+	add	esi,4
+	cmp	esi,edi
+	jb	loop0
+
+	; process remaining rows
+
+	mov	edi,[ebp+8+4]
+
+	align	32
+loop1:
+	MEDIAN_RESTORE	0,-2,0
+	MEDIAN_RESTORE	1,-3,2
+	cmp	esi,edi
+	jb	loop1
+
+	pop	ebx
+	pop	edi
+	pop	esi
+	pop	ebp
+	retn
+
+_asm_MedianRestore	ENDP
+
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 	END

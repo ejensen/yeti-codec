@@ -223,7 +223,7 @@ DWORD CodecInst::CompressYUY2(ICCOMPRESS* icinfo)
       if(m_deltaframes)
       {
          unsigned long minDelta = len * 3;
-         unsigned long bitCount = Fast_Sub_Count(m_deltaBuffer, m_in, m_prevFrame, FOURTH(len), minDelta);
+         unsigned long bitCount = Fast_Sub_Count(m_deltaBuffer, m_in, m_prevFrame, len, minDelta);
          //unsigned long bitCount = Fast_XOR_Count(m_deltaBuffer, m_in, m_prevFrame, FOURTH(len), minDelta);
 
          if(bitCount == ULONG_MAX)
@@ -529,7 +529,7 @@ DWORD CodecInst::CompressYV12(ICCOMPRESS* icinfo)
       if(m_deltaframes)
       {
          const unsigned long minDelta = len * 3;
-         const unsigned long bitCount = Fast_Sub_Count(source, m_in, m_prevFrame, FOURTH(len), minDelta);
+         const unsigned long bitCount = Fast_Sub_Count(source, m_in, m_prevFrame, len, minDelta);
          //const unsigned long bitCount = Fast_XOR_Count(source, m_in, m_prevFrame, FOURTH(len), minDelta);
 
          if(bitCount == ULONG_MAX)
@@ -851,7 +851,7 @@ DWORD CodecInst::CompressReduced(ICCOMPRESS *icinfo)
       if(m_deltaframes)
       {
          const unsigned long minDelta = len * 3;
-         const unsigned long bitCount = Fast_Sub_Count(m_deltaBuffer, ysrc, m_prevFrame, FOURTH(len), minDelta);
+         const unsigned long bitCount = Fast_Sub_Count(m_deltaBuffer, ysrc, m_prevFrame, len, minDelta);
          //const unsigned long bitCount = Fast_XOR_Count(m_deltaBuffer, ysrc, m_prevFrame, FOURTH(len), minDelta);
 
          if(bitCount == ULONG_MAX)

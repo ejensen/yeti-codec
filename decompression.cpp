@@ -163,7 +163,7 @@ void CodecInst::YUY2Decompress(DWORD flags)
 
    if((flags & ICDECOMPRESS_NOTKEYFRAME) == ICDECOMPRESS_NOTKEYFRAME)
    {
-      Add(dst2, dst2, m_prevFrame, DOUBLE(pixels));
+      Fast_Add(dst2, dst2, m_prevFrame, DOUBLE(pixels));
       //Fast_Add(dst2, dst2, m_prevFrame, HALF(pixels));
       //Fast_XOR(dst2, dst2, m_prevFrame, HALF(pixels));
    }
@@ -222,7 +222,7 @@ void CodecInst::YV12Decompress(DWORD flags)
 
    if((flags & ICDECOMPRESS_NOTKEYFRAME) == ICDECOMPRESS_NOTKEYFRAME)
    {
-      Add(dst, dst, m_prevFrame, length);
+      Fast_Add(dst, dst, m_prevFrame, length);
       //Fast_Add(dst, dst, m_prevFrame, FOURTH(length));
       //Fast_XOR(dst, dst, m_prevFrame, FOURTH(length));
    }
@@ -285,12 +285,16 @@ void CodecInst::ReduceResDecompress(DWORD flags)
    const unsigned int length = wxh + HALF(wxh);
    if((flags & ICDECOMPRESS_NOTKEYFRAME) == ICDECOMPRESS_NOTKEYFRAME)
    {
-      Add(dest, dest, m_prevFrame, length);
-      //Fast_Add(dest, dest, m_prevFrame, FOURTH(length));
+      Fast_Add(dest, dest, m_prevFrame, length);
       //Fast_XOR(dest, dest, m_prevFrame, FOURTH(length));
    }
 
    memcpy(m_prevFrame, dest, length);
+
+   if((flags & ICDECOMPRESS_PREROLL) == ICDECOMPRESS_PREROLL)
+   {
+      return;
+   }
 
    m_width = DOUBLE(m_width);
    m_height = DOUBLE(m_height);

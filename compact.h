@@ -1,7 +1,9 @@
 #pragma once
 
-#include "common.h"
 #include <limits.h>
+#include <mmintrin.h>
+#include "common.h"
+
 
 static inline unsigned int COUNT_BITS(unsigned int v)
 {
@@ -21,26 +23,60 @@ static inline unsigned int COUNT_BITS(unsigned int v)
    }
 }*/
 
-/*static inline void Fast_Add(BYTE* dest, const BYTE* src1, const BYTE* src2, const unsigned int len) 
+static inline void Fast_Add(BYTE* dest, const BYTE* src1, const BYTE* src2, const unsigned int len) 
 {
-   unsigned int* tempDest = (unsigned int*)dest;
-   unsigned int* tempSrc1 = (unsigned int*)src1;
-   unsigned int* tempSrc2 = (unsigned int*)src2;
-   for(unsigned i = 0; i < len; i++)
-   {
-      tempDest[i] = tempSrc1[i] + tempSrc2[i];
-   }
-}*/
+   __m64* mxSrc1 = (__m64*) src1;
+   __m64* mxSrc2 = (__m64*) src2;
+   __m64* mxDest = (__m64*) dest;
+   const __m64* end = mxDest + EIGHTH(len);
 
-static inline void Add(BYTE* dest, const BYTE* src1, const BYTE* src2, const unsigned int len) 
+   _mm_empty();
+
+   while(mxDest < end)
+   {
+      *mxDest++ = _mm_add_pi8(*mxSrc1++, *mxSrc2++);
+   }
+
+   _mm_empty();
+}
+
+/*static inline void Add(BYTE* dest, const BYTE* src1, const BYTE* src2, const unsigned int len) 
 {
    for(unsigned i = 0; i < len; i++)
    {
       dest[i] = src1[i] + src2[i];
    }
-}
+}*/
 
 static inline unsigned long Fast_Sub_Count(BYTE* dest, const BYTE* src1, const BYTE* src2, const unsigned int len, const unsigned long minDelta)
+{
+   unsigned long oldTotalBits = 0;
+   unsigned long totalBits = 0;
+
+   unsigned int* intDest = (unsigned int*)dest;
+   unsigned int* intSrc = (unsigned int*)src1;
+
+   __m64* mxDest = (__m64*) dest;
+   __m64* mxSrc1 = (__m64*) src1;
+   __m64* mxSrc2 = (__m64*) src2;
+
+   _mm_empty();
+
+   for(unsigned int i = 0; i < FOURTH(len); i += 2)
+   {
+      oldTotalBits += COUNT_BITS(intSrc[i]) + COUNT_BITS(intSrc[i+1]);
+
+      *mxDest++ = _mm_sub_pi8(*mxSrc1++, *mxSrc2++);
+
+      totalBits += COUNT_BITS(intDest[i]) + COUNT_BITS(intDest[i+1]);
+   }
+
+   _mm_empty();
+
+   return (oldTotalBits - totalBits < minDelta) ? ULONG_MAX : totalBits;
+}
+
+/*static inline unsigned long Sub_Count(BYTE* dest, const BYTE* src1, const BYTE* src2, const unsigned int len, const unsigned long minDelta)
 {
    unsigned int* intDest = (unsigned int*)dest;
    unsigned int* intSrc = (unsigned int*)src1;
@@ -63,7 +99,7 @@ static inline unsigned long Fast_Sub_Count(BYTE* dest, const BYTE* src1, const B
    }
 
    return (oldTotalBits - totalBits < minDelta) ? ULONG_MAX : totalBits;
-}
+}*/
 
 /*static inline unsigned long Fast_XOR_Count(void* dest, const void* src1, const void* src2, const unsigned int len, const unsigned long minDelta)
 {

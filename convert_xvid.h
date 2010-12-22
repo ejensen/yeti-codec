@@ -36,55 +36,28 @@
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 
-void _cdecl yv12_to_rgb32_mmx(BYTE *dst, 
+void _cdecl yv12_to_rgb32_mmx(BYTE* dst, 
    int dst_stride, 
-   const BYTE *y_src,
-   const BYTE *u_src,
-   const BYTE *v_src, 
+   const BYTE* y_src,
+   const BYTE* u_src,
+   const BYTE* v_src, 
    int y_stride, int uv_stride,
    int width, int height);
 
-void _cdecl yv12_to_rgb24_mmx(BYTE *dst,
+void _cdecl yv12_to_rgb24_mmx(BYTE* dst,
    int dst_stride, 
-   const BYTE *y_src,
-   const BYTE *u_src,
-   const BYTE *v_src, 
+   const BYTE* y_src,
+   const BYTE* u_src,
+   const BYTE* v_src, 
    int y_stride, int uv_stride,
    int width, int height);
 
-void _cdecl yv12_to_yuyv_mmx(BYTE * dst,
+void _cdecl yv12_to_yuyv_mmx(BYTE* dst,
    int dst_stride,
-   const BYTE * y_src,
-   const BYTE * u_src,
-   const BYTE * v_src,
+   const BYTE* y_src,
+   const BYTE* u_src,
+   const BYTE* v_src,
    int y_stride,
    int uv_stride,
    int width,
    int height);
-
-
-//void _cdecl rgb24_to_yv12_mmx (BYTE * const y_out,
-//   BYTE * const u_out,
-//   BYTE * const v_out,
-//   const BYTE * const src,
-//   const unsigned int width,
-//   const unsigned int height,
-//   const unsigned int stride);
-
-
-//void _cdecl rgb32_to_yv12_mmx (BYTE * const y_out,
-//   BYTE * const u_out,
-//   BYTE * const v_out,
-//   const BYTE * const src,
-//   const unsigned int width,
-//   const unsigned int height,
-//   const unsigned int stride);
-
-
-//void _cdecl yuyv_to_yv12_mmx(BYTE * const y_out,
-//   BYTE * const u_out,
-//   BYTE * const v_out,
-//   const BYTE * const src,
-//   const int width,
-//   const int height,
-//   const int stride);

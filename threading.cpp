@@ -51,8 +51,8 @@ DWORD WINAPI EncodeWorkerTread(LPVOID i)
 
          if(width != stride)
          {
-            unsigned char * padded = dst;
-            unsigned char * stripped = buffer;
+            unsigned char* padded = dst;
+            unsigned char* stripped = buffer;
             for(unsigned int y = 0; y < height; y++)
             {
                memcpy(stripped + y * width, padded + y * stride, width);
@@ -76,14 +76,14 @@ DWORD WINAPI EncodeWorkerTread(LPVOID i)
 DWORD WINAPI DecodeWorkerThread(LPVOID i)
 {
    threadInfo * info = (threadInfo*)i;
-   unsigned int width = info->m_width;
-   unsigned int height = info->m_height;
-   unsigned int hxw = height * width;
-   unsigned int format = info->m_format;
-   unsigned char * src = NULL;
-   unsigned char * dest = NULL;
+   const unsigned int width = info->m_width;
+   const unsigned int height = info->m_height;
+   const unsigned int hxw = height * width;
+   const unsigned int format = info->m_format;
+   unsigned char* src = NULL;
+   unsigned char* dest = NULL;
    unsigned int length;
-   unsigned int mode = format != YV12;
+   const unsigned int mode = format != YV12;
 
    while(info->m_length != UINT32_MAX) //TODO:Optimize
    {
@@ -154,8 +154,8 @@ DWORD CodecInst::InitThreads(bool encode)
    m_info_b.m_lum = 0;
    m_info_c.m_lum = 0;
 
-   unsigned int buffer_a = DOUBLE(ALIGN_ROUND(m_info_a.m_width, 16) * m_info_a.m_height) + 2048;
-   unsigned int buffer_b = DOUBLE(ALIGN_ROUND(m_info_b.m_width, 16) * m_info_b.m_height) + 2048;
+   const unsigned int buffer_a = DOUBLE(ALIGN_ROUND(m_info_a.m_width, 16) * m_info_a.m_height) + 2048;
+   const unsigned int buffer_b = DOUBLE(ALIGN_ROUND(m_info_b.m_width, 16) * m_info_b.m_height) + 2048;
 
    if(!m_info_a.m_compressWorker.InitCompressBuffers(buffer_a) || !m_info_b.m_compressWorker.InitCompressBuffers(buffer_b) 
       || !(m_info_a.m_buffer = (unsigned char*)aligned_malloc(m_info_a.m_buffer, buffer_a, 16, "Info_a.buffer"))

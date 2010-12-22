@@ -4,12 +4,10 @@
 #include "resolution.h"
 
 // halves the resolution and aligns the resulting data
-void ReduceRes(const unsigned char * src, unsigned char * dest, unsigned char * buffer, unsigned int width, unsigned int height, const bool SSE2)
+void ReduceRes(const unsigned char* src, unsigned char* dest, unsigned char* buffer, const unsigned int width, const unsigned int height, const bool SSE2)
 {
    const unsigned char* source;
-
    const unsigned int mod = (SSE2 ? 32 : 16);
-
    const unsigned int stride = ALIGN_ROUND(width, mod);
 
    if(stride != width)
@@ -26,7 +24,7 @@ void ReduceRes(const unsigned char * src, unsigned char * dest, unsigned char * 
             *(unsigned int*)(buffer + y * stride + x) = i;
          }
       }
-      source=buffer;
+      source = buffer;
    } 
    else if(((int)src)&(HALF(mod) - 1))
    {
@@ -102,12 +100,12 @@ void ReduceRes(const unsigned char * src, unsigned char * dest, unsigned char * 
 }
 
 // doubles the resolution
-void EnlargeRes(const unsigned char * src, unsigned char * dst, unsigned char * buffer, unsigned int width, unsigned int height, const bool SSE2)
+void EnlargeRes(const unsigned char* src, unsigned char* dst, unsigned char* buffer, unsigned int width, unsigned int height, const bool SSE2)
 {
    const unsigned char* source;
    unsigned char* dest;
 
-   const unsigned int mod = (SSE2?32:16);
+   const unsigned int mod = (SSE2 ? 32 : 16);
 
    unsigned int stride = ALIGN_ROUND(width, mod);
 

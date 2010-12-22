@@ -9,14 +9,14 @@
 
 // Compress a byte stream using range coding. The frequency table
 // "prob_ranges" will previously have been set up by the calcProb function
-unsigned int CompressClass::RangeEncode(const unsigned char * in, unsigned char * out, const unsigned int length)
+unsigned int CompressClass::RangeEncode(const unsigned char* in, unsigned char* out, const unsigned int length)
 {
    unsigned int low = 0;
    unsigned int range = TOP_VALUE;
    unsigned int buffer = 0;
    unsigned int help = 0;
-   unsigned char * const count = out;
-   const unsigned char * const ending = in + length;
+   unsigned char* const count = out;
+   const unsigned char* const ending = in + length;
 
    while(in < ending)
    {
@@ -83,7 +83,7 @@ unsigned int CompressClass::RangeEncode(const unsigned char * in, unsigned char 
    OUTPUT_BYTE(low >> 7);
    OUTPUT_BYTE(low << 1);
 
-   return (unsigned int)(out-count);
+   return (unsigned int)(out - count);
 }
 
 #define IN_BYTE() ((unsigned int)(*in++))
@@ -91,7 +91,7 @@ unsigned int CompressClass::RangeEncode(const unsigned char * in, unsigned char 
 // Decompress a byte stream that has had range coding applied to it.
 // The frequency table "prob_ranges" will have previously been set up using
 // the readProb function.
-void CompressClass::RangeDecode( const unsigned char * in, unsigned char * out, const unsigned int length)
+void CompressClass::RangeDecode(const unsigned char* in, unsigned char* out, const unsigned int length)
 {
    in++;	// 1st byte is garbage
    unsigned int buffer = IN_BYTE();

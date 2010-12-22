@@ -40,7 +40,7 @@ static const unsigned char dist_restore[]={0,2,4,6,8,10,12,14,16,18,20,22,24,26,
 // This number is then modified so that the run value distribution matches 
 // the byte distribution for the image data, and this number then put into
 // the out byte stream.
-unsigned int RLE3(const unsigned char * in, unsigned char * out, const unsigned int length)
+unsigned int RLE3(const unsigned char* in, unsigned char* out, const unsigned int length)
 {
    unsigned int a = 0;
    unsigned int b = 0;
@@ -122,7 +122,7 @@ unsigned int RLE3(const unsigned char * in, unsigned char * out, const unsigned 
 }
 
 
-unsigned int RLE2(const unsigned char * in, unsigned char * out, const unsigned int length)
+unsigned int RLE2(const unsigned char* in, unsigned char* out, const unsigned int length)
 {
    unsigned int a = 0;
    unsigned int b = 0;
@@ -191,7 +191,7 @@ unsigned int RLE2(const unsigned char * in, unsigned char * out, const unsigned 
 // been read in the byte stream, the following byte tells how many more
 // 0 bytes to output.
 
-unsigned int deRLE2(const unsigned char * in, unsigned char * out, const unsigned int length)
+unsigned int deRLE2(const unsigned char* in, unsigned char* out, const unsigned int length)
 {
    unsigned int a = 0;
    unsigned int b = 0;
@@ -225,7 +225,7 @@ unsigned int deRLE2(const unsigned char * in, unsigned char * out, const unsigne
    return a;
 }
 
-unsigned int deRLE3(const unsigned char * in, unsigned char * out, const unsigned int length)
+unsigned int deRLE3(const unsigned char* in, unsigned char* out, const unsigned int length)
 {
    unsigned int a = 0;
    unsigned int b = 0;

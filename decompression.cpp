@@ -47,7 +47,6 @@ DWORD CodecInst::DecompressBegin(LPBITMAPINFOHEADER lpbiIn, LPBITMAPINFOHEADER l
    m_buffer = (unsigned char*)aligned_malloc(m_buffer, buffer_size, 16, "buffer");
    m_buffer2 = (unsigned char*)aligned_malloc(m_buffer2, buffer_size, 16, "buffer2");
    m_prevFrame = (unsigned char*)aligned_malloc(m_prevFrame, buffer_size, 16, "prev");
-   ZeroMemory(m_prevFrame, buffer_size);
 
    if(!m_buffer || !m_buffer2 || !m_prevFrame)
    {
@@ -122,8 +121,8 @@ void CodecInst::YUY2Decompress(DWORD flags)
       dst2 = m_out;
    }
 
-   unsigned int pixels = m_width * m_height;
-   unsigned char *y,*u,*v;
+   const unsigned int pixels = m_width * m_height;
+   unsigned char *y, *u,* v;
    y = dst;
    u = y + pixels;
    v = u + HALF(pixels);
@@ -144,7 +143,9 @@ void CodecInst::YUY2Decompress(DWORD flags)
 
    WAIT_FOR_THREADS(2);
 
-   for(unsigned int a = 0; a < DOUBLE(pixels); a += 4)
+   const unsigned int length = DOUBLE(pixels);
+
+   for(unsigned int a = 0; a < length; a += 4)
    {
       dst2[a] = *y;
       dst2[a+1] = *u;
@@ -155,24 +156,34 @@ void CodecInst::YUY2Decompress(DWORD flags)
       v++;
    }
 
-   asm_MedianRestore(dst2, dst2 + DOUBLE(pixels), DOUBLE(m_width));
-   if(m_format != YUY2)
+   asm_MedianRestore(dst2, dst2 + length, DOUBLE(m_width));
+
+   if((flags & ICDECOMPRESS_NOTKEYFRAME) == ICDECOMPRESS_NOTKEYFRAME)
    {
-      if(m_format == RGB24)
-      {
-         mmx_YUY2toRGB24(m_buffer, m_out, m_buffer + DOUBLE(pixels), DOUBLE(m_width));
-      } 
-      else 
-      {
-         mmx_YUY2toRGB32(m_buffer, m_out, m_buffer + DOUBLE(pixels), DOUBLE(m_width));
-      } 
+      Fast_XOR(dst2, dst2, m_prevFrame, HALF(pixels));
+   }
+
+   memcpy(m_prevFrame, dst2, length);
+
+   if(m_format == YUY2 || (flags & ICDECOMPRESS_PREROLL) == ICDECOMPRESS_PREROLL)
+   {
+      return;
+   }
+
+   if(m_format == RGB24)
+   {
+      mmx_YUY2toRGB24(dst2, m_out, m_buffer + DOUBLE(pixels), DOUBLE(m_width));
+   } 
+   else 
+   {
+      mmx_YUY2toRGB32(dst2, m_out, m_buffer + DOUBLE(pixels), DOUBLE(m_width));
    }
 }
 
 void CodecInst::YV12Decompress(DWORD flags)
 {
-   unsigned char * dst = m_out;
-   unsigned char * dst2 = m_buffer;
+   unsigned char* dst = m_out;
+   unsigned char* dst2 = m_buffer;
 
    if (m_format == YUY2)
    {
@@ -181,10 +192,10 @@ void CodecInst::YV12Decompress(DWORD flags)
    }
 
    int size = *(unsigned int*)(m_in + 1);
-   unsigned int hh = HALF(m_height);
-   unsigned int hw = HALF(m_width);
-   unsigned int wxh = m_width * m_height;
-   unsigned int quarterArea = FOURTH(wxh);
+   const unsigned int hh = HALF(m_height);
+   const unsigned int hw = HALF(m_width);
+   const unsigned int wxh = m_width * m_height;
+   const unsigned int quarterArea = FOURTH(wxh);
 
    InitDecompressionThreads(m_in + 9, dst, wxh, m_width, m_height, &m_info_a, YV12);
    InitDecompressionThreads(m_in + size, dst + wxh, quarterArea, hw, hh, &m_info_b, YV12);
@@ -202,7 +213,7 @@ void CodecInst::YV12Decompress(DWORD flags)
       ASM_BlockRestore(dst + wxh, hw, quarterArea, 0);
    }
 
-   unsigned int length = EIGHTH(wxh * YV12);
+   const unsigned int length = EIGHTH(wxh * YV12);
 
    if((flags & ICDECOMPRESS_NOTKEYFRAME) == ICDECOMPRESS_NOTKEYFRAME)
    {
@@ -241,11 +252,11 @@ void CodecInst::ReduceResDecompress(DWORD flags)
    m_width = HALF(m_width);
    m_height = HALF(m_height);
 
-   int size = *(unsigned int*)(m_in + 1);
-   unsigned int hh = HALF(m_height);
-   unsigned int hw = HALF(m_width);
+   unsigned int size = *(unsigned int*)(m_in + 1);
+   const unsigned int hh = HALF(m_height);
+   const unsigned int hw = HALF(m_width);
    unsigned int wxh = m_width * m_height;
-   unsigned int quarterSize = FOURTH(wxh);
+   const unsigned int quarterSize = FOURTH(wxh);
 
    unsigned char* dest = (m_format == YV12) ? m_buffer : m_out;
 
@@ -264,7 +275,7 @@ void CodecInst::ReduceResDecompress(DWORD flags)
       ASM_BlockRestore(dest + wxh, hw, quarterSize, 0);
    }
 
-   unsigned int length = wxh + HALF(wxh);
+   const unsigned int length = wxh + HALF(wxh);
    if((flags & ICDECOMPRESS_NOTKEYFRAME) == ICDECOMPRESS_NOTKEYFRAME)
    {
       Fast_XOR(dest, dest, m_prevFrame, FOURTH(length));
@@ -321,8 +332,8 @@ DWORD CodecInst::Decompress(ICDECOMPRESS* idcinfo)
          DecompressBegin(idcinfo->lpbiInput, idcinfo->lpbiOutput);
       }
 
-      m_out = (unsigned char *)idcinfo->lpOutput;
-      m_in  = (unsigned char *)idcinfo->lpInput; 
+      m_out = (unsigned char*)idcinfo->lpOutput;
+      m_in  = (unsigned char*)idcinfo->lpInput; 
       idcinfo->lpbiOutput->biSizeImage = m_length;
 
       // according to the avi specs, the calling application is responsible for handling null frames.

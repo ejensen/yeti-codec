@@ -142,9 +142,8 @@ DWORD CodecInst::SetState(LPVOID pv, DWORD dwSize)
 // check if the codec can compress the given format to the desired format
 DWORD CodecInst::CompressQuery(LPBITMAPINFOHEADER lpbiIn, LPBITMAPINFOHEADER lpbiOut)
 {
-
    // check for valid format and bitdepth
-   if(lpbiIn->biCompression == 0) 
+   if(lpbiIn->biCompression == 0)
    {
       if(lpbiIn->biBitCount != RGB24 && lpbiIn->biBitCount != RGB32)
       {
@@ -236,7 +235,7 @@ DWORD CodecInst::CompressGetFormat(LPBITMAPINFOHEADER lpbiIn, LPBITMAPINFOHEADER
    } 
    else 
    {
-      lpbiOut->biSizeImage = ALIGN_ROUND(EIGHTH(lpbiIn->biWidth * lpbiIn->biBitCount), 4)* lpbiIn->biHeight;
+      lpbiOut->biSizeImage = ALIGN_ROUND(EIGHTH(lpbiIn->biWidth * lpbiIn->biBitCount), 4) * lpbiIn->biHeight;
    }
 
    lpbiOut->biBitCount = lpbiIn->biBitCount;
@@ -350,7 +349,7 @@ DWORD CodecInst::DecompressGetFormat(const LPBITMAPINFOHEADER lpbiIn, LPBITMAPIN
 
    lpbiOut->biBitCount=12;
    lpbiOut->biCompression = FOURCC_YV12;
-   lpbiOut->biSizeImage = lpbiIn->biWidth * lpbiIn->biHeight + lpbiIn->biWidth * lpbiIn->biHeight/2;
+   lpbiOut->biSizeImage = lpbiIn->biWidth * lpbiIn->biHeight + HALF(lpbiIn->biWidth * lpbiIn->biHeight);
 
    return (DWORD)ICERR_OK;
 }
@@ -390,7 +389,7 @@ DWORD Close(CodecInst* pinst)
    return 1;
 }
 
-void __stdcall detectFlags(bool * SSE2, bool * SSE)
+void __stdcall detectFlags(bool* SSE2, bool* SSE)
 {
    int flags;
    __asm{

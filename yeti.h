@@ -17,7 +17,7 @@
 #ifdef _DEBUG
 #define TRY_CATCH(f) \
    try { f }\
-   catch(char * tc_cmsg){\
+   catch(char* tc_cmsg){\
    char * tc_msg = (char*)malloc(strlen(tc_cmsg) + 128);\
    sprintf_s(tc_msg, strlen(tc_cmsg) + 128"Exception passed up to %s, line %d.\nOriginal exception: %s\n", __FILE__, __LINE__,tc_cmsg);\
    MessageBox(HWND_DESKTOP, tc_msg, "Error", MB_OK | MB_ICONEXCLAMATION);\
@@ -33,7 +33,7 @@
 #define TRY_CATCH(f) f
 #endif
 
-inline void* aligned_malloc(void *ptr, int size, int align, char *str) 
+inline void* aligned_malloc(void* ptr, int size, int align, char* str) 
 {
    if(ptr)
    {
@@ -80,7 +80,7 @@ inline void* aligned_malloc(void *ptr, int size, int align, char *str)
 }
 #endif
 
-#define SWAP(x, y) { unsigned int xchng = *(unsigned int*)(&x); x = y; *(unsigned int*)(&y) = xchng; }
+#define SWAP(x, y) { unsigned char xchng = *(unsigned char*)(&x); x = y; *(unsigned char*)(&y) = xchng; }
 
 // y must be 2^n
 #define ALIGN_ROUND(x, y) ((((unsigned int)(x)) + (y - 1))&(~(y - 1)))

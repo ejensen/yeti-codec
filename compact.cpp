@@ -17,13 +17,13 @@ void CompressClass::ScaleBitProbability(unsigned int length)
       temp <<= 1;
    }
 
-   double factor = temp / (double)length;
+   const double factor = temp / (double)length;
    unsigned int newlen = 0;
 
    int a;
    for(a = 1; a < 257; a++)
    {
-      m_probRanges[a] = (unsigned int)(m_probRanges[a]*factor);
+      m_probRanges[a] = (unsigned int)(m_probRanges[a] * factor);
       newlen += m_probRanges[a];
    }
 
@@ -66,14 +66,14 @@ void CompressClass::ScaleBitProbability(unsigned int length)
 }
 
 // read the byte frequency header
-unsigned int CompressClass::ReadBitProbability(const unsigned char * in)
+unsigned int CompressClass::ReadBitProbability(const unsigned char* in)
 {
    try 
    {
       unsigned int length = 0;
       m_probRanges[0] = 0;
 
-      unsigned int skip = GolombDecode(in, &m_probRanges[1], 256);
+      const unsigned int skip = GolombDecode(in, &m_probRanges[1], 256);
 
       if(!skip)
       {
@@ -103,7 +103,7 @@ unsigned int CompressClass::ReadBitProbability(const unsigned char * in)
 // Determine the frequency of each byte in a byte stream; the frequencies are then scaled
 // so the total is a power of 2. This allows binary shifts to be used instead of some
 // multiply and divides in the compression/decompression routines
-void CompressClass::CalcBitProbability(const unsigned char * const in, const unsigned int length)
+void CompressClass::CalcBitProbability(const unsigned char* const in, const unsigned int length)
 {
    m_probRanges[0] = 0;
    ZeroMemory(m_bytecounts, 256 * sizeof(unsigned int));
@@ -118,7 +118,7 @@ void CompressClass::CalcBitProbability(const unsigned char * const in, const uns
    ScaleBitProbability(length);
 }
 
-unsigned int CompressClass::Compact(const unsigned char * in, unsigned char * out, const unsigned int length)
+unsigned int CompressClass::Compact(const unsigned char* in, unsigned char* out, const unsigned int length)
 {
    int bytes_used = 0;
    
@@ -161,7 +161,7 @@ unsigned int CompressClass::Compact(const unsigned char * in, unsigned char * ou
    return bytes_used;
 }
 
-void CompressClass::Uncompact(const unsigned char * in, unsigned char * out, const unsigned int length)
+void CompressClass::Uncompact(const unsigned char* in, unsigned char* out, const unsigned int length)
 {
    try
    {
@@ -219,9 +219,9 @@ void CompressClass::Uncompact(const unsigned char * in, unsigned char * out, con
 
 bool CompressClass::InitCompressBuffers(const unsigned int length)
 {
-   m_buffer = (unsigned char *)aligned_malloc(m_buffer, length, 32, "Compress::temp");
-   m_probRanges = (unsigned int *)aligned_malloc(m_probRanges, 260 * sizeof(unsigned int), 64, "Compress::ranges");
-   m_bytecounts = (unsigned int *)aligned_malloc(m_bytecounts, 260 * sizeof(unsigned int), 64, "Compress::bytecounts");
+   m_buffer = (unsigned char*)aligned_malloc(m_buffer, length, 32, "Compress::temp");
+   m_probRanges = (unsigned int*)aligned_malloc(m_probRanges, 260 * sizeof(unsigned int), 64, "Compress::ranges");
+   m_bytecounts = (unsigned int*)aligned_malloc(m_bytecounts, 260 * sizeof(unsigned int), 64, "Compress::bytecounts");
    if (!( m_buffer && m_probRanges && m_bytecounts))
    {
       FreeCompressBuffers();

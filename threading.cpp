@@ -76,28 +76,27 @@ DWORD WINAPI EncodeWorkerTread(LPVOID i)
 DWORD WINAPI DecodeWorkerThread(LPVOID i)
 {
    threadInfo * info = (threadInfo*)i;
-   unsigned int width;
-   unsigned int height;
+   unsigned int width = info->m_width;
+   unsigned int height = info->m_height;
+   unsigned int hxw = height * width;
+   unsigned int format = info->m_format;
    unsigned char * src = NULL;
    unsigned char * dest = NULL;
    unsigned int length;
-   unsigned int format;
+   unsigned int mode = format != YV12;
 
    while(info->m_length != UINT32_MAX) //TODO:Optimize
    {
       src = (unsigned char*)info->m_source;
       dest = (unsigned char*)info->m_dest;
 
-      length = info->m_length; //TODO: Optimize
-      format = info->m_format;
-      width = info->m_width;
-      height = info->m_height;
+      length = info->m_length;
 
       info->m_compressWorker.Uncompact(src, dest, length);
 
-      if ( format != YUY2 )
+      if(format != YUY2)
       {
-         ASM_BlockRestore(dest, width, width * height, format != YV12); //TODO: Optimize
+         ASM_BlockRestore(dest, width, hxw, mode);
       }
 
       info->m_length = 0;
@@ -116,13 +115,7 @@ DWORD CodecInst::InitThreads(bool encode)
    m_info_b.m_length = 0;
    m_info_c.m_length = 0;
 
-   m_info_a.m_width = m_width;
-   m_info_b.m_width = HALF(m_width);
-   m_info_c.m_width = m_width;
-
-   m_info_a.m_height = m_height;
-   m_info_b.m_height = HALF(m_height);
-   m_info_c.m_height = m_height;
+   int useFormat = (encode) ? m_compressFormat : m_format;
 
    if(m_compressFormat == REDUCED)
    {
@@ -131,8 +124,17 @@ DWORD CodecInst::InitThreads(bool encode)
       m_info_b.m_width = FOURTH(m_width);
       m_info_b.m_height = FOURTH(m_height);
    }
+   else
+   {
+      m_info_a.m_width = m_width;
+      m_info_a.m_height = m_height;
+      m_info_b.m_width = HALF(m_width);
+      m_info_b.m_height = (useFormat == YUY2) ? m_height : HALF(m_height);
+   }
 
-   int useFormat = (encode) ? m_compressFormat : m_format;
+   m_info_c.m_width = m_width;
+   m_info_c.m_height = m_height;
+
    m_info_a.m_format = useFormat;
    m_info_b.m_format = useFormat;
    m_info_c.m_format = useFormat;
@@ -147,6 +149,10 @@ DWORD CodecInst::InitThreads(bool encode)
    m_info_a.m_buffer = NULL;
    m_info_b.m_buffer = NULL;
    m_info_c.m_buffer = NULL;
+
+   m_info_a.m_lum = 1;
+   m_info_b.m_lum = 0;
+   m_info_c.m_lum = 0;
 
    unsigned int buffer_a = DOUBLE(ALIGN_ROUND(m_info_a.m_width, 16) * m_info_a.m_height) + 2048;
    unsigned int buffer_b = DOUBLE(ALIGN_ROUND(m_info_b.m_width, 16) * m_info_b.m_height) + 2048;

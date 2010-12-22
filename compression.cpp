@@ -41,11 +41,11 @@ DWORD CodecInst::CompressBegin(LPBITMAPINFOHEADER lpbiIn, LPBITMAPINFOHEADER lpb
       buffer_size = QUADRUPLE(ALIGN_ROUND(m_width, 16) * m_height) + 1024;
    }
 
-   m_buffer = (unsigned char *)aligned_malloc(m_buffer, buffer_size, 16, "buffer");
-   m_buffer2 = (unsigned char *)aligned_malloc(m_buffer2, buffer_size, 16, "buffer2");
-   m_deltaBuffer = (unsigned char *)aligned_malloc(m_deltaBuffer, buffer_size, 16, "delta");
-   m_colorTransBuffer = (unsigned char *)aligned_malloc(m_colorTransBuffer, buffer_size, 16, "colorT");
-   m_prevFrame = (unsigned char *)aligned_malloc(m_prevFrame, buffer_size, 16, "prev");
+   m_buffer = (unsigned char*)aligned_malloc(m_buffer, buffer_size, 16, "buffer");
+   m_buffer2 = (unsigned char*)aligned_malloc(m_buffer2, buffer_size, 16, "buffer2");
+   m_deltaBuffer = (unsigned char*)aligned_malloc(m_deltaBuffer, buffer_size, 16, "delta");
+   m_colorTransBuffer = (unsigned char*)aligned_malloc(m_colorTransBuffer, buffer_size, 16, "colorT");
+   m_prevFrame = (unsigned char*)aligned_malloc(m_prevFrame, buffer_size, 16, "prev");
    ZeroMemory(m_prevFrame, buffer_size);
 
    if(!m_buffer || !m_buffer2 || !m_prevFrame || !m_deltaBuffer || !m_colorTransBuffer)
@@ -227,7 +227,7 @@ DWORD CodecInst::CompressYUY2(ICCOMPRESS* icinfo)
       {
          for(unsigned int a = 0; a < m_width * m_height/2; a++) // TODO: Optimize
          {
-            ysrc[a*2]	= m_in[a * 4 + 0];
+            ysrc[a*2]	= m_in[a * 4    ];
             usrc[a]		= m_in[a * 4 + 1];
             ysrc[a*2+1]	= m_in[a * 4 + 2];
             vsrc[a]		= m_in[a * 4 + 3];
@@ -237,7 +237,7 @@ DWORD CodecInst::CompressYUY2(ICCOMPRESS* icinfo)
       { // UYVY format
          for(unsigned int a = 0; a < m_width * m_height/2; a++)
          {
-            usrc[a]		= m_in[a * 4 + 0];
+            usrc[a]		= m_in[a * 4    ];
             ysrc[a*2]	= m_in[a * 4 + 1];
             vsrc[a]		= m_in[a * 4 + 2];
             ysrc[a*2+1]	= m_in[a * 4 + 3];
@@ -254,7 +254,7 @@ DWORD CodecInst::CompressYUY2(ICCOMPRESS* icinfo)
       {
          for(unsigned int h = 0; h < m_height; h++)
          {
-            unsigned int x=0;
+            unsigned int x = 0;
             for (; x < m_width * 2; x+=4)
             {
                y[0] = src[0];
@@ -271,7 +271,6 @@ DWORD CodecInst::CompressYUY2(ICCOMPRESS* icinfo)
             i = y[-1];
             j = u[-1];
             k = v[-1];
-
 
             for(unsigned int z= x/4; z < ac_stride; z++)
             {
@@ -354,9 +353,9 @@ DWORD CodecInst::CompressYUY2(ICCOMPRESS* icinfo)
       {// remove luminance padding 
          for(unsigned int y = 0; y < m_height; y++)
          {
-            memcpy(ydest+y*m_width,ysrc+y*ay_stride,m_width);
+            memcpy(ydest + y * m_width, ysrc + y * ay_stride, m_width);
          }
-         SWAP(ysrc,ydest);
+         SWAP(ysrc, ydest);
       }
       if((m_width/2) & mod)
       { // remove chroma padding
@@ -404,7 +403,7 @@ DWORD CodecInst::CompressYUY2(ICCOMPRESS* icinfo)
 
       if((m_width/2) & mod)
       { // remove chroma padding
-         for ( unsigned int y=0;y< m_height;y++)
+         for(unsigned int y = 0; y < m_height; y++)
          {
             memcpy(vdest + y * m_width/2, vsrc + y * ac_stride, m_width/2);
          }

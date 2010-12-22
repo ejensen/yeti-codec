@@ -167,7 +167,7 @@ outloop:
  * MMX RGB24 version
  *******************************/
 
-void mmx_ConvertRGB24toYUY2(const unsigned char *src,unsigned char *dst,int src_pitch, int dst_pitch,int w, int h) {
+void mmx_ConvertRGB24toYUY2(const BYTE *src,BYTE *dst,int src_pitch, int dst_pitch,int w, int h) {
    __declspec(align(8)) static const __int64 fraction = 0x0000000000084000;    //= 0x108000/2 = 0x84000
    __declspec(align(8)) static const __int64 add_32 = 0x000000000000000020;    //= 32 shifted 15 up
    __declspec(align(8)) static const __int64 rb_mask = 0x0000ffff0000ffff;    //=Mask for unpacked R and B

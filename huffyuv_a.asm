@@ -173,9 +173,9 @@ YUV2RGB_PROC	MACRO	procname,uyvy,rgb32
 	PUBLIC	C _&procname
 
 ;;void __cdecl procname(
-;;	[esp+ 4] const unsigned char* src,
-;;	[esp+ 8] unsigned char* dst,
-;;	[esp+12] const unsigned char* src_end,
+;;	[esp+ 4] const BYTE* src,
+;;	[esp+ 8] BYTE* dst,
+;;	[esp+12] const BYTE* src_end,
 ;;	[esp+16] int stride);
 
 _&procname	PROC
@@ -259,8 +259,8 @@ ENDIF
 	PUBLIC	C _asm_MedianRestore
 
 ;void __cdecl asm_MedianRestore(
-;	[esp+ 4] unsigned char* buf,
-;	[esp+ 8] unsigned char* buf_end,
+;	[esp+ 4] BYTE* buf,
+;	[esp+ 8] BYTE* buf_end,
 ;	[esp+12] int stride);
 
 _asm_MedianRestore	PROC

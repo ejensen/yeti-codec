@@ -28,7 +28,7 @@ static void UnsignedGolombEncode(const unsigned int in, BitOutputManager& bitMan
     }
 }
 
-unsigned int GolombEncode(const unsigned int* in, unsigned char* out, unsigned int length)
+unsigned int GolombEncode(const unsigned int* in, BYTE* out, unsigned int length)
 {
    BitOutputManager bitManager(out);
    for(unsigned int i = 0; i < length; i++)
@@ -68,7 +68,7 @@ static unsigned int UnsignedGolombDecode(BitInputManager& bitManger)
     return (1<<M) - 1 + info;
 }
 
-unsigned int GolombDecode(const unsigned char* in, unsigned int* out, unsigned int length)
+unsigned int GolombDecode(const BYTE* in, unsigned int* out, unsigned int length)
 {
    BitInputManager bitManager(in);
    for(unsigned int i = 0; i < length; i++)

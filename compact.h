@@ -1,5 +1,6 @@
 #pragma once
 
+#include "common.h"
 #include <limits.h>
 
 static inline unsigned int COUNT_BITS(unsigned int v)
@@ -9,7 +10,7 @@ static inline unsigned int COUNT_BITS(unsigned int v)
    return ((v + (v >> 4) & 0xF0F0F0F) * 0x1010101) >> 24;
 }
 
-static inline void Fast_XOR(void* dest, const void* src1, const void* src2, const unsigned int len) 
+/*static inline void Fast_XOR(void* dest, const void* src1, const void* src2, const unsigned int len) 
 {
    unsigned int* tempDest = (unsigned int*)dest;
    unsigned int* tempSrc1 = (unsigned int*)src1;
@@ -18,9 +19,53 @@ static inline void Fast_XOR(void* dest, const void* src1, const void* src2, cons
    {
       tempDest[i] = tempSrc1[i] ^ tempSrc2[i];
    }
+}*/
+
+/*static inline void Fast_Add(BYTE* dest, const BYTE* src1, const BYTE* src2, const unsigned int len) 
+{
+   unsigned int* tempDest = (unsigned int*)dest;
+   unsigned int* tempSrc1 = (unsigned int*)src1;
+   unsigned int* tempSrc2 = (unsigned int*)src2;
+   for(unsigned i = 0; i < len; i++)
+   {
+      tempDest[i] = tempSrc1[i] + tempSrc2[i];
+   }
+}*/
+
+static inline void Add(BYTE* dest, const BYTE* src1, const BYTE* src2, const unsigned int len) 
+{
+   for(unsigned i = 0; i < len; i++)
+   {
+      dest[i] = src1[i] + src2[i];
+   }
 }
 
-static inline unsigned long Fast_XOR_Count(void* dest, const void* src1, const void* src2, const unsigned int len, const unsigned long minDelta)
+static inline unsigned long Fast_Sub_Count(BYTE* dest, const BYTE* src1, const BYTE* src2, const unsigned int len, const unsigned long minDelta)
+{
+   unsigned int* intDest = (unsigned int*)dest;
+   unsigned int* intSrc = (unsigned int*)src1;
+
+   unsigned long oldTotalBits = 0;
+   unsigned long totalBits = 0;
+
+   for(unsigned int i = 0; i < len; i++)
+   {
+      oldTotalBits += COUNT_BITS(intSrc[i]);
+
+      unsigned int j = QUADRUPLE(i);
+
+      dest[j]     = src1[j]   - src2[j];
+      dest[j+1]   = src1[j+1] - src2[j+1];
+      dest[j+2]   = src1[j+2] - src2[j+2];
+      dest[j+3]   = src1[j+3] - src2[j+3];
+
+      totalBits += COUNT_BITS(intDest[i]);
+   }
+
+   return (oldTotalBits - totalBits < minDelta) ? ULONG_MAX : totalBits;
+}
+
+/*static inline unsigned long Fast_XOR_Count(void* dest, const void* src1, const void* src2, const unsigned int len, const unsigned long minDelta)
 {
    unsigned int* tempDest = (unsigned int*)dest;
    unsigned int* tempSrc1 = (unsigned int*)src1;
@@ -37,7 +82,7 @@ static inline unsigned long Fast_XOR_Count(void* dest, const void* src1, const v
    }
 
    return (oldTotalBits - totalBits < minDelta) ? ULONG_MAX : totalBits;
-}
+}*/
 
 class CompressClass 
 {
@@ -46,7 +91,7 @@ public:
    unsigned int m_scale;				// Used to replace some multiply/divides with binary shifts,
    // (1<<scale) is equal to the cumulative probability of all bytes
    unsigned int* m_bytecounts;		// Byte frequency table
-   unsigned char* m_buffer;			// buffer to perform RLE
+   BYTE* m_buffer;			// buffer to perform RLE
 
    CompressClass();
    ~CompressClass();
@@ -54,11 +99,11 @@ public:
    bool InitCompressBuffers(const unsigned int length);
    void FreeCompressBuffers();
 
-   unsigned int Compact(const unsigned char* in, unsigned char* out, const unsigned int length);
-   void Uncompact(const unsigned char* in, unsigned char* out, const unsigned int length);
-   void CalcBitProbability(const unsigned char* in, const unsigned int length);
+   unsigned int Compact(const BYTE* in, BYTE* out, const unsigned int length);
+   void Uncompact(const BYTE* in, BYTE* out, const unsigned int length);
+   void CalcBitProbability(const BYTE* in, const unsigned int length);
    void ScaleBitProbability(const unsigned int length);
-   unsigned int ReadBitProbability(const unsigned char* in);
-   unsigned int RangeEncode( const unsigned char* in, unsigned char* out, const unsigned int length);
-   void RangeDecode(const unsigned char* in, unsigned char* out, const unsigned int length);
+   unsigned int ReadBitProbability(const BYTE* in);
+   unsigned int RangeEncode( const BYTE* in, BYTE* out, const unsigned int length);
+   void RangeDecode(const BYTE* in, BYTE* out, const unsigned int length);
 };

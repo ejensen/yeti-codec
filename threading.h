@@ -27,9 +27,9 @@ struct threadInfo
    HANDLE m_thread;
    CompressClass m_compressWorker;
 
-   volatile const unsigned char* m_source;	// data source
-   volatile unsigned char* m_dest;		// data destination
-   unsigned char* m_buffer;
+   volatile const BYTE* m_source;	// data source
+   volatile BYTE* m_dest;		// data destination
+   BYTE* m_buffer;
    unsigned int m_width;
    unsigned int m_height;
    unsigned int m_format;

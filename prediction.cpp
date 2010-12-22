@@ -13,7 +13,7 @@ inline int median(int x, int y, int z)
    return  (i <= j) ? i : j;	//j = min(i,j);
 }
 
-void SSE2_BlockPredict(const unsigned char* source, unsigned char* dest, const unsigned int stride, const unsigned int length)
+void SSE2_BlockPredict(const BYTE* source, BYTE* dest, const unsigned int stride, const unsigned int length)
 {
    unsigned int a;
    __m128i t0;
@@ -92,7 +92,7 @@ void SSE2_BlockPredict(const unsigned char* source, unsigned char* dest, const u
    }
 }
 
-void MMX_BlockPredict(const unsigned char* source, unsigned char* dest, const unsigned int stride, const unsigned int length)
+void MMX_BlockPredict(const BYTE* source, BYTE* dest, const unsigned int stride, const unsigned int length)
 {
    unsigned int a;
    __m64 t0;
@@ -174,7 +174,7 @@ void MMX_BlockPredict(const unsigned char* source, unsigned char* dest, const un
    _mm_empty();
 }
 
-void SSE2_Predict_YUY2(const unsigned char* source, unsigned char* dest, const unsigned int width, const unsigned height, int lum)
+void SSE2_Predict_YUY2(const BYTE* source, BYTE* dest, const unsigned int width, const unsigned height, const unsigned int lum)
 {
    dest[0] = source[0];
 
@@ -205,9 +205,9 @@ void SSE2_Predict_YUY2(const unsigned char* source, unsigned char* dest, const u
 
    for(a = width + 2 + lum * 2; a < width + 16; a++)
    {
-      unsigned char t = source[a - 1];
-      unsigned char u = source[a - width];
-      unsigned char v = t;
+      BYTE t = source[a - 1];
+      BYTE u = source[a - width];
+      BYTE v = t;
       v += u;
       v -= source[a - width - 1];
       dest[a] = source[a] - median(t, u, v);
@@ -252,7 +252,7 @@ void SSE2_Predict_YUY2(const unsigned char* source, unsigned char* dest, const u
    }
 }
 
-void MMX_Predict_YUY2(const unsigned char* source,unsigned char* dest, const unsigned int width, const unsigned height, int lum)
+void MMX_Predict_YUY2(const BYTE* source, BYTE* dest, const unsigned int width, const unsigned height, const unsigned int lum)
 {
    dest[0] = source[0];
 
@@ -283,9 +283,9 @@ void MMX_Predict_YUY2(const unsigned char* source,unsigned char* dest, const uns
 
    for(a = width + 2 + lum * 2; a < width + 8; a++)
    {
-      unsigned char t = source[a - 1];
-      unsigned char u = source[a - width];
-      unsigned char v = t;
+      BYTE t = source[a - 1];
+      BYTE u = source[a - width];
+      BYTE v = t;
       v += u;
       v -= source[a - width - 1];
       dest[a] = source[a] - median(t, u, v);
@@ -331,7 +331,7 @@ void MMX_Predict_YUY2(const unsigned char* source,unsigned char* dest, const uns
    _mm_empty();
 }
 
-void ASM_BlockRestore(unsigned char * source, unsigned int stride, unsigned int xlength, unsigned int mode)
+void ASM_BlockRestore(BYTE * source, unsigned int stride, unsigned int xlength, unsigned int mode)
 {
    for(unsigned int a = 1; a < stride + !mode; a++)
    {

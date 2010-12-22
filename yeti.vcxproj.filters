@@ -64,6 +64,9 @@
     <ClInclude Include="codec_inst.h">
       <Filter>Headers</Filter>
     </ClInclude>
+    <ClInclude Include="common.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="compact.cpp" />

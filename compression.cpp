@@ -40,11 +40,11 @@ DWORD CodecInst::CompressBegin(LPBITMAPINFOHEADER lpbiIn, LPBITMAPINFOHEADER lpb
       buffer_size = QUADRUPLE(ALIGN_ROUND(m_width, 16) * m_height) + 1024;
    }
 
-   m_buffer = (unsigned char*)aligned_malloc(m_buffer, buffer_size, 16, "buffer");
-   m_buffer2 = (unsigned char*)aligned_malloc(m_buffer2, buffer_size, 16, "buffer2");
-   m_deltaBuffer = (unsigned char*)aligned_malloc(m_deltaBuffer, buffer_size, 16, "delta");
-   m_colorTransBuffer = (unsigned char*)aligned_malloc(m_colorTransBuffer, buffer_size, 16, "colorT");
-   m_prevFrame = (unsigned char*)aligned_malloc(m_prevFrame, buffer_size, 16, "prev");
+   m_buffer = (BYTE*)ALIGNED_MALLOC(m_buffer, buffer_size, 16, "buffer");
+   m_buffer2 = (BYTE*)ALIGNED_MALLOC(m_buffer2, buffer_size, 16, "buffer2");
+   m_deltaBuffer = (BYTE*)ALIGNED_MALLOC(m_deltaBuffer, buffer_size, 16, "delta");
+   m_colorTransBuffer = (BYTE*)ALIGNED_MALLOC(m_colorTransBuffer, buffer_size, 16, "colorT");
+   m_prevFrame = (BYTE*)ALIGNED_MALLOC(m_prevFrame, buffer_size, 16, "prev");
    ZeroMemory(m_prevFrame, buffer_size);
 
    if(!m_buffer || !m_buffer2 || !m_prevFrame || !m_deltaBuffer || !m_colorTransBuffer)
@@ -112,8 +112,8 @@ DWORD CodecInst::CompressEnd()
 // handed off to other functions depending on the color space and settings
 DWORD CodecInst::Compress(ICCOMPRESS* icinfo, DWORD dwSize)
 {
-   m_out = (unsigned char*)icinfo->lpOutput;
-   m_in  = (unsigned char*)icinfo->lpInput;
+   m_out = (BYTE*)icinfo->lpOutput;
+   m_in  = (BYTE*)icinfo->lpInput;
 
    if(icinfo->lFrameNum == 0 && !m_started)
    {
@@ -124,7 +124,7 @@ DWORD CodecInst::Compress(ICCOMPRESS* icinfo, DWORD dwSize)
       }
    } 
 
-   const unsigned char* src = m_in;
+   const BYTE* src = m_in;
 
    if(m_format >= RGB24)
    {
@@ -141,12 +141,12 @@ DWORD CodecInst::Compress(ICCOMPRESS* icinfo, DWORD dwSize)
 
    if(m_compressFormat == YUY2)
    {
-      m_in = (unsigned char*)src;
+      m_in = (BYTE*)src;
       return CompressYUY2(icinfo);
    }
 
    unsigned int dw = DOUBLE(m_width);
-   unsigned char * dst2 = m_colorTransBuffer;
+   BYTE * dst2 = m_colorTransBuffer;
    unsigned int yuy2_pitch = ALIGN_ROUND(dw, 16);
    unsigned int y_pitch = ALIGN_ROUND(m_width, 8);
    unsigned int uv_pitch = ALIGN_ROUND(HALF(m_width), 8);
@@ -165,7 +165,7 @@ DWORD CodecInst::Compress(ICCOMPRESS* icinfo, DWORD dwSize)
 
    isse_yuy2_to_yv12(src, dw, yuy2_pitch, dst2, dst2 + y_pitch * m_height + HALF(uv_pitch * m_height), dst2 + y_pitch * m_height, y_pitch, uv_pitch, m_height);
 
-   unsigned char * dest = m_colorTransBuffer;
+   BYTE * dest = m_colorTransBuffer;
    if(!is_aligned)
    {
       unsigned int h;
@@ -214,8 +214,8 @@ DWORD CodecInst::CompressYUY2(ICCOMPRESS* icinfo)
    const unsigned int ac_len     = ac_stride * m_height;
    const unsigned long len       = ay_len + DOUBLE(ac_len);
 
-   int frameType;
-   unsigned char* source = m_deltaBuffer;
+   BYTE frameType;
+   BYTE* source = m_deltaBuffer;
 
    //TODO: Remove duplication.
    if(icinfo->dwFlags != ICCOMPRESS_KEYFRAME && icinfo->lFrameNum > 0) //TODO: Optimize
@@ -223,7 +223,8 @@ DWORD CodecInst::CompressYUY2(ICCOMPRESS* icinfo)
       if(m_deltaframes)
       {
          unsigned long minDelta = len * 3;
-         unsigned long bitCount = Fast_XOR_Count(m_deltaBuffer, m_in, m_prevFrame, FOURTH(len), minDelta);
+         unsigned long bitCount = Fast_Sub_Count(m_deltaBuffer, m_in, m_prevFrame, FOURTH(len), minDelta);
+         //unsigned long bitCount = Fast_XOR_Count(m_deltaBuffer, m_in, m_prevFrame, FOURTH(len), minDelta);
 
          if(bitCount == ULONG_MAX)
          {
@@ -276,9 +277,9 @@ DWORD CodecInst::CompressYUY2(ICCOMPRESS* icinfo)
       memcpy(m_prevFrame, m_in, len);
    }
 
-   unsigned char* ysrc  = m_buffer;
-   unsigned char* usrc  = ysrc + ay_len;
-   unsigned char* vsrc  = usrc + ac_len;
+   BYTE* ysrc  = m_buffer;
+   BYTE* usrc  = ysrc + ay_len;
+   BYTE* vsrc  = usrc + ac_len;
 
    if(!(hw & mod))
    {
@@ -312,10 +313,10 @@ DWORD CodecInst::CompressYUY2(ICCOMPRESS* icinfo)
    } 
    else
    {
-      const unsigned char* src = source;
-      unsigned char* u = usrc;
-      unsigned char* v = vsrc;
-      unsigned char* y = ysrc;
+      const BYTE* src = source;
+      BYTE* u = usrc;
+      BYTE* v = vsrc;
+      BYTE* y = ysrc;
 
       if(icinfo->lpbiInput->biCompression != FOURCC_UYVY)
       {
@@ -334,7 +335,7 @@ DWORD CodecInst::CompressYUY2(ICCOMPRESS* icinfo)
                src += 4;
             }
 
-            unsigned char i, j, k;
+            BYTE i, j, k;
             i = y[-1];
             j = u[-1];
             k = v[-1];
@@ -372,7 +373,7 @@ DWORD CodecInst::CompressYUY2(ICCOMPRESS* icinfo)
                src += 4;
             }
 
-            unsigned char i,j,k;
+            BYTE i,j,k;
             i = y[-1];
             j = u[-1];
             k = v[-1];
@@ -394,9 +395,9 @@ DWORD CodecInst::CompressYUY2(ICCOMPRESS* icinfo)
       }
    }
 
-   unsigned char* ydest = m_buffer2;
-   unsigned char* udest = ydest + ay_len;
-   unsigned char* vdest = udest + ac_len;
+   BYTE* ydest = m_buffer2;
+   BYTE* udest = ydest + ay_len;
+   BYTE* vdest = udest + ac_len;
 
    size_t size;
    if (!m_multithreading)
@@ -519,8 +520,8 @@ DWORD CodecInst::CompressYV12(ICCOMPRESS* icinfo)
    const unsigned int yu_len	= y_len + c_len;
    const unsigned int len		= yu_len + c_len;
 
-   unsigned char* source = m_deltaBuffer;
-   unsigned int frameType;
+   BYTE* source = m_deltaBuffer;
+   BYTE frameType;
 
    //TODO: Remove duplication.
    if(icinfo->dwFlags != ICCOMPRESS_KEYFRAME && icinfo->lFrameNum > 0) //TODO: Optimize
@@ -528,7 +529,8 @@ DWORD CodecInst::CompressYV12(ICCOMPRESS* icinfo)
       if(m_deltaframes)
       {
          const unsigned long minDelta = len * 3;
-         const unsigned long bitCount = Fast_XOR_Count(source, m_in, m_prevFrame, FOURTH(len), minDelta);
+         const unsigned long bitCount = Fast_Sub_Count(source, m_in, m_prevFrame, FOURTH(len), minDelta);
+         //const unsigned long bitCount = Fast_XOR_Count(source, m_in, m_prevFrame, FOURTH(len), minDelta);
 
          if(bitCount == ULONG_MAX)
          {
@@ -580,7 +582,7 @@ DWORD CodecInst::CompressYV12(ICCOMPRESS* icinfo)
 
    if(m_nullframes || m_deltaframes)
    {
-      unsigned char* temp = m_prevFrame;
+      BYTE* temp = m_prevFrame;
       m_prevFrame = m_colorTransBuffer;
       m_colorTransBuffer = temp;
    }
@@ -598,9 +600,9 @@ DWORD CodecInst::CompressYV12(ICCOMPRESS* icinfo)
    const unsigned int ac_len	= HALF(c_stride * m_height);
    const unsigned int ayu_len	= ay_len + ac_len;
 
-   const unsigned char * ysrc;
-   const unsigned char * usrc;
-   const unsigned char * vsrc;
+   const BYTE * ysrc;
+   const BYTE * usrc;
+   const BYTE * vsrc;
 
    const unsigned int in_aligned = !((int)m_in & mod);
 
@@ -639,7 +641,7 @@ DWORD CodecInst::CompressYV12(ICCOMPRESS* icinfo)
       for(unsigned int y = 0; y < DOUBLE(hh); y++) // TODO: Optimize?
       {
          memcpy(m_buffer + y * c_stride, source + y * hw + y_len, hw);
-         unsigned char val = m_buffer[y * c_stride + hw - 1];
+         BYTE val = m_buffer[y * c_stride + hw - 1];
 
          for(unsigned int x = hw; x < c_stride; x++)
          {
@@ -659,7 +661,7 @@ DWORD CodecInst::CompressYV12(ICCOMPRESS* icinfo)
       for(y = 0; y < m_height; y++)
       {
          memcpy(m_buffer + y * y_stride, source + y * m_width, m_width);
-         unsigned char val = m_buffer[y * y_stride + m_width - 1];
+         BYTE val = m_buffer[y * y_stride + m_width - 1];
 
          for(unsigned int x = m_width; x < y_stride; x++)
          {
@@ -673,7 +675,7 @@ DWORD CodecInst::CompressYV12(ICCOMPRESS* icinfo)
       for(y = 0; y < DOUBLE(hh); y++)//Optimize?
       {
          memcpy(m_buffer + y * c_stride, source + y * hw + y_len, hw);
-         unsigned char val = m_buffer[y * c_stride + hw - 1];
+         BYTE val = m_buffer[y * c_stride + hw - 1];
 
          for(unsigned int x = hw; x < c_stride; x++)
          {
@@ -690,12 +692,12 @@ DWORD CodecInst::CompressYV12(ICCOMPRESS* icinfo)
    size_t size;
    if(!m_multithreading)
    {
-      unsigned char* buffer3 = (unsigned char *)ALIGN_ROUND(m_out, 16);
+      BYTE* buffer3 = (BYTE *)ALIGN_ROUND(m_out, 16);
 
       //set up dest buffers based on if alignment padding needs removal later
-      unsigned char* ydest;
-      unsigned char* udest;
-      unsigned char* vdest;
+      BYTE* ydest;
+      BYTE* udest;
+      BYTE* vdest;
 
       ydest = (m_width & mod) ? buffer3 : m_buffer2; // TODO: needed?
 
@@ -759,7 +761,7 @@ DWORD CodecInst::CompressYV12(ICCOMPRESS* icinfo)
       m_info_b.m_length = c_len;
       RESUME_THREAD(m_info_b.m_thread);
 
-      unsigned char* vdest = m_buffer2 + ayu_len;
+      BYTE* vdest = m_buffer2 + ayu_len;
 
       if(m_SSE2)
       {
@@ -777,7 +779,7 @@ DWORD CodecInst::CompressYV12(ICCOMPRESS* icinfo)
          vsrc = (keyframe) ? m_deltaBuffer : m_buffer;
          for(unsigned int y = 0; y < hh; y++)
          {
-            memcpy((unsigned char*)(int)vsrc + y * hw, vdest + y * c_stride, hw);
+            memcpy((BYTE*)(int)vsrc + y * hw, vdest + y * c_stride, hw);
          }
       } 
       else
@@ -833,23 +835,24 @@ DWORD CodecInst::CompressReduced(ICCOMPRESS *icinfo)
    const unsigned int ry_bytes  = quarterSize;
    const unsigned int rc_bytes  = FOURTH(quarterSize); 
 
-   unsigned char* ysrc = m_buffer;
-   unsigned char* usrc = m_buffer + ry_size;
-   unsigned char* vsrc = m_buffer + ryu_size;
+   BYTE* ysrc = m_buffer;
+   BYTE* usrc = m_buffer + ry_size;
+   BYTE* vsrc = m_buffer + ryu_size;
 
    ReduceRes(m_in, ysrc, m_buffer2, m_width, m_height, m_SSE2);
    ReduceRes(m_in + y_size, usrc, m_buffer2, hw, hh, m_SSE2);
    ReduceRes(m_in + yu_size, vsrc, m_buffer2, hw, hh, m_SSE2);
 
    //TODO: Remove duplication.
-   unsigned int frameType;
+   BYTE frameType;
    const unsigned int len = ry_size + DOUBLE(rc_size);
    if(icinfo->dwFlags != ICCOMPRESS_KEYFRAME && icinfo->lFrameNum > 0) //TODO: Optimize
    {
       if(m_deltaframes)
       {
          const unsigned long minDelta = len * 3;
-         const unsigned long bitCount = Fast_XOR_Count(m_deltaBuffer, ysrc, m_prevFrame, FOURTH(len), minDelta);
+         const unsigned long bitCount = Fast_Sub_Count(m_deltaBuffer, ysrc, m_prevFrame, FOURTH(len), minDelta);
+         //const unsigned long bitCount = Fast_XOR_Count(m_deltaBuffer, ysrc, m_prevFrame, FOURTH(len), minDelta);
 
          if(bitCount == ULONG_MAX)
          {
@@ -906,9 +909,9 @@ DWORD CodecInst::CompressReduced(ICCOMPRESS *icinfo)
    size_t size;
    if(!m_multithreading)
    {
-      unsigned char* ydest = m_buffer2;
-      unsigned char* udest = m_buffer2 + ry_size;
-      unsigned char* vdest = m_buffer2 + ryu_size;
+      BYTE* ydest = m_buffer2;
+      BYTE* udest = m_buffer2 + ry_size;
+      BYTE* vdest = m_buffer2 + ryu_size;
 
       if(m_SSE2)
       {
@@ -975,7 +978,7 @@ DWORD CodecInst::CompressReduced(ICCOMPRESS *icinfo)
       m_info_b.m_length = rc_bytes;
       RESUME_THREAD(m_info_b.m_thread);
 
-      unsigned char *vdest = m_buffer2;
+      BYTE *vdest = m_buffer2;
 
       if(m_SSE2)
       {

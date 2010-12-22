@@ -18,7 +18,7 @@ static const char dist_match[]={ 0,0,-1,1,-2,2,-3,3,-4,4,-5,5,-6,6,-7,7,-8,8,-9,
    115,-116,116,-117,117,-118,118,-119,119,-120,120,-121,121,-122,122,-123,123,
    -124,124,-125,125,-126,126,-127,127,-128};
 
-static const unsigned char dist_restore[]={0,2,4,6,8,10,12,14,16,18,20,22,24,26,28,30,32,
+static const BYTE dist_restore[]={0,2,4,6,8,10,12,14,16,18,20,22,24,26,28,30,32,
    34,36,38,40,42,44,46,48,50,52,54,56,58,60,62,64,66,68,70,72,74,76,78,80,82,84,
    86,88,90,92,94,96,98,100,102,104,106,108,110,112,114,116,118,120,122,124,126,
    128,130,132,134,136,138,140,142,144,146,148,150,152,154,156,158,160,162,164,
@@ -40,7 +40,7 @@ static const unsigned char dist_restore[]={0,2,4,6,8,10,12,14,16,18,20,22,24,26,
 // This number is then modified so that the run value distribution matches 
 // the byte distribution for the image data, and this number then put into
 // the out byte stream.
-unsigned int RLE3(const unsigned char* in, unsigned char* out, const unsigned int length)
+unsigned int RLE3(const BYTE* in, BYTE* out, const unsigned int length)
 {
    unsigned int a = 0;
    unsigned int b = 0;
@@ -122,7 +122,7 @@ unsigned int RLE3(const unsigned char* in, unsigned char* out, const unsigned in
 }
 
 
-unsigned int RLE2(const unsigned char* in, unsigned char* out, const unsigned int length)
+unsigned int RLE2(const BYTE* in, BYTE* out, const unsigned int length)
 {
    unsigned int a = 0;
    unsigned int b = 0;
@@ -191,7 +191,7 @@ unsigned int RLE2(const unsigned char* in, unsigned char* out, const unsigned in
 // been read in the byte stream, the following byte tells how many more
 // 0 bytes to output.
 
-unsigned int deRLE2(const unsigned char* in, unsigned char* out, const unsigned int length)
+unsigned int deRLE2(const BYTE* in, BYTE* out, const unsigned int length)
 {
    unsigned int a = 0;
    unsigned int b = 0;
@@ -225,7 +225,7 @@ unsigned int deRLE2(const unsigned char* in, unsigned char* out, const unsigned 
    return a;
 }
 
-unsigned int deRLE3(const unsigned char* in, unsigned char* out, const unsigned int length)
+unsigned int deRLE3(const BYTE* in, BYTE* out, const unsigned int length)
 {
    unsigned int a = 0;
    unsigned int b = 0;

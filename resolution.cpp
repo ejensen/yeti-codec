@@ -1,12 +1,13 @@
 #include <emmintrin.h>
+#include <string.h>
 
-#include "yeti.h"
+#include "common.h"
 #include "resolution.h"
 
 // halves the resolution and aligns the resulting data
-void ReduceRes(const unsigned char* src, unsigned char* dest, unsigned char* buffer, const unsigned int width, const unsigned int height, const bool SSE2)
+void ReduceRes(const BYTE* src, BYTE* dest, BYTE* buffer, const unsigned int width, const unsigned int height, const bool SSE2)
 {
-   const unsigned char* source;
+   const BYTE* source;
    const unsigned int mod = (SSE2 ? 32 : 16);
    const unsigned int stride = ALIGN_ROUND(width, mod);
 
@@ -15,8 +16,8 @@ void ReduceRes(const unsigned char* src, unsigned char* dest, unsigned char* buf
       for(unsigned int y = 0;y < height; y++)
       {
          memcpy(buffer + y * stride, src + y * width, width);
-         unsigned char u = buffer[y * stride + width - 2]; //TODO: Optimize
-         unsigned char v = buffer[y * stride + width - 1];
+         BYTE u = buffer[y * stride + width - 2]; //TODO: Optimize
+         BYTE v = buffer[y * stride + width - 1];
          const unsigned int i = (u<<24 ) + (v<<16) + (u<<8) + v;
 
          for(unsigned int x = width; x < stride; x += 4)
@@ -100,10 +101,10 @@ void ReduceRes(const unsigned char* src, unsigned char* dest, unsigned char* buf
 }
 
 // doubles the resolution
-void EnlargeRes(const unsigned char* src, unsigned char* dst, unsigned char* buffer, unsigned int width, unsigned int height, const bool SSE2)
+void EnlargeRes(const BYTE* src, BYTE* dst, BYTE* buffer, unsigned int width, unsigned int height, const bool SSE2)
 {
-   const unsigned char* source;
-   unsigned char* dest;
+   const BYTE* source;
+   BYTE* dest;
 
    const unsigned int mod = (SSE2 ? 32 : 16);
 
@@ -117,7 +118,7 @@ void EnlargeRes(const unsigned char* src, unsigned char* dst, unsigned char* buf
          memcpy(dst + y * stride, src+ y * width, width);
       }
 
-      const unsigned char i = dst[y * stride + width - 1];
+      const BYTE i = dst[y * stride + width - 1];
       for(unsigned int x = width; x < stride; x++)
       {
          dst[y * stride + x] = i;

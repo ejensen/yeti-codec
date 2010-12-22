@@ -14,13 +14,13 @@ public:
    threadInfo m_info_c;
    CompressClass m_compressWorker;
 
-   unsigned char* m_buffer;
-   unsigned char* m_prevFrame;
-   unsigned char* m_in;
-   unsigned char* m_out;
-   unsigned char* m_buffer2;
-   unsigned char* m_deltaBuffer;
-   unsigned char* m_colorTransBuffer;
+   BYTE* m_buffer;
+   BYTE* m_prevFrame;
+   BYTE* m_in;
+   BYTE* m_out;
+   BYTE* m_buffer2;
+   BYTE* m_deltaBuffer;
+   BYTE* m_colorTransBuffer;
    unsigned int m_length;
    unsigned int m_width;
    unsigned int m_height;
@@ -57,7 +57,7 @@ public:
 
    BOOL QueryConfigure();
 
-   void InitDecompressionThreads(const unsigned char * in, unsigned char * out, unsigned int length, unsigned int width, unsigned int height, threadInfo * thread, int format);
+   void InitDecompressionThreads(const BYTE * in, BYTE * out, unsigned int length, unsigned int width, unsigned int height, threadInfo * thread, int format);
    DWORD InitThreads(bool encode);
    void EndThreads();
 

@@ -12,7 +12,6 @@
 #include <stdio.h>
 
 #include "resource.h"
-#include "compact.h"
 
 #ifdef _DEBUG
 #define TRY_CATCH(f) \
@@ -33,7 +32,7 @@
 #define TRY_CATCH(f) f
 #endif
 
-inline void* aligned_malloc(void* ptr, int size, int align, char* str) 
+inline void* ALIGNED_MALLOC (void* ptr, int size, int align, char* str) 
 {
    if(ptr)
    {
@@ -50,7 +49,7 @@ inline void* aligned_malloc(void* ptr, int size, int align, char* str)
       {
 #ifdef _DEBUG
          char msg[256];
-         sprintf_s(msg,128,"An exception occurred when attempting to free non-null buffer '%s' in aligned_malloc", str);
+         sprintf_s(msg,128,"An exception occurred when attempting to free non-null buffer '%s' in ALIGNED_MALLOC", str);
          MessageBox(HWND_DESKTOP, msg, "Error", MB_OK | MB_ICONEXCLAMATION);
 #endif
       }
@@ -80,18 +79,6 @@ inline void* aligned_malloc(void* ptr, int size, int align, char* str)
 }
 #endif
 
-#define SWAP(x, y) { unsigned char xchng = *(unsigned char*)(&x); x = y; *(unsigned char*)(&y) = xchng; }
-
-// y must be 2^n
-#define ALIGN_ROUND(x, y) ((((unsigned int)(x)) + (y - 1))&(~(y - 1)))
-
-#define HALF(x) (x>>1)
-#define FOURTH(x) (x>>2)
-#define EIGHTH(x) (x>>3)
-
-#define DOUBLE(x) (x<<1)
-#define QUADRUPLE(x) (x<<2)
-
 static const DWORD FOURCC_YETI = mmioFOURCC('Y','E','T','I');
 static const DWORD FOURCC_YUY2 = mmioFOURCC('Y','U','Y','2');
 static const DWORD FOURCC_UYVY = mmioFOURCC('U','Y','V','Y');
@@ -101,18 +88,18 @@ static const char SettingsFile[] = "yeti.ini";
 static const char SettingsHeading[] = "settings";
 
 // possible frame flags
-#define DELTAFRAME            0x0
-#define KEYFRAME              0x1
+#define DELTAFRAME            (BYTE)0x0
+#define KEYFRAME              (BYTE)0x1
 
-#define YUY2_FRAME            0x00
+#define YUY2_FRAME            (BYTE)0x00
 #define YUY2_DELTAFRAME       (YUY2_FRAME | DELTAFRAME)
 #define YUY2_KEYFRAME         (YUY2_FRAME | KEYFRAME)
 
-#define YV12_FRAME            0x10
+#define YV12_FRAME            (BYTE)0x10
 #define YV12_DELTAFRAME       (YV12_FRAME | DELTAFRAME)
 #define YV12_KEYFRAME         (YV12_FRAME | KEYFRAME)
 
-#define REDUCED_FRAME         0x20
+#define REDUCED_FRAME         (BYTE)0x20
 #define REDUCED_DELTAFRAME    (REDUCED_FRAME | DELTAFRAME)
 #define REDUCED_KEYFRAME      (REDUCED_FRAME | KEYFRAME)
 

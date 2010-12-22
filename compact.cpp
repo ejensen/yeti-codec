@@ -1,6 +1,7 @@
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #include "yeti.h"
+#include "compact.h"
 #include "zerorle.h"
 #include "golomb.h"
 
@@ -66,7 +67,7 @@ void CompressClass::ScaleBitProbability(unsigned int length)
 }
 
 // read the byte frequency header
-unsigned int CompressClass::ReadBitProbability(const unsigned char* in)
+unsigned int CompressClass::ReadBitProbability(const BYTE* in)
 {
    try 
    {
@@ -103,7 +104,7 @@ unsigned int CompressClass::ReadBitProbability(const unsigned char* in)
 // Determine the frequency of each byte in a byte stream; the frequencies are then scaled
 // so the total is a power of 2. This allows binary shifts to be used instead of some
 // multiply and divides in the compression/decompression routines
-void CompressClass::CalcBitProbability(const unsigned char* const in, const unsigned int length)
+void CompressClass::CalcBitProbability(const BYTE* const in, const unsigned int length)
 {
    m_probRanges[0] = 0;
    ZeroMemory(m_bytecounts, 256 * sizeof(unsigned int));
@@ -118,15 +119,15 @@ void CompressClass::CalcBitProbability(const unsigned char* const in, const unsi
    ScaleBitProbability(length);
 }
 
-unsigned int CompressClass::Compact(const unsigned char* in, unsigned char* out, const unsigned int length)
+unsigned int CompressClass::Compact(const BYTE* in, BYTE* out, const unsigned int length)
 {
    int bytes_used = 0;
    
-   const unsigned char level = 2;
+   const BYTE level = 2;
    unsigned int size = RLE2(in, m_buffer, length);
    out[0] = level;
 
-   const unsigned char* source = m_buffer;
+   const BYTE* source = m_buffer;
 
    if(size >= length) // RLE size is greater than uncompressed size
    {
@@ -140,7 +141,7 @@ unsigned int CompressClass::Compact(const unsigned char* in, unsigned char* out,
 
    unsigned int skip = GolombEncode(m_bytecounts, out + 5, 256);
 
-   unsigned char tempc = out[4 + skip];
+   BYTE tempc = out[4 + skip];
    unsigned int y = RangeEncode(source, out + 4 + skip, size);
    out[4 + skip] = tempc;
    skip += y + 5;
@@ -161,7 +162,7 @@ unsigned int CompressClass::Compact(const unsigned char* in, unsigned char* out,
    return bytes_used;
 }
 
-void CompressClass::Uncompact(const unsigned char* in, unsigned char* out, const unsigned int length)
+void CompressClass::Uncompact(const BYTE* in, BYTE* out, const unsigned int length)
 {
    try
    {
@@ -178,7 +179,7 @@ void CompressClass::Uncompact(const unsigned char* in, unsigned char* out, const
                return;
             }
 
-            unsigned char* dest = rle ? m_buffer : out;
+            BYTE* dest = rle ? m_buffer : out;
             RangeDecode(in + 4 + skip, dest, size);
 
             if(rle == 2)
@@ -219,9 +220,9 @@ void CompressClass::Uncompact(const unsigned char* in, unsigned char* out, const
 
 bool CompressClass::InitCompressBuffers(const unsigned int length)
 {
-   m_buffer = (unsigned char*)aligned_malloc(m_buffer, length, 32, "Compress::temp");
-   m_probRanges = (unsigned int*)aligned_malloc(m_probRanges, 260 * sizeof(unsigned int), 64, "Compress::ranges");
-   m_bytecounts = (unsigned int*)aligned_malloc(m_bytecounts, 260 * sizeof(unsigned int), 64, "Compress::bytecounts");
+   m_buffer = (BYTE*)ALIGNED_MALLOC(m_buffer, length, 32, "Compress::temp");
+   m_probRanges = (unsigned int*)ALIGNED_MALLOC(m_probRanges, 260 * sizeof(unsigned int), 64, "Compress::ranges");
+   m_bytecounts = (unsigned int*)ALIGNED_MALLOC(m_bytecounts, 260 * sizeof(unsigned int), 64, "Compress::bytecounts");
    if (!( m_buffer && m_probRanges && m_bytecounts))
    {
       FreeCompressBuffers();

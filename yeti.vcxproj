@@ -287,6 +287,7 @@
   <ItemGroup>
     <ClInclude Include="bit_manager.h" />
     <ClInclude Include="codec_inst.h" />
+    <ClInclude Include="common.h" />
     <ClInclude Include="convert.h" />
     <ClInclude Include="convert_yuy2.h" />
     <ClInclude Include="golomb.h" />

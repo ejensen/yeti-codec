@@ -1,6 +1,6 @@
 #include "bit_manager.h"
 
-BitOutputManager::BitOutputManager(unsigned char* out_data)
+BitOutputManager::BitOutputManager(BYTE* out_data)
 {
    m_num_out_bytes = 0;
    m_current_byte = 0;
@@ -39,7 +39,7 @@ void BitOutputManager::Flush()
    }
 }
 
-BitInputManager::BitInputManager(const unsigned char* in_data)
+BitInputManager::BitInputManager(const BYTE* in_data)
 {
    m_num_bytes_read = 0;
    m_input_bits_left = 0;

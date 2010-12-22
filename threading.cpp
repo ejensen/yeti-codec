@@ -1,5 +1,6 @@
 #include <stdint.h>
 #include "yeti.h"
+#include "codec_inst.h"
 #include "threading.h"
 #include "prediction.h"
 
@@ -119,7 +120,7 @@ DWORD CodecInst::InitThreads(bool encode)
    m_info_b.m_height = HALF(m_height);
    m_info_c.m_height = m_height;
 
-   if(m_compressFormat == REDUCED_FRAME)
+   if(m_compressFormat == REDUCED)
    {
       m_info_a.m_width = HALF(m_width);
       m_info_a.m_height = HALF(m_height);

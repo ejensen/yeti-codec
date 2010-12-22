@@ -1,6 +1,6 @@
 #include "compact.h"
 #include "yeti.h"
-#include "interface.h"
+#include "codec_inst.h"
 #include "prediction.h"
 #include "resolution.h"
 #include "threading.h"
@@ -330,14 +330,13 @@ DWORD CodecInst::Decompress(ICDECOMPRESS* idcinfo)
 
       switch(m_in[0] & ~KEYFRAME)
       {
-      case YUY2:
+      case YUY2_FRAME:
             {
                YUY2Decompress(idcinfo->dwFlags);
                break;
             }
-      case YV12:
+      case YV12_FRAME:
          {
-
 #ifdef _DEBUG
             if((idcinfo->dwFlags & ICDECOMPRESS_HURRYUP) == ICDECOMPRESS_HURRYUP)
             {
@@ -355,7 +354,7 @@ DWORD CodecInst::Decompress(ICDECOMPRESS* idcinfo)
             YV12Decompress(idcinfo->dwFlags);
             break;
          }
-      case REDUCED:
+      case REDUCED_FRAME:
          {
             ReduceResDecompress(idcinfo->dwFlags);
             break;

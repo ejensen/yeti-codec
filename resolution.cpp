@@ -8,7 +8,7 @@ void ReduceRes(const unsigned char * src, unsigned char * dest, unsigned char * 
 {
    const unsigned char* source;
 
-   const unsigned int mod = (SSE2?32:16);
+   const unsigned int mod = (SSE2 ? 32 : 16);
 
    const unsigned int stride = ALIGN_ROUND(width, mod);
 

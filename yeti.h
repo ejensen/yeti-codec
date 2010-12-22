@@ -82,7 +82,6 @@ inline void * aligned_malloc( void *ptr, int size, int align, char *str )
 
 #define SWAP(x, y) { unsigned int xchng = *(unsigned int*)(&x); x = y; *(unsigned int*)(&y) = xchng; }
 
-
 // y must be 2^n
 #define ALIGN_ROUND(x, y) ((((unsigned int)(x)) + (y - 1))&(~(y - 1)))
 
@@ -122,87 +121,3 @@ static const char SettingsFile[] = "yeti.ini";
 #define YUY2	   16
 #define YV12	   12
 #define REDUCED   6
-
-struct threadInfo
-{
-   HANDLE m_thread;
-   CompressClass m_compressWorker;
-
-   volatile const unsigned char* m_source;	// data source
-   volatile unsigned char* m_dest;		// data destination
-   unsigned char* m_buffer;
-   unsigned int m_width;
-   unsigned int m_height;
-   unsigned int m_format;
-   unsigned int m_lum;	         // needed for YUY2 prediction
-   volatile unsigned int m_length;	// uncompressed data length
-   volatile unsigned int m_size;		// compressed data length
-   bool m_SSE2;
-};
-
-class CodecInst
-{
-public:
-   threadInfo m_info_a;
-   threadInfo m_info_b;
-   threadInfo m_info_c;
-   CompressClass m_compressWorker;
-
-   unsigned char * m_buffer;
-   unsigned char * m_prevFrame;
-   unsigned char * m_in;
-   unsigned char * m_out;
-   unsigned char * m_buffer2;
-   unsigned char * m_deltaBuffer;
-   unsigned char * m_colorTransBuffer;
-   unsigned int m_length;
-   unsigned int m_width;
-   unsigned int m_height;
-   unsigned int m_format;	//input format for compressing, output format for decompression. Also the bitdepth.
-   unsigned int m_compressFormat;
-   bool m_nullframes;
-   bool m_deltaframes;
-   bool m_multithreading;
-   bool m_started;			//if the codec has been properly initialized yet
-   bool m_SSE2;
-   bool m_SSE;
-
-   CodecInst();
-   ~CodecInst();
-
-   DWORD GetState(LPVOID pv, DWORD dwSize);
-   DWORD SetState(LPVOID pv, DWORD dwSize);
-   DWORD Configure(HWND hwnd);
-   DWORD GetInfo(ICINFO* icinfo, DWORD dwSize);
-
-   DWORD CompressQuery(LPBITMAPINFOHEADER lpbiIn, LPBITMAPINFOHEADER lpbiOut);
-   DWORD CompressGetFormat(LPBITMAPINFOHEADER lpbiIn, LPBITMAPINFOHEADER lpbiOut);
-   DWORD CompressBegin(LPBITMAPINFOHEADER lpbiIn, LPBITMAPINFOHEADER lpbiOut);
-   DWORD CompressGetSize(LPBITMAPINFOHEADER lpbiIn, LPBITMAPINFOHEADER lpbiOut);
-   DWORD Compress(ICCOMPRESS* icinfo, DWORD dwSize);
-   DWORD CompressEnd();
-
-   DWORD DecompressQuery(LPBITMAPINFOHEADER lpbiIn, LPBITMAPINFOHEADER lpbiOut);
-   DWORD DecompressGetFormat(LPBITMAPINFOHEADER lpbiIn, LPBITMAPINFOHEADER lpbiOut);
-   DWORD DecompressBegin(LPBITMAPINFOHEADER lpbiIn, LPBITMAPINFOHEADER lpbiOut);
-   DWORD Decompress(ICDECOMPRESS* idcinfo);
-   DWORD DecompressGetPalette(LPBITMAPINFOHEADER lpbiIn, LPBITMAPINFOHEADER lpbiOut);
-   DWORD DecompressEnd();
-
-   BOOL QueryConfigure();
-
-   void InitDecompressionThreads(const unsigned char * in, unsigned char * out, unsigned int length, unsigned int width, unsigned int height, threadInfo * thread, int format);
-   DWORD InitThreads(bool encode);
-   void EndThreads();
-
-   DWORD CompressYUY2(ICCOMPRESS* icinfo);
-   DWORD CompressYV12(ICCOMPRESS* icinfo);
-   DWORD CompressReduced(ICCOMPRESS* icinfo);
-
-   void YUY2Decompress(DWORD flags);
-   void YV12Decompress(DWORD flags);
-   void ReduceResDecompress(DWORD flags);
-};
-
-CodecInst* Open(ICOPEN* icinfo);
-DWORD Close(CodecInst* pinst);

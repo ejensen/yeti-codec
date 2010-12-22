@@ -31,9 +31,6 @@
     <ClInclude Include="huffyuv_a.h">
       <Filter>Headers</Filter>
     </ClInclude>
-    <ClInclude Include="interface.h">
-      <Filter>Headers</Filter>
-    </ClInclude>
     <ClInclude Include="prediction.h">
       <Filter>Headers</Filter>
     </ClInclude>
@@ -64,13 +61,15 @@
     <ClInclude Include="bit_manager.h">
       <Filter>Headers</Filter>
     </ClInclude>
+    <ClInclude Include="codec_inst.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="compact.cpp" />
     <ClCompile Include="compression.cpp" />
     <ClCompile Include="decompression.cpp" />
     <ClCompile Include="drvproc.cpp" />
-    <ClCompile Include="interface.cpp" />
     <ClCompile Include="prediction.cpp" />
     <ClCompile Include="range.cpp" />
     <ClCompile Include="threading.cpp" />
@@ -81,6 +80,7 @@
     <ClCompile Include="resolution.cpp" />
     <ClCompile Include="golomb.cpp" />
     <ClCompile Include="bit_manager.cpp" />
+    <ClCompile Include="codec_inst.cpp" />
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="huffyuv_a.asm" />

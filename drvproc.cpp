@@ -1,6 +1,6 @@
 // From Ben Rudiak-Gould's huffyuv
 
-#include "yeti.h"
+#include "codec_inst.h"
 
 /***************************************************************************
 * DriverProc  -  The entry point for an installable driver.

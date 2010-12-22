@@ -286,6 +286,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="bit_manager.h" />
+    <ClInclude Include="codec_inst.h" />
     <ClInclude Include="convert.h" />
     <ClInclude Include="convert_yuy2.h" />
     <ClInclude Include="golomb.h" />
@@ -295,7 +296,6 @@
     <ClInclude Include="convert_xvid.h" />
     <ClInclude Include="convert_yv12.h" />
     <ClInclude Include="huffyuv_a.h" />
-    <ClInclude Include="interface.h" />
     <ClInclude Include="threading.h" />
     <ClInclude Include="yeti.h" />
     <ClInclude Include="prediction.h" />
@@ -318,7 +318,7 @@
       <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <ClCompile Include="golomb.cpp" />
-    <ClCompile Include="interface.cpp" />
+    <ClCompile Include="codec_inst.cpp" />
     <ClCompile Include="prediction.cpp" />
     <ClCompile Include="range.cpp" />
     <ClCompile Include="resolution.cpp" />

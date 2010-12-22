@@ -1,5 +1,3 @@
-//This file contains functions that perform and undo median prediction.
-
 #include <emmintrin.h>
 
 #include "yeti.h"

@@ -1,4 +1,5 @@
 #include "yeti.h"
+#include "codec_inst.h"
 #include "prediction.h"
 #include "resolution.h"
 #include "threading.h"
@@ -160,7 +161,7 @@ DWORD CodecInst::Compress(ICCOMPRESS* icinfo, DWORD dwSize)
       dst2 = m_buffer;
    }
 
-   isse_yuy2_to_yv12(src, dw, yuy2_pitch, dst2, dst2+y_pitch * m_height+ HALF(uv_pitch * m_height), dst2 + y_pitch * m_height, y_pitch, uv_pitch, m_height);
+   isse_yuy2_to_yv12(src, dw, yuy2_pitch, dst2, dst2 + y_pitch * m_height + HALF(uv_pitch * m_height), dst2 + y_pitch * m_height, y_pitch, uv_pitch, m_height);
 
    unsigned char * dest = m_colorTransBuffer;
    if(!is_aligned)
@@ -176,7 +177,7 @@ DWORD CodecInst::Compress(ICCOMPRESS* icinfo, DWORD dwSize)
       dest += m_width * m_height;
 
       unsigned int hw = HALF(m_width);
-      for(h= 0 ; h < m_height; h++)
+      for(h = 0 ; h < m_height; h++)
       {
          memcpy(dest + hw * h, dst2 + uv_pitch * h, hw);
       }
@@ -184,13 +185,17 @@ DWORD CodecInst::Compress(ICCOMPRESS* icinfo, DWORD dwSize)
 
    m_in = m_colorTransBuffer;
 
+   //char buffer[11];
+   //_itoa_s(m_compressFormat, buffer, 11, 10);
+   //MessageBox(HWND_DESKTOP, buffer, "format", MB_OK);
+
    switch(m_compressFormat)
    {
-   case YUY2_FRAME:
+   case YUY2:
          return CompressYUY2(icinfo);
-   case YV12_FRAME:
+   case YV12:
          return CompressYV12(icinfo);
-   case REDUCED_FRAME:
+   case REDUCED:
          return CompressReduced(icinfo);
    }
 }
@@ -702,7 +707,6 @@ DWORD CodecInst::CompressYV12(ICCOMPRESS* icinfo)
       } 
       else
       {
-         //unsigned char * temp = (unsigned char*)(int)vsrc;
          vsrc = vdest;
          vdest = (keyframe) ? m_deltaBuffer : m_buffer;
       }

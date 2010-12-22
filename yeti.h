@@ -30,12 +30,12 @@
    throw tc_msg;\
 }
 #else
-#define TRY_CATCH( f ) f
+#define TRY_CATCH(f) f
 #endif
 
-inline void * aligned_malloc( void *ptr, int size, int align, char *str ) 
+inline void* aligned_malloc(void *ptr, int size, int align, char *str) 
 {
-   if ( ptr )
+   if(ptr)
    {
       try
       {
@@ -98,6 +98,7 @@ static const DWORD FOURCC_UYVY = mmioFOURCC('U','Y','V','Y');
 static const DWORD FOURCC_YV12 = mmioFOURCC('Y','V','1','2');
 
 static const char SettingsFile[] = "yeti.ini";
+static const char SettingsHeading[] = "settings";
 
 // possible frame flags
 #define DELTAFRAME            0x0

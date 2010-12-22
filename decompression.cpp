@@ -59,7 +59,7 @@ DWORD CodecInst::DecompressBegin(LPBITMAPINFOHEADER lpbiIn, LPBITMAPINFOHEADER l
       return (DWORD)ICERR_MEMORY;
    }
 
-   m_multithreading = GetPrivateProfileInt("settings", "multithreading", false, SettingsFile) > 0;
+   m_multithreading = GetPrivateProfileInt(SettingsHeading, "multithreading", false, SettingsFile) > 0;
    if(m_multithreading)
    {
       int code = InitThreads(false);
@@ -113,35 +113,38 @@ inline void CodecInst::InitDecompressionThreads(const unsigned char* in, unsigne
 
 void CodecInst::YUY2Decompress(DWORD flags)
 {
-   unsigned char * dst = m_out;
-   unsigned char * dst2 = m_buffer;
+   unsigned char* dst = m_out;
+   unsigned char* dst2 = m_buffer;
+
    if(m_format == YUY2)
    {
       dst = m_buffer;
-      dst2= m_out;
+      dst2 = m_out;
    }
 
+   unsigned int pixels = m_width * m_height;
    unsigned char *y,*u,*v;
    y = dst;
-   u = y + m_width * m_height;
-   v = u + m_width * m_height / 2;
+   u = y + pixels;
+   v = u + HALF(pixels);
 
-   int size=*(UINT32*)(m_in + 1);
-   InitDecompressionThreads(m_in + 9, y, m_width * m_height, m_width, m_height, &m_info_a, YUY2);
+   int size = *(UINT32*)(m_in + 1);
+   InitDecompressionThreads(m_in + 9, y, pixels, m_width, m_height, &m_info_a, YUY2);
+
    // special case: RLE detected a solid Y value (compressed size = 2),
    // need to set 2nd Y value for restoration to work right
-   if(size == 11)
+   if(size == 11) //TODO: Needed?
    { 
       dst[1] = dst[0];
    }
 
-   InitDecompressionThreads(m_in + size, u, m_width / 2 * m_height, m_width / 2, m_height, &m_info_b, YUY2);
+   InitDecompressionThreads(m_in + size, u, HALF(pixels), HALF(m_width), m_height, &m_info_b, YUY2);
    size = *(UINT32*)(m_in + 5);
-   InitDecompressionThreads(m_in + size, v, m_width / 2 * m_height, m_width / 2, m_height, NULL, YUY2);
+   InitDecompressionThreads(m_in + size, v, HALF(pixels), HALF(m_width), m_height, NULL, YUY2);
 
    WAIT_FOR_THREADS(2);
 
-   for(unsigned int a = 0; a < m_width * m_height * 2; a += 4)
+   for(unsigned int a = 0; a < DOUBLE(pixels); a += 4)
    {
       dst2[a] = *y;
       dst2[a+1] = *u;
@@ -152,16 +155,16 @@ void CodecInst::YUY2Decompress(DWORD flags)
       v++;
    }
 
-   asm_MedianRestore(dst2, dst2 + m_width * m_height * 2, m_width * 2);
+   asm_MedianRestore(dst2, dst2 + DOUBLE(pixels), DOUBLE(m_width));
    if(m_format != YUY2)
    {
       if(m_format == RGB24)
       {
-         mmx_YUY2toRGB24(m_buffer, m_out, m_buffer + m_width * m_height * 2, m_width * 2);
+         mmx_YUY2toRGB24(m_buffer, m_out, m_buffer + DOUBLE(pixels), DOUBLE(m_width));
       } 
       else 
       {
-         mmx_YUY2toRGB32(m_buffer, m_out, m_buffer + m_width * m_height * 2, m_width * 2);
+         mmx_YUY2toRGB32(m_buffer, m_out, m_buffer + DOUBLE(pixels), DOUBLE(m_width));
       } 
    }
 }
@@ -183,11 +186,11 @@ void CodecInst::YV12Decompress(DWORD flags)
    unsigned int wxh = m_width * m_height;
    unsigned int quarterArea = FOURTH(wxh);
 
-   InitDecompressionThreads(m_in + 9, dst, wxh, m_width, m_height, &m_info_a, YV12/*, keyframe*/);
-   InitDecompressionThreads(m_in + size, dst + wxh, quarterArea, hw, hh, &m_info_b, YV12/*, keyframe*/);
+   InitDecompressionThreads(m_in + 9, dst, wxh, m_width, m_height, &m_info_a, YV12);
+   InitDecompressionThreads(m_in + size, dst + wxh, quarterArea, hw, hh, &m_info_b, YV12);
 
    size = *(unsigned int*)(m_in + 5);
-   InitDecompressionThreads(m_in + size, dst + wxh + quarterArea, quarterArea, hw, hh, NULL, YV12/*, keyframe*/);
+   InitDecompressionThreads(m_in + size, dst + wxh + quarterArea, quarterArea, hw, hh, NULL, YV12);
 
    ASM_BlockRestore(dst + wxh + quarterArea, hw, quarterArea, 0);
 

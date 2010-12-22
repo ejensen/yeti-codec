@@ -18,11 +18,11 @@ static BOOL CALLBACK ConfigureDialogProc(HWND hwndDlg, UINT uMsg, WPARAM wParam,
 {
    if(uMsg == WM_INITDIALOG)
    {
-      CheckDlgButton(hwndDlg, IDC_NULLFRAMES, GetPrivateProfileInt("settings", "nullframes", FALSE, SettingsFile) ? BST_CHECKED : BST_UNCHECKED);
-      CheckDlgButton(hwndDlg, IDC_DELTAFRAMES, GetPrivateProfileInt("settings", "deltaframes", FALSE, SettingsFile) ? BST_CHECKED : BST_UNCHECKED);
-      CheckDlgButton(hwndDlg, IDC_MULTI, GetPrivateProfileInt("settings", "multithreading", FALSE, SettingsFile) ? BST_CHECKED : BST_UNCHECKED);
+      CheckDlgButton(hwndDlg, IDC_NULLFRAMES, GetPrivateProfileInt(SettingsHeading, "nullframes", FALSE, SettingsFile) ? BST_CHECKED : BST_UNCHECKED);
+      CheckDlgButton(hwndDlg, IDC_DELTAFRAMES, GetPrivateProfileInt(SettingsHeading, "deltaframes", FALSE, SettingsFile) ? BST_CHECKED : BST_UNCHECKED);
+      CheckDlgButton(hwndDlg, IDC_MULTI, GetPrivateProfileInt(SettingsHeading, "multithreading", FALSE, SettingsFile) ? BST_CHECKED : BST_UNCHECKED);
 
-      unsigned int compressFormat = GetPrivateProfileInt("settings", "format", YUY2, SettingsFile);
+      unsigned int compressFormat = GetPrivateProfileInt(SettingsHeading, "format", YUY2, SettingsFile);
 
       int id = IDC_YUY2;
 
@@ -37,9 +37,9 @@ static BOOL CALLBACK ConfigureDialogProc(HWND hwndDlg, UINT uMsg, WPARAM wParam,
    {
       if(LOWORD(wParam) == IDC_OK)
       {
-         WritePrivateProfileString("settings", "nullframes", (IsDlgButtonChecked(hwndDlg, IDC_NULLFRAMES) == BST_CHECKED) ? "1" : NULL, SettingsFile);
-         WritePrivateProfileString("settings", "deltaframes", (IsDlgButtonChecked(hwndDlg, IDC_DELTAFRAMES) == BST_CHECKED) ? "1" : NULL, SettingsFile);
-         WritePrivateProfileString("settings", "multithreading", (IsDlgButtonChecked(hwndDlg, IDC_MULTI) == BST_CHECKED) ? "1" : NULL, SettingsFile);
+         WritePrivateProfileString(SettingsHeading, "nullframes", (IsDlgButtonChecked(hwndDlg, IDC_NULLFRAMES) == BST_CHECKED) ? "1" : NULL, SettingsFile);
+         WritePrivateProfileString(SettingsHeading, "deltaframes", (IsDlgButtonChecked(hwndDlg, IDC_DELTAFRAMES) == BST_CHECKED) ? "1" : NULL, SettingsFile);
+         WritePrivateProfileString(SettingsHeading, "multithreading", (IsDlgButtonChecked(hwndDlg, IDC_MULTI) == BST_CHECKED) ? "1" : NULL, SettingsFile);
 
          int format = YUY2;
 
@@ -50,7 +50,7 @@ static BOOL CALLBACK ConfigureDialogProc(HWND hwndDlg, UINT uMsg, WPARAM wParam,
 
          char buffer[11];
          _itoa_s(format, buffer, 11, 10);
-         WritePrivateProfileString("settings", "format", buffer, SettingsFile);
+         WritePrivateProfileString(SettingsHeading, "format", buffer, SettingsFile);
 
          EndDialog(hwndDlg, 0);
       } 
@@ -175,7 +175,7 @@ DWORD CodecInst::CompressQuery(LPBITMAPINFOHEADER lpbiIn, LPBITMAPINFOHEADER lpb
       RETURN_ERROR();
    }
 
-   m_compressFormat = GetPrivateProfileInt("settings", "format", YUY2, SettingsFile);
+   m_compressFormat = GetPrivateProfileInt(SettingsHeading, "format", YUY2, SettingsFile);
 
    // Make sure width is mod 4 for YUV formats
    if(lpbiIn->biWidth % 4)
@@ -222,7 +222,7 @@ DWORD CodecInst::CompressGetFormat(LPBITMAPINFOHEADER lpbiIn, LPBITMAPINFOHEADER
       RETURN_ERROR();
    }
 
-   m_compressFormat = GetPrivateProfileInt("settings", "format", YUY2, SettingsFile);
+   m_compressFormat = GetPrivateProfileInt(SettingsHeading, "format", YUY2, SettingsFile);
 
    *lpbiOut = *lpbiIn;
    lpbiOut->biSize = sizeof(BITMAPINFOHEADER) + sizeof(UINT32);

@@ -16,9 +16,9 @@ DWORD CodecInst::CompressBegin(LPBITMAPINFOHEADER lpbiIn, LPBITMAPINFOHEADER lpb
       CompressEnd();
    }
 
-   m_nullframes = GetPrivateProfileInt("settings", "nullframes", TRUE, SettingsFile) > 0;
-   m_deltaframes = GetPrivateProfileInt("settings", "deltaframes", TRUE, SettingsFile) > 0;
-   m_multithreading = GetPrivateProfileInt("settings", "multithreading", TRUE, SettingsFile) > 0;
+   m_nullframes = GetPrivateProfileInt(SettingsHeading, "nullframes", FALSE, SettingsFile) > 0;
+   m_deltaframes = GetPrivateProfileInt(SettingsHeading, "deltaframes", FALSE, SettingsFile) > 0;
+   m_multithreading = GetPrivateProfileInt(SettingsHeading, "multithreading", FALSE, SettingsFile) > 0;
 
    if (int error = CompressQuery(lpbiIn, lpbiOut) != ICERR_OK)
    {
@@ -103,7 +103,6 @@ DWORD CodecInst::CompressEnd()
       ALIGNED_FREE(m_prevFrame, "prev");
       ALIGNED_FREE(m_colorTransBuffer, "colorT");
       m_compressWorker.FreeCompressBuffers();
-
    }
 
    m_started = false;
@@ -117,14 +116,12 @@ DWORD CodecInst::Compress(ICCOMPRESS* icinfo, DWORD dwSize)
    m_out = (unsigned char*)icinfo->lpOutput;
    m_in  = (unsigned char*)icinfo->lpInput;
 
-   if(icinfo->lFrameNum == 0)
+   if(icinfo->lFrameNum == 0 && !m_started)
    {
-      if(!m_started)
+      DWORD error = CompressBegin(icinfo->lpbiInput, icinfo->lpbiOutput);
+      if(error != ICERR_OK)
       {
-         if(int error = CompressBegin(icinfo->lpbiInput, icinfo->lpbiOutput) != ICERR_OK)
-         {
-            return error;
-         }
+         return error;
       }
    } 
 
@@ -204,16 +201,19 @@ DWORD CodecInst::Compress(ICCOMPRESS* icinfo, DWORD dwSize)
       return CompressReduced(icinfo);
    }
 
-   return ICERR_BADFORMAT;
+   return (DWORD)ICERR_BADFORMAT;
 }
 
 DWORD CodecInst::CompressYUY2(ICCOMPRESS* icinfo)
 {
    const unsigned int mod		   = (m_SSE2 ? 15 : 7);
+   const unsigned int hw         = HALF(m_width);
+   const unsigned int pixels     = m_width * m_height;
    const unsigned int ay_stride  = ALIGN_ROUND(m_width, mod + 1);
-   const unsigned int ac_stride  = ALIGN_ROUND(m_width/2, mod + 1);
+   const unsigned int ac_stride  = ALIGN_ROUND(hw, mod + 1);
    const unsigned int ay_len     = ay_stride * m_height;
    const unsigned int ac_len     = ac_stride * m_height;
+
    unsigned char * ysrc		      = m_buffer;
    unsigned char * usrc		      = ysrc + ay_len;
    unsigned char * vsrc		      = usrc + ac_len;
@@ -221,26 +221,33 @@ DWORD CodecInst::CompressYUY2(ICCOMPRESS* icinfo)
    unsigned char * udest		   = ydest + ay_len;
    unsigned char * vdest		   = udest + ac_len;
 
-   if(!((m_width/2) & mod))
+   if(!(hw & mod))
    {
+      unsigned int size = HALF(pixels);
       if(icinfo->lpbiInput->biCompression != FOURCC_UYVY)
       {
-         for(unsigned int a = 0; a < m_width * m_height/2; a++) // TODO: Optimize
+         for(unsigned int a = 0; a < size; a++)
          {
-            ysrc[a*2]	= m_in[a * 4    ];
-            usrc[a]		= m_in[a * 4 + 1];
-            ysrc[a*2+1]	= m_in[a * 4 + 2];
-            vsrc[a]		= m_in[a * 4 + 3];
+            unsigned int a2 = DOUBLE(a);
+            unsigned int a4 = QUADRUPLE(a);
+
+            ysrc[a2]    = m_in[a4    ];
+            usrc[a]     = m_in[a4 + 1];
+            ysrc[a2+1]  = m_in[a4 + 2];
+            vsrc[a]     = m_in[a4 + 3];
          }
       } 
-      else
-      { // UYVY format
-         for(unsigned int a = 0; a < m_width * m_height/2; a++)
+      else  // UYVY format
+      {
+         for(unsigned int a = 0; a < size; a++)
          {
-            usrc[a]		= m_in[a * 4    ];
-            ysrc[a*2]	= m_in[a * 4 + 1];
-            vsrc[a]		= m_in[a * 4 + 2];
-            ysrc[a*2+1]	= m_in[a * 4 + 3];
+            unsigned int a2 = DOUBLE(a);
+            unsigned int a4 = QUADRUPLE(a);
+
+            usrc[a]     = m_in[a4    ];
+            ysrc[a2]    = m_in[a4 + 1];
+            vsrc[a]     = m_in[a4 + 2];
+            ysrc[a2+1]  = m_in[a4 + 3];
          }
       }
    } 
@@ -255,7 +262,7 @@ DWORD CodecInst::CompressYUY2(ICCOMPRESS* icinfo)
          for(unsigned int h = 0; h < m_height; h++)
          {
             unsigned int x = 0;
-            for (; x < m_width * 2; x+=4)
+            for (; x < DOUBLE(m_width); x+=4)
             {
                y[0] = src[0];
                u[0] = src[1];
@@ -272,7 +279,7 @@ DWORD CodecInst::CompressYUY2(ICCOMPRESS* icinfo)
             j = u[-1];
             k = v[-1];
 
-            for(unsigned int z= x/4; z < ac_stride; z++)
+            for(unsigned int z = FOURTH(x); z < ac_stride; z++)
             {
                u[0] = j;
                v[0] = k;
@@ -287,13 +294,13 @@ DWORD CodecInst::CompressYUY2(ICCOMPRESS* icinfo)
             }
          }
       } 
-      else 
-      { // UYVY format
+      else // UYVY format
+      {
          for(unsigned int h = 0; h < m_height; h++)
          {
             unsigned int x = 0;
 
-            for(;x < m_width * 2; x += 4)
+            for(;x < DOUBLE(m_width); x += 4)
             {
                u[0] = src[0];
                y[0] = src[1];
@@ -310,7 +317,7 @@ DWORD CodecInst::CompressYUY2(ICCOMPRESS* icinfo)
             j=u[-1];
             k=v[-1];
 
-            for(unsigned int z = x / 4; z < ac_stride; z++)
+            for(unsigned int z = FOURTH(x); z < ac_stride; z++)
             {
                u[0] = j;
                v[0] = k;
@@ -349,38 +356,37 @@ DWORD CodecInst::CompressYUY2(ICCOMPRESS* icinfo)
       SWAP(vsrc, vdest);
 
       // remove alignment padding
-      if (m_width & mod)
-      {// remove luminance padding 
+      if (m_width & mod) // remove luminance padding 
+      {
          for(unsigned int y = 0; y < m_height; y++)
          {
             memcpy(ydest + y * m_width, ysrc + y * ay_stride, m_width);
          }
          SWAP(ysrc, ydest);
       }
-      if((m_width/2) & mod)
-      { // remove chroma padding
+      if(hw & mod)  // remove chroma padding
+      {
          unsigned int y;
          for(y = 0; y < m_height; y++)
          {
-            memcpy(udest + y * m_width / 2, usrc + y * ac_stride, m_width / 2);
+            memcpy(udest + HALF(y * m_width), usrc + y * ac_stride, hw);
          }
          for(y = 0; y < m_height; y++)
          {
-            memcpy(vdest + y * m_width / 2, vsrc + y * ac_stride, m_width / 2);
+            memcpy(vdest + HALF(y * m_width), vsrc + y * ac_stride, hw);
          }
          SWAP(usrc, udest);
          SWAP(vsrc, vdest);
       }
 
-      size = m_compressWorker.Compact(ysrc, m_out + 9, m_width * m_height) + 9;
+      size = m_compressWorker.Compact(ysrc, m_out + 9, pixels) + 9;
       *(UINT32*)(m_out + 1) = size;
-      size += m_compressWorker.Compact(usrc, m_out + size, m_width * m_height/2);
+      size += m_compressWorker.Compact(usrc, m_out + size, HALF(pixels));
       *(UINT32*)(m_out + 5) = size;
-      size += m_compressWorker.Compact(vsrc, m_out + size, m_width * m_height/2);
+      size += m_compressWorker.Compact(vsrc, m_out + size, HALF(pixels));
    } 
    else
    { 
-      int pixels = m_width * m_height;
       m_info_a.m_source = ysrc;
       m_info_a.m_dest = m_out + 9;
       m_info_a.m_length = pixels;
@@ -401,16 +407,16 @@ DWORD CodecInst::CompressYUY2(ICCOMPRESS* icinfo)
 
       SWAP(vsrc, vdest);
 
-      if((m_width/2) & mod)
+      if(hw & mod)
       { // remove chroma padding
          for(unsigned int y = 0; y < m_height; y++)
          {
-            memcpy(vdest + y * m_width/2, vsrc + y * ac_stride, m_width/2);
+            memcpy(vdest + HALF(y * m_width), vsrc + y * ac_stride, hw);
          }
-         SWAP(vsrc,vdest);
+         SWAP(vsrc, vdest);
       }
 
-      size = m_compressWorker.Compact(vsrc, m_prevFrame, pixels/2);
+      size = m_compressWorker.Compact(vsrc, m_prevFrame, HALF(pixels));
       while(m_info_a.m_length)
       {
          Sleep(0);

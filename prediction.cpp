@@ -9,7 +9,7 @@ inline int median(int x, int y, int z)
 {
    int i = (x <= y) ? x : y;	//i = min(x,y);
    int j = (x >= y) ? x : y;	//j = max(x,y);
-       i = (i >= z) ? i : z;	//i = max(i,z);
+   i = (i >= z) ? i : z;      //i = max(i,z);
    return  (i <= j) ? i : j;	//j = min(i,j);
 }
 
@@ -18,36 +18,36 @@ void SSE2_BlockPredict(const unsigned char* source, unsigned char* dest, const u
    unsigned int a;
    __m128i t0;
    t0 = _mm_setzero_si128();
-   for ( a=0;a<stride;a+=16)
+   for(a = 0; a < stride; a += 16)
    {
-      __m128i x = _mm_slli_si128( *(__m128i*)(source+a), 1);
-      x = _mm_or_si128(x,t0);
-      t0 = *(__m128i*)(source+a);
-      t0 = _mm_srli_si128(t0,15);
-      *(__m128i*)(dest+a)=_mm_sub_epi8(*(__m128i*)(source+a),x);
+      __m128i x = _mm_slli_si128( *(__m128i*)(source + a), 1);
+      x = _mm_or_si128(x, t0);
+      t0 = *(__m128i*)(source + a);
+      t0 = _mm_srli_si128(t0, 15);
+      *(__m128i*)(dest + a) = _mm_sub_epi8(*(__m128i*)(source + a),x);
    }
 
    __m128i ta;
    __m128i tb;
 
-   tb=*(__m128i *)(source+stride-16); // x
-   tb = _mm_srli_si128(tb,15);
+   tb=*(__m128i *)(source + stride - 16); // x
+   tb = _mm_srli_si128(tb, 15);
 
    // dest[stride] must equal source[stride]-source[stride-1] not source[0] due to a coding error
    // to achieve this, the initial values for z is set to y to make x the median
    ta=*(__m128i *)(source); // z
-   ta = _mm_slli_si128(ta,15);
-   ta = _mm_srli_si128(ta,15);
+   ta = _mm_slli_si128(ta, 15);
+   ta = _mm_srli_si128(ta, 15);
 
-   for ( ;a<length;a+=16)
+   for ( ;a < length; a += 16)
    {
-      __m128i x=*(__m128i*)(source+a);
-      x = _mm_slli_si128(x,1);
-      x = _mm_or_si128(x,tb);
-      __m128i y=*(__m128i*)(source+a-stride);
-      __m128i z=*(__m128i*)(source+a-stride);
-      z = _mm_slli_si128(z,1);
-      z = _mm_or_si128(z,ta);
+      __m128i x=*(__m128i*)(source + a);
+      x = _mm_slli_si128(x, 1);
+      x = _mm_or_si128(x, tb);
+      __m128i y=*(__m128i*)(source + a - stride);
+      __m128i z=*(__m128i*)(source + a - stride);
+      z = _mm_slli_si128(z, 1);
+      z = _mm_or_si128(z, ta);
 
       __m128i u;
       __m128i v;
@@ -59,36 +59,36 @@ void SSE2_BlockPredict(const unsigned char* source, unsigned char* dest, const u
       v = _mm_setzero_si128();
       w = _mm_setzero_si128();
 
-      t = _mm_unpacklo_epi8(x,t);
-      u = _mm_unpacklo_epi8(y,u);
-      v = _mm_unpacklo_epi8(z,v);
-      t = _mm_add_epi16(t,u);
-      t = _mm_sub_epi16(t,v);
+      t = _mm_unpacklo_epi8(x, t);
+      u = _mm_unpacklo_epi8(y, u);
+      v = _mm_unpacklo_epi8(z, v);
+      t = _mm_add_epi16(t, u);
+      t = _mm_sub_epi16(t ,v);
 
       u = _mm_setzero_si128();
       v = _mm_setzero_si128();
 
-      u = _mm_unpackhi_epi8(x,u);
-      v = _mm_unpackhi_epi8(y,v);
-      w = _mm_unpackhi_epi8(z,w);
+      u = _mm_unpackhi_epi8(x, u);
+      v = _mm_unpackhi_epi8(y, v);
+      w = _mm_unpackhi_epi8(z, w);
 
-      u = _mm_add_epi16(u,v);
-      u = _mm_sub_epi16(u,w); 
+      u = _mm_add_epi16(u, v);
+      u = _mm_sub_epi16(u, w); 
 
-      z = _mm_packus_epi16(t,u); // z now equals x+y-z
+      z = _mm_packus_epi16(t, u); // z now equals x+y-z
 
-      ta = _mm_srli_si128(y,15);
-      tb = _mm_srli_si128(*(__m128i*)(source+a),15);
+      ta = _mm_srli_si128(y, 15);
+      tb = _mm_srli_si128(*(__m128i*)(source + a), 15);
 
       __m128i i;
       __m128i j;
 
-      i = _mm_min_epu8(x,y);
-      j = _mm_max_epu8(x,y);
-      i = _mm_max_epu8(i,z);
-      j = _mm_min_epu8(i,j);
+      i = _mm_min_epu8(x, y);
+      j = _mm_max_epu8(x, y);
+      i = _mm_max_epu8(i, z);
+      j = _mm_min_epu8(i, j);
 
-      *(__m128i*)(dest+a)=_mm_sub_epi8( *(__m128i*)(source+a),j);
+      *(__m128i*)(dest + a)=_mm_sub_epi8( *(__m128i*)(source + a), j);
    }
 }
 
@@ -97,37 +97,37 @@ void MMX_BlockPredict(const unsigned char* source, unsigned char* dest, const un
    unsigned int a;
    __m64 t0;
    t0 = _mm_setzero_si64();
-   for ( a=0;a<stride;a+=8)
+   for(a = 0; a < stride; a+= 8)
    {
-      __m64 x = _mm_slli_si64( *(__m64*)(source+a), 8);
-      x = _mm_or_si64(x,t0);
-      t0 = *(__m64*)(source+a);
-      t0 = _mm_srli_si64(t0,7*8);
-      *(__m64*)(dest+a)=_mm_sub_pi8(*(__m64*)(source+a),x);
+      __m64 x = _mm_slli_si64( *(__m64*)(source + a), 8);
+      x = _mm_or_si64(x, t0);
+      t0 = *(__m64*)(source + a);
+      t0 = _mm_srli_si64(t0, 7 * 8);
+      *(__m64*)(dest+a) = _mm_sub_pi8(*(__m64*)(source + a),x);
    }
 
    __m64 ta;
    __m64 tb;
 
-   tb=*(__m64 *)(source+stride-8); // x
+   tb=*(__m64 *)(source + stride - 8); // x
 
-   tb = _mm_srli_si64(tb,7*8);
+   tb = _mm_srli_si64(tb, 7 * 8);
 
    // dest[stride] must equal source[stride]-source[stride-1] not source[0] due to a coding error
    // to achieve this, the initial values for z is set to y to make x the median
    ta=*(__m64 *)(source); // z
-   ta = _mm_slli_si64(ta,7*8);
-   ta = _mm_srli_si64(ta,7*8);
+   ta = _mm_slli_si64(ta, 7 * 8);
+   ta = _mm_srli_si64(ta, 7 * 8);
 
    for ( ;a<length;a+=8)
    {
-      __m64 x=*(__m64*)(source+a);
-      x = _mm_slli_si64(x,8);
-      x = _mm_or_si64(x,tb);
-      __m64 y=*(__m64*)(source+a-stride);
-      __m64 z=*(__m64*)(source+a-stride);
-      z = _mm_slli_si64(z,8);
-      z = _mm_or_si64(z,ta);
+      __m64 x=*(__m64*)(source + a);
+      x = _mm_slli_si64(x, 8);
+      x = _mm_or_si64(x, tb);
+      __m64 y = *(__m64*)(source + a - stride);
+      __m64 z = *(__m64*)(source + a - stride);
+      z = _mm_slli_si64(z, 8);
+      z = _mm_or_si64(z, ta);
 
       __m64 u;
       __m64 v;
@@ -139,36 +139,36 @@ void MMX_BlockPredict(const unsigned char* source, unsigned char* dest, const un
       v = _mm_setzero_si64();
       w = _mm_setzero_si64();
 
-      t = _mm_unpacklo_pi8(x,t);
-      u = _mm_unpacklo_pi8(y,u);
-      v = _mm_unpacklo_pi8(z,v);
-      t = _mm_add_pi16(t,u);
-      t = _mm_sub_pi16(t,v);
+      t = _mm_unpacklo_pi8(x, t);
+      u = _mm_unpacklo_pi8(y, u);
+      v = _mm_unpacklo_pi8(z, v);
+      t = _mm_add_pi16(t, u);
+      t = _mm_sub_pi16(t, v);
 
       u = _mm_setzero_si64();
       v = _mm_setzero_si64();
 
-      u = _mm_unpackhi_pi8(x,u);
-      v = _mm_unpackhi_pi8(y,v);
-      w = _mm_unpackhi_pi8(z,w);
+      u = _mm_unpackhi_pi8(x, u);
+      v = _mm_unpackhi_pi8(y, v);
+      w = _mm_unpackhi_pi8(z, w);
 
-      u = _mm_add_pi16(u,v);
-      u = _mm_sub_pi16(u,w); 
+      u = _mm_add_pi16(u, v);
+      u = _mm_sub_pi16(u, w); 
 
-      z = _mm_packs_pu16 (t,u); // z now equals x+y-z
+      z = _mm_packs_pu16(t, u); // z now equals x+y-z
 
-      ta = _mm_srli_si64(y,7*8);
-      tb = _mm_srli_si64(*(__m64*)(source+a),7*8);
+      ta = _mm_srli_si64(y, 7 * 8);
+      tb = _mm_srli_si64(*(__m64*)(source + a), 7 * 8);
 
       __m64 i;
       __m64 j;
 
-      i = _mm_min_pu8(x,y);
-      j = _mm_max_pu8(x,y);
-      i = _mm_max_pu8(i,z);
-      j = _mm_min_pu8(i,j);
+      i = _mm_min_pu8(x, y);
+      j = _mm_max_pu8(x, y);
+      i = _mm_max_pu8(i, z);
+      j = _mm_min_pu8(i, j);
 
-      *(__m64*)(dest+a)=_mm_sub_pi8( *(__m64*)(source+a),j);
+      *(__m64*)(dest+a) = _mm_sub_pi8( *(__m64*)(source + a), j);
    }
 
    _mm_empty();
@@ -181,7 +181,7 @@ void SSE2_Predict_YUY2(const unsigned char* source, unsigned char* dest, const u
    unsigned int a = 0;
    __m128i ta = _mm_setzero_si128();
 
-   if ( lum )
+   if(lum)
    {
       dest[1]=source[1];
       for(a = 2; a < 16; a++)
@@ -244,7 +244,7 @@ void SSE2_Predict_YUY2(const unsigned char* source, unsigned char* dest, const u
       j = _mm_max_epu8(x, y);
       i = _mm_max_epu8(i, z);
       j = _mm_min_epu8(i, j);
-                          
+
       j = _mm_sub_epi8(w, j);
 
 
@@ -333,18 +333,17 @@ void MMX_Predict_YUY2(const unsigned char* source,unsigned char* dest, const uns
 
 void ASM_BlockRestore(unsigned char * source, unsigned int stride, unsigned int xlength, unsigned int mode)
 {
-   for ( unsigned int a = 1; a < stride + !mode; a++)
+   for(unsigned int a = 1; a < stride + !mode; a++)
    {
       source[a] += source[a-1];
    }
 
-   if ( mode ) //TODO: Optimize
+   if(mode) //TODO: Optimize
    {
       source[stride] += source[0];
    }
 
    __asm{
-
       movd	mm1,ebx
          movd	mm6,esp
          movd	mm7,ebp
@@ -363,7 +362,7 @@ void ASM_BlockRestore(unsigned char * source, unsigned int stride, unsigned int 
          neg		esp
          mov		ebp,ebx // ebp = ending
          movzx	eax,byte ptr[esi] // a-1
-      movzx	ebx,byte ptr[esp+esi] // a-dis-1
+      movzx	ebx,byte ptr[esp + esi] // a-dis-1
       add		esp,esi
          inc		esp
 
@@ -407,6 +406,5 @@ median_restore_block:
          movd	esp,mm6
          movd	ebp,mm7
          emms
-
    }
 }

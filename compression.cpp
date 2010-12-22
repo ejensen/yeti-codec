@@ -143,6 +143,12 @@ DWORD CodecInst::Compress(ICCOMPRESS* icinfo, DWORD dwSize)
       src = m_buffer;
    }
 
+   if(m_compressFormat == YUY2)
+   {
+      m_in = (unsigned char*)src;
+      return CompressYUY2(icinfo);
+   }
+
    unsigned int dw = DOUBLE(m_width);
    unsigned char * dst2 = m_colorTransBuffer;
    unsigned int yuy2_pitch = ALIGN_ROUND(dw, 16);
@@ -189,15 +195,16 @@ DWORD CodecInst::Compress(ICCOMPRESS* icinfo, DWORD dwSize)
    //_itoa_s(m_compressFormat, buffer, 11, 10);
    //MessageBox(HWND_DESKTOP, buffer, "format", MB_OK);
 
-   switch(m_compressFormat)
+   if(m_compressFormat == YV12)
    {
-   case YUY2:
-         return CompressYUY2(icinfo);
-   case YV12:
-         return CompressYV12(icinfo);
-   case REDUCED:
-         return CompressReduced(icinfo);
+      return CompressYV12(icinfo);
    }
+   else if(m_compressFormat == REDUCED)
+   {
+      return CompressReduced(icinfo);
+   }
+
+   return ICERR_BADFORMAT;
 }
 
 DWORD CodecInst::CompressYUY2(ICCOMPRESS* icinfo)
@@ -319,14 +326,13 @@ DWORD CodecInst::CompressYUY2(ICCOMPRESS* icinfo)
             }
          }
       }
-
    }
 
    int size;
-   if ( !m_multithreading )
+   if (!m_multithreading)
    {
 
-      if ( m_SSE2 )
+      if (m_SSE2)
       {
          SSE2_Predict_YUY2(ysrc, ydest, ay_stride, m_height, 1);
          SSE2_Predict_YUY2(usrc, udest, ac_stride, m_height, 0);
@@ -367,8 +373,7 @@ DWORD CodecInst::CompressYUY2(ICCOMPRESS* icinfo)
          SWAP(vsrc, vdest);
       }
 
-
-      size = m_compressWorker.Compact(ysrc,m_out + 9, m_width * m_height) + 9;
+      size = m_compressWorker.Compact(ysrc, m_out + 9, m_width * m_height) + 9;
       *(UINT32*)(m_out + 1) = size;
       size += m_compressWorker.Compact(usrc, m_out + size, m_width * m_height/2);
       *(UINT32*)(m_out + 5) = size;
@@ -383,7 +388,7 @@ DWORD CodecInst::CompressYUY2(ICCOMPRESS* icinfo)
       RESUME_THREAD(m_info_a.m_thread);
       m_info_b.m_source = usrc;
       m_info_b.m_dest = m_buffer2;
-      m_info_b.m_length = HALF( pixels );
+      m_info_b.m_length = HALF(pixels);
       RESUME_THREAD(m_info_b.m_thread);
 
       if(m_SSE2)
@@ -429,10 +434,12 @@ DWORD CodecInst::CompressYUY2(ICCOMPRESS* icinfo)
    }
 
    m_out[0] = YUY2_KEYFRAME;
+   *icinfo->lpdwFlags |= AVIIF_KEYFRAME;
+   icinfo->dwFlags |= ICCOMPRESS_KEYFRAME;
    icinfo->lpbiOutput->biSizeImage = size;
 
-   assert( *(__int64*)(m_out + *(UINT32*)(m_out + 1)) != 0 );
-   assert( *(__int64*)(m_out + *(UINT32*)(m_out + 5)) != 0 );
+   assert(*(__int64*)(m_out + *(UINT32*)(m_out + 1)) != 0);
+   assert(*(__int64*)(m_out + *(UINT32*)(m_out + 5)) != 0);
    return ICERR_OK;
 }
 

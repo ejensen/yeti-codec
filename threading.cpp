@@ -28,15 +28,18 @@ DWORD WINAPI EncodeWorkerTread(LPVOID i)
 
        if(format == YUY2) //TODO: Optimize
        {
-         if ( SSE2 ){
+         if (SSE2)
+         {
             SSE2_Predict_YUY2(src, dst, stride, height, lum);
-         } else {
+         } 
+         else
+         {
             MMX_Predict_YUY2(src, dst, stride, height, lum);
          }
        }
        else
        {
-         if( SSE2 )
+         if(SSE2)
          {
             SSE2_BlockPredict(src, dst, stride, stride * height);
          } 
@@ -77,8 +80,8 @@ DWORD WINAPI DecodeWorkerThread(LPVOID i)
    unsigned int height;
    unsigned char * src = NULL;
    unsigned char * dest = NULL;
-   unsigned int format = info->m_format;
    unsigned int length;
+   unsigned int format;
 
    while(info->m_length != UINT32_MAX) //TODO:Optimize
    {
@@ -86,6 +89,7 @@ DWORD WINAPI DecodeWorkerThread(LPVOID i)
       dest = (unsigned char*)info->m_dest;
 
       length = info->m_length; //TODO: Optimize
+      format = info->m_format;
       width = info->m_width;
       height = info->m_height;
 
@@ -128,9 +132,10 @@ DWORD CodecInst::InitThreads(bool encode)
       m_info_b.m_height = FOURTH(m_height);
    }
 
-   m_info_a.m_format = m_format;
-   m_info_b.m_format = m_format;
-   m_info_c.m_format = m_format;
+   int useFormat = (encode) ? m_compressFormat : m_format;
+   m_info_a.m_format = useFormat;
+   m_info_b.m_format = useFormat;
+   m_info_c.m_format = useFormat;
 
    m_info_a.m_SSE2 = m_SSE2;
    m_info_b.m_SSE2 = m_SSE2;

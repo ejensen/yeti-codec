@@ -125,23 +125,26 @@ DWORD CodecInst::Compress(ICCOMPRESS* icinfo, DWORD dwSize)
    } 
 
    const BYTE* src = m_in;
+   BYTE* dest;
 
    if(m_format >= RGB24)
    {
+      dest = (m_compressFormat == YUY2) ? m_colorTransBuffer : m_buffer;
+
       if(m_format == RGB24)
       {
-         mmx_ConvertRGB24toYUY2(m_in, m_buffer, m_width * 3, DOUBLE(m_width), m_width, m_height);
+         mmx_ConvertRGB24toYUY2(m_in, dest, m_width * 3, DOUBLE(m_width), m_width, m_height);
       } 
       else if(m_format == RGB32)
       {
-         mmx_ConvertRGB32toYUY2((const unsigned int*)m_in, (unsigned int*)m_buffer, m_width, HALF(m_width), m_width, m_height);
+         mmx_ConvertRGB32toYUY2((const unsigned int*)m_in, (unsigned int*)dest, m_width, HALF(m_width), m_width, m_height);
       }
       src = m_buffer;
    }
 
    if(m_compressFormat == YUY2)
    {
-      m_in = (BYTE*)src;
+      m_in = dest;
       return CompressYUY2(icinfo);
    }
 
@@ -165,7 +168,7 @@ DWORD CodecInst::Compress(ICCOMPRESS* icinfo, DWORD dwSize)
 
    isse_yuy2_to_yv12(src, dw, yuy2_pitch, dst2, dst2 + y_pitch * m_height + HALF(uv_pitch * m_height), dst2 + y_pitch * m_height, y_pitch, uv_pitch, m_height);
 
-   BYTE * dest = m_colorTransBuffer;
+   dest = m_colorTransBuffer;
    if(!is_aligned)
    {
       unsigned int h;

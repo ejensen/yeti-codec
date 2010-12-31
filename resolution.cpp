@@ -13,7 +13,7 @@ void ReduceRes(const BYTE* src, BYTE* dest, BYTE* buffer, const unsigned int wid
 
    if(stride != width)
    {
-      for(unsigned int y = 0;y < height; y++)
+      for(unsigned int y = 0; y < height; y++)
       {
          memcpy(buffer + y * stride, src + y * width, width);
          BYTE u = buffer[y * stride + width - 2]; //TODO: Optimize
@@ -44,11 +44,11 @@ void ReduceRes(const BYTE* src, BYTE* dest, BYTE* buffer, const unsigned int wid
       {
          for(unsigned int x = 0; x < stride; x += 32)
          {
-            __m128i a = *(__m128i *)(source + stride * y + x);
-            __m128i b = *(__m128i *)(source + stride * y + x + stride);
+            __m128i a = *(__m128i*)(source + stride * y + x);
+            __m128i b = *(__m128i*)(source + stride * y + x + stride);
 
-            __m128i c = *(__m128i *)(source + stride * y + x + 16);
-            __m128i d = *(__m128i *)(source + stride * y + x + stride + 16);
+            __m128i c = *(__m128i*)(source + stride * y + x + 16);
+            __m128i d = *(__m128i*)(source + stride * y + x + stride + 16);
 
             a = _mm_avg_epu8(a, b);
             c = _mm_avg_epu8(c, d);
@@ -63,7 +63,7 @@ void ReduceRes(const BYTE* src, BYTE* dest, BYTE* buffer, const unsigned int wid
             c = _mm_and_si128(c, mask);
 
             a = _mm_packus_epi16(a, c);
-            *(__m128i *)(dest + y * stride/4 + x/2) = a;
+            *(__m128i*)(dest + FOURTH(y * stride) + HALF(x)) = a;
          }
       }
    }
@@ -93,7 +93,7 @@ void ReduceRes(const BYTE* src, BYTE* dest, BYTE* buffer, const unsigned int wid
             c = _mm_and_si64(c, mask);
 
             a = _mm_packs_pu16(a, c);
-            *(__m64 *)(dest + y * stride/4 + x/2) = a;
+            *(__m64 *)(dest + FOURTH(y * stride) + HALF(x)) = a;
          }
       }
       _mm_empty();
@@ -207,11 +207,11 @@ void EnlargeRes(const BYTE* src, BYTE* dst, BYTE* buffer, unsigned int width, un
       {
          for(unsigned int x = 0; x < stride; x += 16)
          {
-            __m64 a = *(__m64 *)(dest + x + y * stride);
-            __m64 b = *(__m64 *)(dest + x + y * stride  +DOUBLE(stride));
+            __m64 a = *(__m64*)(dest + x + y * stride);
+            __m64 b = *(__m64*)(dest + x + y * stride  +DOUBLE(stride));
 
-            __m64 c = *(__m64 *)(dest + x + y * stride + 8);
-            __m64 d = *(__m64 *)(dest + x + y * stride + DOUBLE(stride) + 8);
+            __m64 c = *(__m64*)(dest + x + y * stride + 8);
+            __m64 d = *(__m64*)(dest + x + y * stride + DOUBLE(stride) + 8);
 
             a=_mm_avg_pu8(a, b);
             c=_mm_avg_pu8(c, d);

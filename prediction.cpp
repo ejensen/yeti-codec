@@ -30,7 +30,7 @@ void SSE2_BlockPredict(const BYTE* source, BYTE* dest, const unsigned int stride
    __m128i ta;
    __m128i tb;
 
-   tb=*(__m128i *)(source + stride - 16); // x
+   tb = *(__m128i *)(source + stride - 16); // x
    tb = _mm_srli_si128(tb, 15);
 
    // dest[stride] must equal source[stride]-source[stride-1] not source[0] due to a coding error
@@ -99,7 +99,7 @@ void MMX_BlockPredict(const BYTE* source, BYTE* dest, const unsigned int stride,
    t0 = _mm_setzero_si64();
    for(a = 0; a < stride; a+= 8)
    {
-      __m64 x = _mm_slli_si64( *(__m64*)(source + a), 8);
+      __m64 x = _mm_slli_si64(*(__m64*)(source + a), 8);
       x = _mm_or_si64(x, t0);
       t0 = *(__m64*)(source + a);
       t0 = _mm_srli_si64(t0, 7 * 8);
@@ -331,7 +331,7 @@ void MMX_Predict_YUY2(const BYTE* source, BYTE* dest, const unsigned int width, 
    _mm_empty();
 }
 
-void ASM_BlockRestore(BYTE * source, unsigned int stride, unsigned int xlength, unsigned int mode)
+void ASM_BlockRestore(BYTE* source, unsigned int stride, unsigned int xlength, unsigned int mode)
 {
    for(unsigned int a = 1; a < stride + !mode; a++)
    {

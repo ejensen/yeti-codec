@@ -5,7 +5,7 @@
 #define BOTTOM_VALUE	0x00800000
 #define SHIFT_BITS		23
 
-#define OUTPUT_BYTE( x ) *out++ = x;
+#define OUTPUT_BYTE(x) *out++ = x;
 
 // Compress a byte stream using range coding. The frequency table
 // "prob_ranges" will previously have been set up by the calcProb function

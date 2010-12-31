@@ -73,11 +73,11 @@ __declspec(align(8)) static __int64 UB_MUL = 0x0081008100810081;
 __declspec(align(8)) static __int64 VR_MUL = 0x0066006600660066;
 
 
-void __declspec(naked) _cdecl yv12_to_rgb32_mmx(BYTE *dst, 
+void __declspec(naked) _cdecl yv12_to_rgb32_mmx(BYTE* dst, 
 						 int dst_stride, 
-						 const BYTE *y_src,
-						 const BYTE *u_src,
-						 const BYTE *v_src, 
+						 const BYTE* y_src,
+						 const BYTE* u_src,
+						 const BYTE* v_src, 
 						 int y_stride, int uv_stride,
 						 int width, int height) {
 
@@ -472,11 +472,11 @@ x_loop:
 }
 
 
-void __declspec(naked) _cdecl yv12_to_rgb24_mmx(BYTE *dst, 
+void __declspec(naked) _cdecl yv12_to_rgb24_mmx(BYTE* dst, 
 						 int dst_stride, 
-						 const BYTE *y_src,
-						 const BYTE *u_src,
-						 const BYTE *v_src, 
+						 const BYTE* y_src,
+						 const BYTE* u_src,
+						 const BYTE* v_src, 
 						 int y_stride, int uv_stride,
 						 int width, int height) {
 
@@ -909,11 +909,11 @@ x_loop:
 }
 
 //yv12_to_yuyv_mmx
-void __declspec(naked) _cdecl yv12_to_yuyv_mmx(BYTE * dst,
+void __declspec(naked) _cdecl yv12_to_yuyv_mmx(BYTE* dst,
 				int dst_stride,
-				const BYTE * y_src,
-				const BYTE * u_src,
-				const BYTE * v_src,
+				const BYTE* y_src,
+				const BYTE* u_src,
+				const BYTE* v_src,
 				int y_stride,
 				int uv_stride,
 				int width,

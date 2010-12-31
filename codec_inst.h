@@ -57,7 +57,7 @@ public:
 
    BOOL QueryConfigure();
 
-   void InitDecompressionThreads(const BYTE * in, BYTE * out, unsigned int length, unsigned int width, unsigned int height, threadInfo * thread, int format);
+   void InitDecompressionThreads(const BYTE* in, BYTE* out, unsigned int length, unsigned int width, unsigned int height, threadInfo* thread, int format);
    DWORD InitThreads(bool encode);
    void EndThreads();
 

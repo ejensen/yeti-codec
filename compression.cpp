@@ -149,7 +149,7 @@ DWORD CodecInst::Compress(ICCOMPRESS* icinfo, DWORD dwSize)
    }
 
    unsigned int dw = DOUBLE(m_width);
-   BYTE * dst2 = m_colorTransBuffer;
+   BYTE* dst2 = m_colorTransBuffer;
    unsigned int yuy2_pitch = ALIGN_ROUND(dw, 16);
    unsigned int y_pitch = ALIGN_ROUND(m_width, 8);
    unsigned int uv_pitch = ALIGN_ROUND(HALF(m_width), 8);
@@ -603,9 +603,9 @@ DWORD CodecInst::CompressYV12(ICCOMPRESS* icinfo)
    const unsigned int ac_len	= HALF(c_stride * m_height);
    const unsigned int ayu_len	= ay_len + ac_len;
 
-   const BYTE * ysrc;
-   const BYTE * usrc;
-   const BYTE * vsrc;
+   const BYTE* ysrc;
+   const BYTE* usrc;
+   const BYTE* vsrc;
 
    const unsigned int in_aligned = !((int)m_in & mod);
 
@@ -695,7 +695,7 @@ DWORD CodecInst::CompressYV12(ICCOMPRESS* icinfo)
    size_t size;
    if(!m_multithreading)
    {
-      BYTE* buffer3 = (BYTE *)ALIGN_ROUND(m_out, 16);
+      BYTE* buffer3 = (BYTE*)ALIGN_ROUND(m_out, 16);
 
       //set up dest buffers based on if alignment padding needs removal later
       BYTE* ydest;
@@ -981,7 +981,7 @@ DWORD CodecInst::CompressReduced(ICCOMPRESS *icinfo)
       m_info_b.m_length = rc_bytes;
       RESUME_THREAD(m_info_b.m_thread);
 
-      BYTE *vdest = m_buffer2;
+      BYTE* vdest = m_buffer2;
 
       if(m_SSE2)
       {

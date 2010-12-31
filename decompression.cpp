@@ -122,7 +122,7 @@ void CodecInst::YUY2Decompress(DWORD flags)
    }
 
    const unsigned int pixels = m_width * m_height;
-   BYTE *y, *u,* v;
+   BYTE* y, *u, *v;
    y = dst;
    u = y + pixels;
    v = u + HALF(pixels);

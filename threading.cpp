@@ -6,25 +6,25 @@
 
 DWORD WINAPI EncodeWorkerTread(LPVOID i)
 {
-   threadInfo * info = (threadInfo*)i;
+   threadInfo* info = (threadInfo*)i;
    const unsigned int width = info->m_width;
    const unsigned int height = info->m_height;
 
    const unsigned int SSE2 = info->m_SSE2;
    const unsigned int stride = ALIGN_ROUND(width, (SSE2 ? 16 : 8));
 
-   const BYTE * src = NULL;
-   BYTE * dest = NULL;
+   const BYTE* src = NULL;
+   BYTE* dest = NULL;
    const unsigned int format=info->m_format;
    const unsigned int lum = info->m_lum;
-   BYTE * const buffer = (BYTE*)info->m_buffer;
+   BYTE* const buffer = (BYTE*)info->m_buffer;
 
    while(info->m_length != UINT32_MAX) //TODO: Optimize
    {
       src = (const BYTE*)info->m_source;
       dest = (BYTE*)info->m_dest;
 
-      BYTE * dst = (width == stride) ? buffer : (BYTE*)ALIGN_ROUND(dest, 16);
+      BYTE* dst = (width == stride) ? buffer : (BYTE*)ALIGN_ROUND(dest, 16);
 
        if(format == YUY2) //TODO: Optimize
        {
@@ -75,7 +75,7 @@ DWORD WINAPI EncodeWorkerTread(LPVOID i)
 
 DWORD WINAPI DecodeWorkerThread(LPVOID i)
 {
-   threadInfo * info = (threadInfo*)i;
+   threadInfo* info = (threadInfo*)i;
    const unsigned int width = info->m_width;
    const unsigned int height = info->m_height;
    const unsigned int hxw = height * width;
@@ -175,7 +175,7 @@ DWORD CodecInst::InitThreads(bool encode)
       if(m_format == RGB32)
       {
          if(!m_info_c.m_compressWorker.InitCompressBuffers(buffer_a * 3) 
-            || !(m_info_c.m_buffer = (BYTE *)ALIGNED_MALLOC(m_info_c.m_buffer, buffer_a, 16, "Info_c.buffer")))
+            || !(m_info_c.m_buffer = (BYTE*)ALIGNED_MALLOC(m_info_c.m_buffer, buffer_a, 16, "Info_c.buffer")))
          {
             m_info_a.m_compressWorker.FreeCompressBuffers();
             m_info_b.m_compressWorker.FreeCompressBuffers();

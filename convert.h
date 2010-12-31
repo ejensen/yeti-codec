@@ -11,7 +11,7 @@ extern "C" {
 	* h = source image height in pixels
 	*/
 
-	void mmx_ConvertRGB32toYUY2(const BYTE *src,BYTE *dst,int src_pitch, int dst_pitch,int w, int h);
+	void mmx_ConvertRGB32toYUY2(const BYTE* src, BYTE* dst, int src_pitch, int dst_pitch,int w, int h);
 
 	/* YUY2toYV12
 	* *src = pointer to yuy2 source frame

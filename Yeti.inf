@@ -8,7 +8,7 @@ UpdateInis=YETI.INIs
 
 [DefaultUnInstall]
 DelFiles=YETI.Files.Dll,YETI.Files.Inf,YETI.Files.Ini
-DelReg=YETIC.Reg
+DelReg=YETI.Reg
 UpdateInis=YETI.INIs.Del
 
 [SourceDisksNames]

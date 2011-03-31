@@ -41,7 +41,7 @@ HKLM,"Software\Microsoft\Windows NT\CurrentVersion\drivers.desc",Yeti.dll,,"Yeti
 HKLM,"Software\Microsoft\Windows NT\CurrentVersion\Drivers32",VIDC.YETI,,"Yeti.dll"
 
 HKLM,Software\Microsoft\Windows\CurrentVersion\Uninstall\YETI
-HKLM,Software\Microsoft\Windows\CurrentVersion\Uninstall\YETI,DisplayName,,"Yeti Video Codec (Remove Only)"
+HKLM,Software\Microsoft\Windows\CurrentVersion\Uninstall\YETI,DisplayName,,"Yeti Video Codec"
 HKLM,Software\Microsoft\Windows\CurrentVersion\Uninstall\YETI,UninstallString,,"rundll.exe setupx.dll,InstallHinfSection DefaultUninstall 132 %17%\Yeti.inf"
 
 [YETI.INIs]

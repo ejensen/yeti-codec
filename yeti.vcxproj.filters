@@ -16,13 +16,9 @@
   <ItemGroup>
     <None Include="Yeti.inf" />
     <None Include="drvproc.def" />
-    <None Include="..\TODO.txt" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="compact.h">
-      <Filter>Headers</Filter>
-    </ClInclude>
-    <ClInclude Include="convert_xvid.h">
       <Filter>Headers</Filter>
     </ClInclude>
     <ClInclude Include="convert_yv12.h">
@@ -40,9 +36,6 @@
     <ClInclude Include="yeti.h">
       <Filter>Headers</Filter>
     </ClInclude>
-    <ClInclude Include="convert.h">
-      <Filter>Headers</Filter>
-    </ClInclude>
     <ClInclude Include="zerorle.h">
       <Filter>Headers</Filter>
     </ClInclude>
@@ -50,9 +43,6 @@
       <Filter>Headers</Filter>
     </ClInclude>
     <ClInclude Include="convert_yuy2.h">
-      <Filter>Headers</Filter>
-    </ClInclude>
-    <ClInclude Include="resolution.h">
       <Filter>Headers</Filter>
     </ClInclude>
     <ClInclude Include="golomb.h">
@@ -77,10 +67,8 @@
     <ClCompile Include="range.cpp" />
     <ClCompile Include="threading.cpp" />
     <ClCompile Include="zerorle.cpp" />
-    <ClCompile Include="convert_xvid.cpp" />
     <ClCompile Include="convert_yuy2.cpp" />
     <ClCompile Include="convert_yv12.cpp" />
-    <ClCompile Include="resolution.cpp" />
     <ClCompile Include="golomb.cpp" />
     <ClCompile Include="bit_manager.cpp" />
     <ClCompile Include="codec_inst.cpp" />

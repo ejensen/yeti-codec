@@ -11,7 +11,6 @@
 }
 
 #define WAIT_FOR_THREADS(threads) { \
-   if (m_multithreading) { \
       if(threads == 2) { \
          while(m_info_a.m_length || m_info_b.m_length) \
             Sleep(0); \
@@ -19,7 +18,6 @@
          while (m_info_a.m_length || m_info_b.m_length || m_info_c.m_length) \
             Sleep(0); \
       } \
-   } \
 }
 
 struct threadInfo
@@ -30,13 +28,11 @@ struct threadInfo
    volatile const BYTE* m_source;	// data source
    volatile BYTE* m_dest;		// data destination
    BYTE* m_buffer;
-   unsigned int m_width;
-   unsigned int m_height;
-   unsigned int m_format;
-   unsigned int m_lum;	         // needed for YUY2 prediction
+   volatile unsigned int m_width;
+   volatile unsigned int m_height;
+   volatile unsigned int m_format;
    volatile unsigned int m_length;	// uncompressed data length
    volatile unsigned int m_size;		// compressed data length
-   bool m_SSE2;
 };
 
 DWORD WINAPI EncodeWorkerTread(LPVOID i);

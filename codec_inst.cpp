@@ -28,8 +28,6 @@ static BOOL CALLBACK ConfigureDialogProc(HWND hwndDlg, UINT uMsg, WPARAM wParam,
 
       if(compressFormat == YV12)
          id = IDC_YV12;
-      else if(compressFormat == REDUCED)
-         id = IDC_REDUCED;
 
       CheckRadioButton(hwndDlg, IDC_YUY2, IDC_REDUCED, id);
    } 
@@ -45,8 +43,6 @@ static BOOL CALLBACK ConfigureDialogProc(HWND hwndDlg, UINT uMsg, WPARAM wParam,
 
          if(IsDlgButtonChecked(hwndDlg, IDC_YV12) == BST_CHECKED)
             format = YV12;
-         else if(IsDlgButtonChecked(hwndDlg, IDC_REDUCED) == BST_CHECKED)
-            format = REDUCED;
 
          char buffer[11];
          _itoa_s(format, buffer, 11, 10);
@@ -68,8 +64,6 @@ static BOOL CALLBACK ConfigureDialogProc(HWND hwndDlg, UINT uMsg, WPARAM wParam,
 
 CodecInst::CodecInst()
 {
-   m_compressWorker.m_probRanges = NULL;
-   m_compressWorker.m_bytecounts = NULL;
    m_compressWorker.m_buffer = NULL;
    m_buffer = NULL;
    m_prevFrame = NULL;
@@ -81,10 +75,7 @@ CodecInst::CodecInst()
    m_deltaframes = false;
    m_compressFormat = 0;
    m_started = false;
-   m_SSE2 = 0;
-   m_SSE = 0;
 
-   m_multithreading = 0;
    m_info_a.m_source = NULL;
    m_info_a.m_dest = NULL;
    m_info_a.m_size = 0;
@@ -198,8 +189,8 @@ DWORD CodecInst::CompressQuery(LPBITMAPINFOHEADER lpbiIn, LPBITMAPINFOHEADER lpb
          RETURN_ERROR();
    }
 
-   detectFlags(&m_SSE2, &m_SSE);
-   if(!m_SSE)
+   detectFlags(&SSE2, &SSE);
+   if(!SSE)
    {
       RETURN_ERROR()
    }
@@ -290,8 +281,8 @@ DWORD CodecInst::DecompressQuery(const LPBITMAPINFOHEADER lpbiIn, const LPBITMAP
       RETURN_ERROR();
    }
 
-   detectFlags(&m_SSE2, &m_SSE);
-   if(!m_SSE)
+   detectFlags(&SSE2, &SSE);
+   if(!SSE)
    {
       RETURN_ERROR();
    }
@@ -347,9 +338,18 @@ DWORD CodecInst::DecompressGetFormat(const LPBITMAPINFOHEADER lpbiIn, LPBITMAPIN
    lpbiOut->biSize = sizeof(BITMAPINFOHEADER);
    lpbiOut->biPlanes = 1;
 
-   lpbiOut->biBitCount=12;
-   lpbiOut->biCompression = FOURCC_YV12;
-   lpbiOut->biSizeImage = lpbiIn->biWidth * lpbiIn->biHeight + HALF(lpbiIn->biWidth * lpbiIn->biHeight);
+   if ( lpbiIn->biBitCount == 16 )
+   {
+      lpbiOut->biBitCount = 16;
+      lpbiOut->biCompression = FOURCC_YUY2;
+      lpbiOut->biSizeImage = lpbiIn->biWidth * lpbiIn->biHeight * 2;
+   }
+   else
+   {
+      lpbiOut->biBitCount = 12;
+      lpbiOut->biCompression = FOURCC_YV12;
+      lpbiOut->biSizeImage = lpbiIn->biWidth * lpbiIn->biHeight + HALF(lpbiIn->biWidth * lpbiIn->biHeight);
+   }
 
    return (DWORD)ICERR_OK;
 }

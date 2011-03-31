@@ -1,9 +1,12 @@
 #pragma once
 
-void SSE2_BlockPredict( const BYTE* source, BYTE* dest, const unsigned int stride, const unsigned int length);
-void MMX_BlockPredict( const BYTE* source, BYTE* dest, const unsigned int stride, const unsigned int length);
+void SSE2_Block_Predict( const BYTE * __restrict source, BYTE * __restrict dest, const unsigned int width, const unsigned int length);
+void Block_Predict( const BYTE * __restrict source, BYTE * __restrict dest, const unsigned int width, const unsigned int length);
+void SSE2_Block_Predict_YUV16( const BYTE * __restrict source, BYTE * __restrict dest, const unsigned int width, const unsigned int length, const bool is_y);
+void Block_Predict_YUV16( const BYTE * __restrict source, BYTE * __restrict dest, const unsigned int width, const unsigned int length, const bool is_y);
+void SSE_Block_Predict(const BYTE * __restrict source, BYTE * __restrict dest, const unsigned int width, const unsigned int length);
 
-void SSE2_Predict_YUY2(const BYTE* source, BYTE* dest, const unsigned int width, const unsigned height, const unsigned int lum);
-void MMX_Predict_YUY2(const BYTE* source,BYTE* dest, const unsigned int width, const unsigned height, const unsigned int lum);
-
-void ASM_BlockRestore(BYTE* source, unsigned int stride,unsigned int xlength, unsigned int mode);
+void Split_YUY2(const BYTE * __restrict src, BYTE * __restrict ydst, BYTE * __restrict udst, BYTE * __restrict vdst, const unsigned int width, const unsigned int height);
+void Split_UYVY(const BYTE * __restrict src, BYTE * __restrict ydst, BYTE * __restrict udst, BYTE * __restrict vdst, const unsigned int width, const unsigned int height);
+void Interleave_And_Restore_YUY2( BYTE * __restrict out, BYTE * __restrict ysrc, const BYTE * __restrict usrc, const BYTE * __restrict vsrc, const unsigned int width, const unsigned int height);
+void Restore_YV12( BYTE * __restrict ysrc, BYTE * __restrict usrc, BYTE * __restrict vsrc, const unsigned int width, const unsigned int height);

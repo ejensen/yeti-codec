@@ -1,410 +1,896 @@
 #include <emmintrin.h>
 
 #include "yeti.h"
+#include "common.h"
 #include "prediction.h"
 
 #pragma warning(disable:4731)
+
+bool SSE;
+bool SSE2;
 
 inline int median(int x, int y, int z) 
 {
    int i = (x <= y) ? x : y;	//i = min(x,y);
    int j = (x >= y) ? x : y;	//j = max(x,y);
-   i = (i >= z) ? i : z;      //i = max(i,z);
+   i = (i >= z) ? i : z;  //i = max(i,z);
    return  (i <= j) ? i : j;	//j = min(i,j);
 }
 
-void SSE2_BlockPredict(const BYTE* source, BYTE* dest, const unsigned int stride, const unsigned int length)
+void SSE2_Block_Predict(const BYTE * __restrict source, BYTE * __restrict dest, const unsigned int width, const unsigned int length)
 {
+   unsigned int align_shift = (16 - ((unsigned int)source&15))&15;
+
+   // predict the bottom row
    unsigned int a;
-   __m128i t0;
-   t0 = _mm_setzero_si128();
-   for(a = 0; a < stride; a += 16)
+   __m128i t0 = _mm_setzero_si128();
+   if ( align_shift )
    {
-      __m128i x = _mm_slli_si128( *(__m128i*)(source + a), 1);
-      x = _mm_or_si128(x, t0);
-      t0 = *(__m128i*)(source + a);
-      t0 = _mm_srli_si128(t0, 15);
-      *(__m128i*)(dest + a) = _mm_sub_epi8(*(__m128i*)(source + a),x);
+      dest[0]=source[0];
+      for(a = 1; a < align_shift; a++)
+      {
+         dest[a] = source[a]-source[a-1];
+      }
+      t0 = _mm_insert_epi16(t0, source[align_shift-1], 0);
+   }
+   for ( a = align_shift; a < width; a += 16){
+      __m128i x = *(__m128i*)&source[a];
+      t0 = _mm_or_si128(t0,_mm_slli_si128(x,1));
+      *(__m128i*)&dest[a]=_mm_sub_epi8(x,t0);
+      t0 = _mm_srli_si128(x,15);
    }
 
-   __m128i ta;
-   __m128i tb;
-
-   tb = *(__m128i *)(source + stride - 16); // x
-   tb = _mm_srli_si128(tb, 15);
-
-   // dest[stride] must equal source[stride]-source[stride-1] not source[0] due to a coding error
-   // to achieve this, the initial values for z is set to y to make x the median
-   ta=*(__m128i *)(source); // z
-   ta = _mm_slli_si128(ta, 15);
-   ta = _mm_srli_si128(ta, 15);
-
-   for ( ;a < length; a += 16)
+   if (width == length)
    {
-      __m128i x=*(__m128i*)(source + a);
-      x = _mm_slli_si128(x, 1);
-      x = _mm_or_si128(x, tb);
-      __m128i y=*(__m128i*)(source + a - stride);
-      __m128i z=*(__m128i*)(source + a - stride);
-      z = _mm_slli_si128(z, 1);
-      z = _mm_or_si128(z, ta);
+      return;
+   }
 
-      __m128i u;
-      __m128i v;
-      __m128i w;
-      __m128i t;
+   __m128i z = _mm_setzero_si128();
+   __m128i x = _mm_setzero_si128();
 
-      t = _mm_setzero_si128();
-      u = _mm_setzero_si128();
-      v = _mm_setzero_si128();
-      w = _mm_setzero_si128();
+   x = _mm_insert_epi16(x,source[width-1],0);
+   z = _mm_insert_epi16(z,source[0],0);
 
-      t = _mm_unpacklo_epi8(x, t);
-      u = _mm_unpacklo_epi8(y, u);
-      v = _mm_unpacklo_epi8(z, v);
-      t = _mm_add_epi16(t, u);
-      t = _mm_sub_epi16(t ,v);
+   const __m128i zero = _mm_setzero_si128();
+   a = width;
+   {
+      // this block makes sure that source[a] is aligned to 16
+      __m128i srcs = _mm_loadu_si128((__m128i *)&source[a]);
+      __m128i y = _mm_loadu_si128((__m128i *)&source[a-width]);
 
-      u = _mm_setzero_si128();
-      v = _mm_setzero_si128();
+      x = _mm_or_si128(x,_mm_slli_si128(srcs,1));
+      z = _mm_or_si128(z,_mm_slli_si128(y,1));
 
-      u = _mm_unpackhi_epi8(x, u);
-      v = _mm_unpackhi_epi8(y, v);
-      w = _mm_unpackhi_epi8(z, w);
+      __m128i tx = _mm_unpackhi_epi8(x,zero);
+      __m128i ty = _mm_unpackhi_epi8(y,zero);
+      __m128i tz = _mm_unpackhi_epi8(z,zero);
 
-      u = _mm_add_epi16(u, v);
-      u = _mm_sub_epi16(u, w); 
+      tz = _mm_add_epi16(_mm_sub_epi16(tx,tz),ty);
 
-      z = _mm_packus_epi16(t, u); // z now equals x+y-z
+      tx = _mm_unpacklo_epi8(x,zero);
+      ty = _mm_unpacklo_epi8(y,zero);
+      z = _mm_unpacklo_epi8(z,zero);
+      z = _mm_add_epi16(_mm_sub_epi16(tx,z),ty);
+      z = _mm_packus_epi16(z,tz);
 
-      ta = _mm_srli_si128(y, 15);
-      tb = _mm_srli_si128(*(__m128i*)(source + a), 15);
+      __m128i i = _mm_min_epu8(x,y);
+      x = _mm_max_epu8(x,y);
+      i = _mm_max_epu8(i,z);
+      x = _mm_min_epu8(x,i);
 
-      __m128i i;
-      __m128i j;
+      srcs = _mm_sub_epi8(srcs,x);
+      _mm_storeu_si128((__m128i*)&dest[a],srcs);
+   }
 
-      i = _mm_min_epu8(x, y);
-      j = _mm_max_epu8(x, y);
-      i = _mm_max_epu8(i, z);
-      j = _mm_min_epu8(i, j);
+   if ( align_shift )
+   {
+      a = ALIGN_ROUND(a, 16);
+      a += align_shift;
+      if ( a > width+16 )
+      {
+         a -= 16;
+      }
+   } 
+   else 
+   {
+      a+=16;
+      a&=(~15);
+   }
+   // source[a] is now aligned
+   z = _mm_setzero_si128();
+   x = _mm_setzero_si128();
+   x = _mm_insert_epi16(x,source[a-1], 0);
+   z = _mm_insert_epi16(z,source[a-width-1], 0);
 
-      *(__m128i*)(dest + a)=_mm_sub_epi8( *(__m128i*)(source + a), j);
+   const unsigned int end = (length>=15)?length-15:0;
+
+   // if width is a multiple of 16, use faster aligned reads
+   // inside the prediction loop
+   if ( width%16 == 0 )
+   {
+      for ( ;a<end;a+=16)
+      {
+         __m128i srcs = *(__m128i *)&source[a];
+         __m128i y = *(__m128i *)&source[a-width];
+
+         x = _mm_or_si128(x,_mm_slli_si128(srcs,1));
+         z = _mm_or_si128(z,_mm_slli_si128(y,1));
+
+         __m128i tx = _mm_unpackhi_epi8(x,zero);
+         __m128i ty = _mm_unpackhi_epi8(y,zero);
+         __m128i tz = _mm_unpackhi_epi8(z,zero);
+
+         tz = _mm_add_epi16(_mm_sub_epi16(tx,tz),ty);
+
+         tx = _mm_unpacklo_epi8(x,zero);
+         ty = _mm_unpacklo_epi8(y,zero);
+         z = _mm_unpacklo_epi8(z,zero);
+         z = _mm_add_epi16(_mm_sub_epi16(tx,z),ty);
+         z = _mm_packus_epi16(z,tz);
+
+         __m128i i = _mm_min_epu8(x,y);
+         x = _mm_max_epu8(x,y);
+         i = _mm_max_epu8(i,z);
+         x = _mm_min_epu8(x,i);
+
+         i = _mm_srli_si128(srcs,15);
+
+         srcs = _mm_sub_epi8(srcs,x);
+
+         z = _mm_srli_si128(y,15);
+         x = i;
+
+         *(__m128i*)&dest[a] = srcs;
+      }
+   } 
+   else 
+   {
+      // main prediction loop, source[a-width] is unaligned
+      for ( ; a<end; a+=16)
+      {
+         __m128i srcs = *(__m128i *)&source[a];
+         __m128i y = _mm_loadu_si128((__m128i *)&source[a-width]);
+
+         x = _mm_or_si128(x,_mm_slli_si128(srcs,1));
+         z = _mm_or_si128(z,_mm_slli_si128(y,1));
+
+         __m128i tx = _mm_unpackhi_epi8(x,zero);
+         __m128i ty = _mm_unpackhi_epi8(y,zero);
+         __m128i tz = _mm_unpackhi_epi8(z,zero);
+
+         tz = _mm_add_epi16(_mm_sub_epi16(tx,tz),ty);
+
+         tx = _mm_unpacklo_epi8(x,zero);
+         ty = _mm_unpacklo_epi8(y,zero);
+         z = _mm_unpacklo_epi8(z,zero);
+         z = _mm_add_epi16(_mm_sub_epi16(tx,z),ty);
+         z = _mm_packus_epi16(z,tz);
+
+         __m128i i = _mm_min_epu8(x,y);
+         x = _mm_max_epu8(x,y);
+         i = _mm_max_epu8(i,z);
+         x = _mm_min_epu8(x,i);
+
+         i = _mm_srli_si128(srcs,15);
+
+         srcs = _mm_sub_epi8(srcs,x);
+
+         z = _mm_srli_si128(y,15);
+         x = i;
+
+         *(__m128i*)&dest[a] = srcs;
+      }
+   }
+   for ( ; a<length; a++ )
+   {
+      int x = source[a-1];
+      int y = source[a-width];
+      int z = x + y - source[a - width - 1];
+      dest[a] = source[a] - median(x, y, z);
    }
 }
 
-void MMX_BlockPredict(const BYTE* source, BYTE* dest, const unsigned int stride, const unsigned int length)
+void SSE2_Block_Predict_YUV16( const BYTE * __restrict source, BYTE * __restrict dest, const unsigned int width, const unsigned int length, const bool is_y)
 {
+   unsigned int align_shift = (16 - ((int)source&15))&15;
+
+   // predict the bottom row
    unsigned int a;
-   __m64 t0;
-   t0 = _mm_setzero_si64();
-   for(a = 0; a < stride; a+= 8)
+   __m128i t0 = _mm_setzero_si128();
+   if ( align_shift )
    {
-      __m64 x = _mm_slli_si64(*(__m64*)(source + a), 8);
-      x = _mm_or_si64(x, t0);
-      t0 = *(__m64*)(source + a);
-      t0 = _mm_srli_si64(t0, 7 * 8);
-      *(__m64*)(dest+a) = _mm_sub_pi8(*(__m64*)(source + a),x);
+      dest[0]=source[0];
+      for ( a=1;a<align_shift;a++)
+      {
+         dest[a] = source[a]-source[a-1];
+      }
+      t0 = _mm_insert_epi16(t0,source[align_shift-1],0);
+   }
+   for ( a=align_shift;a<width;a+=16)
+   {
+      __m128i x = *(__m128i*)&source[a];
+      t0 = _mm_or_si128(t0,_mm_slli_si128(x,1));
+      *(__m128i*)&dest[a]=_mm_sub_epi8(x,t0);
+      t0 = _mm_srli_si128(x,15);
+   }
+   if ( width==length )
+      return;
+
+   __m128i z;
+   __m128i x;
+
+   const __m128i zero = _mm_setzero_si128();
+   a = width;
+   {
+      // this block makes sure that source[a] is aligned to 16
+      __m128i srcs = _mm_loadu_si128((__m128i *)&source[a]);
+      __m128i y = _mm_loadu_si128((__m128i *)&source[a-width]);
+
+      x = _mm_slli_si128(srcs,1);
+      z = _mm_slli_si128(y,1);
+      z = _mm_add_epi8(_mm_sub_epi8(x,z),y);
+
+      __m128i i = _mm_min_epu8(x,y);
+      x = _mm_max_epu8(x,y);
+      i = _mm_max_epu8(i,z);
+      x = _mm_min_epu8(x,i);
+
+      srcs = _mm_sub_epi8(srcs,x);
+      _mm_storeu_si128((__m128i*)&dest[a],srcs);
    }
 
-   __m64 ta;
-   __m64 tb;
-
-   tb=*(__m64 *)(source + stride - 8); // x
-
-   tb = _mm_srli_si64(tb, 7 * 8);
-
-   // dest[stride] must equal source[stride]-source[stride-1] not source[0] due to a coding error
-   // to achieve this, the initial values for z is set to y to make x the median
-   ta=*(__m64 *)(source); // z
-   ta = _mm_slli_si64(ta, 7 * 8);
-   ta = _mm_srli_si64(ta, 7 * 8);
-
-   for ( ;a<length;a+=8)
+   if ( align_shift )
    {
-      __m64 x=*(__m64*)(source + a);
-      x = _mm_slli_si64(x, 8);
-      x = _mm_or_si64(x, tb);
-      __m64 y = *(__m64*)(source + a - stride);
-      __m64 z = *(__m64*)(source + a - stride);
-      z = _mm_slli_si64(z, 8);
-      z = _mm_or_si64(z, ta);
+      a = ALIGN_ROUND(a, 16);
+      a += align_shift;
+      if ( a > width+16 )
+      {
+         a -= 16;
+      }
+   } 
+   else 
+   {
+      a+=16;
+      a&=(~15);
+   }
+   // source[a] is now aligned
+   z = _mm_setzero_si128();
+   x = _mm_setzero_si128();
+   x = _mm_insert_epi16(x,source[a-1],0);
+   z = _mm_insert_epi16(z,source[a-width-1],0);
 
-      __m64 u;
-      __m64 v;
-      __m64 w;
-      __m64 t;
 
-      t = _mm_setzero_si64();
-      u = _mm_setzero_si64();
-      v = _mm_setzero_si64();
-      w = _mm_setzero_si64();
+   const unsigned int end = (length>=15)?length-15:0;
+   // if width is a multiple of 16, use faster aligned reads
+   // inside the prediction loop
+   if ( width%16 == 0 )
+   {
+      for ( ;a<end;a+=16)
+      {
+         __m128i srcs = *(__m128i *)&source[a];
+         __m128i y = *(__m128i *)&source[a-width];
 
-      t = _mm_unpacklo_pi8(x, t);
-      u = _mm_unpacklo_pi8(y, u);
-      v = _mm_unpacklo_pi8(z, v);
-      t = _mm_add_pi16(t, u);
-      t = _mm_sub_pi16(t, v);
+         x = _mm_or_si128(x,_mm_slli_si128(srcs,1));
+         z = _mm_or_si128(z,_mm_slli_si128(y,1));
+         z = _mm_add_epi8(_mm_sub_epi8(x,z),y);
 
-      u = _mm_setzero_si64();
-      v = _mm_setzero_si64();
+         __m128i i = _mm_min_epu8(x,y);
+         x = _mm_max_epu8(x,y);
+         i = _mm_max_epu8(i,z);
+         x = _mm_min_epu8(x,i);
 
-      u = _mm_unpackhi_pi8(x, u);
-      v = _mm_unpackhi_pi8(y, v);
-      w = _mm_unpackhi_pi8(z, w);
+         i = _mm_srli_si128(srcs,15);
 
-      u = _mm_add_pi16(u, v);
-      u = _mm_sub_pi16(u, w); 
+         srcs = _mm_sub_epi8(srcs,x);
 
-      z = _mm_packs_pu16(t, u); // z now equals x+y-z
+         z = _mm_srli_si128(y,15);
+         x = i;
 
-      ta = _mm_srli_si64(y, 7 * 8);
-      tb = _mm_srli_si64(*(__m64*)(source + a), 7 * 8);
+         *(__m128i*)&dest[a] = srcs;
+      }
+   } 
+   else 
+   {
+      // main prediction loop, source[a-width] is unaligned
+      for ( ;a<end;a+=16)
+      {
+         __m128i srcs = *(__m128i *)&source[a];
+         __m128i y = _mm_loadu_si128((__m128i *)&source[a-width]);
 
-      __m64 i;
-      __m64 j;
+         x = _mm_or_si128(x,_mm_slli_si128(srcs,1));
+         z = _mm_or_si128(z,_mm_slli_si128(y,1));
+         z = _mm_add_epi8(_mm_sub_epi8(x,z),y);
 
-      i = _mm_min_pu8(x, y);
-      j = _mm_max_pu8(x, y);
-      i = _mm_max_pu8(i, z);
-      j = _mm_min_pu8(i, j);
+         __m128i i = _mm_min_epu8(x,y);
+         x = _mm_max_epu8(x,y);
+         i = _mm_max_epu8(i,z);
+         x = _mm_min_epu8(x,i);
 
-      *(__m64*)(dest+a) = _mm_sub_pi8( *(__m64*)(source + a), j);
+         i = _mm_srli_si128(srcs,15);
+
+         srcs = _mm_sub_epi8(srcs,x);
+
+         z = _mm_srli_si128(y,15);
+         x = i;
+
+         *(__m128i*)&dest[a] = srcs;
+      }
+   }
+   for ( ; a<length; a++ )
+   {
+      int x = source[a-1];
+      int y = source[a-width];
+      int z = (x+y-source[a-width-1])&255;
+      dest[a] = source[a]-median(x,y,z);
    }
 
-   _mm_empty();
-}
-
-void SSE2_Predict_YUY2(const BYTE* source, BYTE* dest, const unsigned int width, const unsigned height, const unsigned int lum)
-{
-   dest[0] = source[0];
-
-   unsigned int a = 0;
-   __m128i ta = _mm_setzero_si128();
-
-   if(lum)
+   if ( is_y )
    {
       dest[1]=source[1];
-      for(a = 2; a < 16; a++)
-      {
-         dest[a] = source[a] - source[a - 1];
-      }
-      ta = *(__m128i*)(source);
-      ta = _mm_srli_si128(ta, 15);
    }
+   dest[width] = source[width]-source[width-1];
+   dest[width+1] = source[width+1]-source[width];
 
-   for (; a < width + 1; a += 16)
-   { // dest bytes width+2 to width+16 will be overwritten with correct values
-      __m128i x = *(__m128i *)(source + a);
-      __m128i w = x;
-      x = _mm_slli_si128(x, 1);
-      x = _mm_or_si128(x, ta);
-      ta = _mm_srli_si128(w, 15);
-      w = _mm_sub_epi8(w, x);
-      *(__m128i *)(dest + a) = w;
-   }
-
-   for(a = width + 2 + lum * 2; a < width + 16; a++)
+   if ( is_y )
    {
-      BYTE t = source[a - 1];
-      BYTE u = source[a - width];
-      BYTE v = t;
-      v += u;
-      v -= source[a - width - 1];
-      dest[a] = source[a] - median(t, u, v);
-   }
-
-   ta = *(__m128i *)(source + width);
-   __m128i tb = *(__m128i *)(source);
-   ta = _mm_srli_si128(ta, 15);
-   tb = _mm_srli_si128(tb, 15);
-
-   for(a = width + 16; a < width * height; a += 16)
-   {
-      __m128i x = *(__m128i *)(source + a);
-      __m128i w = x;
-      __m128i y = *(__m128i *)(source + a - width);
-      __m128i z;
-
-      x = _mm_slli_si128(x, 1);
-      z = _mm_slli_si128(y, 1);
-
-      x = _mm_or_si128(x, ta);
-      z = _mm_or_si128(z, tb);
-
-      ta = _mm_srli_si128(w, 15);
-      tb = _mm_srli_si128(y, 15);
-
-      z = _mm_sub_epi8(y, z);
-      z = _mm_add_epi8(x, z);
-
-      __m128i i;
-      __m128i j;
-
-      i = _mm_min_epu8(x, y);
-      j = _mm_max_epu8(x, y);
-      i = _mm_max_epu8(i, z);
-      j = _mm_min_epu8(i, j);
-
-      j = _mm_sub_epi8(w, j);
-
-
-      *(__m128i *)(dest + a) = j;
+      dest[width+2] = source[width+2]-source[width+1];
+      dest[width+3] = source[width+3]-source[width+2];
    }
 }
 
-void MMX_Predict_YUY2(const BYTE* source, BYTE* dest, const unsigned int width, const unsigned height, const unsigned int lum)
+void Split_YUY2(const BYTE * __restrict src, BYTE * __restrict ydst, BYTE * __restrict udst, BYTE * __restrict vdst, const unsigned int width, const unsigned int height)
 {
-   dest[0] = source[0];
+   const __m64 ymask = _mm_set_pi32(0x00FF00FF,0x00FF00FF);
+   const __m64 cmask = _mm_set_pi32(0x000000FF,0x000000FF);
 
-   unsigned int a = 0;
-   __m64 ta = _mm_setzero_si64();
-
-   if (lum)
+   unsigned int a;
+   const unsigned int end = (width*height>=7)?width*height-7:0;
+   for ( a=0;a<end;a+=8)
    {
-      dest[1] = source[1];
-      for(a = 2; a < 8; a++)
-      {
-         dest[a] = source[a] - source[a - 1];
-      }
-      ta = *(__m64*)(source);
-      ta = _mm_srli_si64(ta, 7 * 8);
+      __m64 y0 = *(__m64*)&src[a*2+0];
+      __m64 y1 = *(__m64*)&src[a*2+8];
+
+      __m64 u0 = _mm_and_si64(_mm_srli_si64(y0,8),cmask);
+      __m64 v0 = _mm_and_si64(_mm_srli_si64(y0,24),cmask);
+      y0 = _mm_and_si64(y0,ymask);
+
+      __m64 u1 = _mm_and_si64(_mm_srli_si64(y1,8),cmask);
+      __m64 v1 = _mm_and_si64(_mm_srli_si64(y1,24),cmask);
+      y1 = _mm_and_si64(y1,ymask);
+
+      y0 = _mm_packs_pu16(y0,y1);
+      v0 = _mm_packs_pu16(v0,v1);
+      u0 = _mm_packs_pu16(u0,u1);
+      v0 = _mm_packs_pu16(v0,v0);
+      u0 = _mm_packs_pu16(u0,u0);
+
+      *(__m64*)&ydst[a] = y0;
+      *(int*)&vdst[a/2] = _mm_cvtsi64_si32(v0);
+      *(int*)&udst[a/2] = _mm_cvtsi64_si32(u0);
    }
 
-   for ( ;a < width + 1; a += 8)
-   { // dest bytes width+2 to width+16 will be overwritten with correct values
-      __m64 x = *(__m64 *)(source + a);
-      __m64 w = x;
-      x = _mm_slli_si64(x, 8);
-      x = _mm_or_si64(x, ta);
-      ta = _mm_srli_si64(w, 7 * 8);
-      w = _mm_sub_pi8(w, x);
-      *(__m64 *)(dest + a) = w;
-   }
-
-   for(a = width + 2 + lum * 2; a < width + 8; a++)
+   for ( ;a<height*width;a+=2)
    {
-      BYTE t = source[a - 1];
-      BYTE u = source[a - width];
-      BYTE v = t;
-      v += u;
-      v -= source[a - width - 1];
-      dest[a] = source[a] - median(t, u, v);
+      ydst[a+0] = src[a*2+0];
+      udst[a/2] = src[a*2+1];
+      ydst[a+1] = src[a*2+2];
+      vdst[a/2] = src[a*2+3];
    }
 
-   ta = *(__m64 *)(source + width);
-   __m64 tb = *(__m64 *)(source);
-   ta = _mm_srli_si64(ta, 7 * 8);
-   tb = _mm_srli_si64(tb ,7 * 8);
-
-   for(a = width + 8; a < width * height; a += 8)
-   {
-      __m64 x = *(__m64 *)(source + a);
-      __m64 w = x;
-      __m64 y = *(__m64 *)(source + a - width);
-      __m64 z;
-
-      x = _mm_slli_si64(x, 8);
-      z = _mm_slli_si64(y, 8);
-
-      x = _mm_or_si64(x, ta);
-      z = _mm_or_si64(z, tb);
-
-      ta = _mm_srli_si64(w, 7 * 8);
-      tb = _mm_srli_si64(y, 7 * 8);
-
-      z = _mm_sub_pi8(y, z);
-      z = _mm_add_pi8(x, z);
-
-      __m64 i;
-      __m64 j;
-
-      i = _mm_min_pu8(x, y);
-      j = _mm_max_pu8(x, y);
-      i = _mm_max_pu8(i, z);
-      j = _mm_min_pu8(i, j);
-
-      j = _mm_sub_pi8(w, j);
-
-
-      *(__m64 *)(dest + a) = j;
-   }
    _mm_empty();
 }
 
-void ASM_BlockRestore(BYTE* source, unsigned int stride, unsigned int xlength, unsigned int mode)
+void Split_UYVY(const BYTE * __restrict src, BYTE * __restrict ydst, BYTE * __restrict udst, BYTE * __restrict vdst, const unsigned int width, const unsigned int height)
 {
-   for(unsigned int a = 1; a < stride + !mode; a++)
+   const __m64 ymask = _mm_set_pi32(0x00FF00FF,0x00FF00FF);
+   const __m64 cmask = _mm_set_pi32(0x000000FF,0x000000FF);
+
+   unsigned int a;
+   const unsigned int end = (width*height>=7)?width*height-7:0;
+   for(a=0; a<end; a+=8)
    {
-      source[a] += source[a-1];
+      __m64 u0 = *(__m64*)&src[a*2+0];
+      __m64 u1 = *(__m64*)&src[a*2+8];
+
+      __m64 y0 = _mm_and_si64(_mm_srli_si64(u0,8),ymask);
+      __m64 v0 = _mm_and_si64(_mm_srli_si64(u0,16),cmask);
+      u0 = _mm_and_si64(u0,cmask);
+
+      __m64 y1 = _mm_and_si64(_mm_srli_si64(u1,8),ymask);
+      __m64 v1 = _mm_and_si64(_mm_srli_si64(u1,16),cmask);
+      u1 = _mm_and_si64(u1,cmask);
+
+      y0 = _mm_packs_pu16(y0,y1);
+      v0 = _mm_packs_pu16(v0,v1);
+      u0 = _mm_packs_pu16(u0,u1);
+      v0 = _mm_packs_pu16(v0,v0);
+      u0 = _mm_packs_pu16(u0,u0);
+
+      *(__m64*)&ydst[a] = y0;
+      *(int*)&vdst[a/2] = _mm_cvtsi64_si32(v0);
+      *(int*)&udst[a/2] = _mm_cvtsi64_si32(u0);
    }
 
-   if(mode) //TODO: Optimize
+   for ( ;a<height*width;a+=2)
    {
-      source[stride] += source[0];
+      udst[a/2] = src[a*2+0];
+      ydst[a+0] = src[a*2+1];
+      vdst[a/2] = src[a*2+2];
+      ydst[a+1] = src[a*2+3];
    }
 
-   __asm{
-      movd	mm1,ebx
-         movd	mm6,esp
-         movd	mm7,ebp
-         mov		eax,source
-         mov		ebx,xlength
-         mov		ecx,stride
+   _mm_empty();
+}
 
-         mov		esi,eax
-
-         add		ebx,esi
-
-         dec		ebx
-
-         mov		esp,ecx
-         add		esi,esp
-         neg		esp
-         mov		ebp,ebx // ebp = ending
-         movzx	eax,byte ptr[esi] // a-1
-      movzx	ebx,byte ptr[esp + esi] // a-dis-1
-      add		esp,esi
-         inc		esp
-
-median_restore_block:
-
-      movzx	ecx,byte ptr[esp] // a-dis
-      inc		esi
-         inc		esp
-         mov		edx,eax
-         sub		eax,ebx
-         add		eax,ecx
-         mov		ebx,edx
-
-         //		eax = z
-         //		ebx = x
-         //		ecx = y
-         //		edx = x
-
-         //i=min(x,y);
-         //j=max(x,y);
-         //i=max(i,z);
-         //j=min(i,j);
-
-         cmp		ebx,ecx
-         cmovg	ebx,ecx
-         cmp		edx,ecx
-         cmovl	edx,ecx
-         cmp		ebx,eax
-         cmovl	ebx,eax
-         movzx	eax,byte ptr[esi]
-      cmp		ebx,edx
-         cmovg	ebx,edx
-         add		eax,ebx
-         mov		ebx,ecx
-         mov		byte ptr[esi],al
-         and		eax,0xff
-         cmp		esi,ebp
-         jl		median_restore_block
-
-         movd	ebx,mm1
-         movd	esp,mm6
-         movd	ebp,mm7
-         emms
+void Block_Predict(const BYTE * __restrict source, BYTE * __restrict dest, const unsigned int width, const unsigned int length)
+{
+   if ( SSE2 ){
+      SSE2_Block_Predict(source, dest, width, length);
+   } else {
+      SSE_Block_Predict(source, dest, width, length);
    }
+}
+
+void SSE_Block_Predict(const BYTE * __restrict source, BYTE * __restrict dest, const unsigned int width, const unsigned int length)
+{
+   unsigned int align_shift = (8 - ((unsigned int)source&7))&7;
+
+   // predict the bottom row
+   unsigned int a;
+   __m64 t0 = _mm_setzero_si64();
+   if ( align_shift )
+   {
+      dest[0]=source[0];
+      for ( a=1;a<align_shift;a++)
+      {
+         dest[a] = source[a]-source[a-1];
+      }
+      t0 = _mm_insert_pi16(t0,source[align_shift-1],0);
+   }
+   for(a = align_shift ;a<width; a+=8)
+   {
+      __m64 x = *(__m64*)&source[a];
+      t0 = _mm_or_si64(t0,_mm_slli_si64(x,8));
+      *(__m64*)&dest[a]=_mm_sub_pi8(x,t0);
+      t0 = _mm_srli_si64(x,7*8);
+   }
+
+   if(width == length)
+   {
+      _mm_empty();
+      return;
+   }
+
+   __m64 z = _mm_setzero_si64();
+   __m64 x = _mm_setzero_si64();
+
+   x = _mm_insert_pi16(x, source[width-1],0);
+   z = _mm_insert_pi16(z, source[0],0);
+
+   // make sure that source[a] is a multiple of 8 so that only source[a-width]
+   // will be unaligned if width is not a multiple of 8
+   const __m64 zero = _mm_setzero_si64();
+   a = width;
+   {
+      __m64 srcs = *(__m64 *)&source[a];
+      __m64 y = *(__m64 *)&source[a-width];
+
+      x = _mm_slli_si64(srcs,8);
+      z = _mm_slli_si64(y,8);
+
+      __m64 tx = _mm_unpackhi_pi8(x,zero);
+      __m64 ty = _mm_unpackhi_pi8(y,zero);
+      __m64 tz = _mm_unpackhi_pi8(z,zero);
+
+      tz = _mm_add_pi16(_mm_sub_pi16(tx,tz),ty);
+
+      tx = _mm_unpacklo_pi8(x,zero);
+      ty = _mm_unpacklo_pi8(y,zero);
+      z = _mm_unpacklo_pi8(z,zero);
+      z = _mm_add_pi16(_mm_sub_pi16(tx,z),ty);
+      z = _mm_packs_pu16(z,tz);
+
+      __m64 i = _mm_min_pu8(x,y);
+      x = _mm_max_pu8(x,y);
+      i = _mm_max_pu8(i,z);
+      x = _mm_min_pu8(x,i);
+
+      srcs = _mm_sub_pi8(srcs,x);
+      *(__m64*)&dest[a]=srcs;
+   }
+
+   if ( align_shift )
+   {
+      a = ALIGN_ROUND(a,8);
+      a += align_shift;
+      if ( a > width+8 ){
+         a -= 8;
+      }
+   } 
+   else 
+   {
+      a+=8;
+      a&=(~7);
+   }
+
+   z = _mm_setzero_si64();
+   x = _mm_setzero_si64();
+   x = _mm_insert_pi16(x,source[a-1],0);
+   z = _mm_insert_pi16(z,source[a-width-1],0);
+
+   const unsigned int end = (length>=7)?length-7:0;
+   // main prediction loop, source[a] will be a multiple of 8
+   for ( ; a<end; a+=8)
+   {
+      __m64 srcs = *(__m64 *)&source[a];
+      __m64 y = *(__m64 *)&source[a-width];
+
+      x = _mm_or_si64(x,_mm_slli_si64(srcs,8));
+      z = _mm_or_si64(z,_mm_slli_si64(y,8));
+
+      __m64 tx = _mm_unpackhi_pi8(x,zero);
+      __m64 ty = _mm_unpackhi_pi8(y,zero);
+      __m64 tz = _mm_unpackhi_pi8(z,zero);
+
+      tz = _mm_add_pi16(_mm_sub_pi16(tx,tz),ty);
+
+      tx = _mm_unpacklo_pi8(x,zero);
+      ty = _mm_unpacklo_pi8(y,zero);
+      z = _mm_unpacklo_pi8(z,zero);
+      z = _mm_add_pi16(_mm_sub_pi16(tx,z),ty);
+      z = _mm_packs_pu16(z,tz);
+
+      __m64 i = _mm_min_pu8(x,y);
+      x = _mm_max_pu8(x,y);
+      i = _mm_max_pu8(i,z);
+      x = _mm_min_pu8(x,i);
+
+      i = _mm_srli_si64(srcs,7*8);
+
+      srcs = _mm_sub_pi8(srcs,x);
+
+      z = _mm_srli_si64(y,7*8);
+      x = i;
+
+      *(__m64*)&dest[a]=srcs;
+   }
+   _mm_empty();
+
+   for( ; a<length; a++ )
+   {
+      int x = source[a-1];
+      int y = source[a-width];
+      int z = x+y-source[a-width-1];
+      dest[a] = source[a]-median(x,y,z);
+   }
+}
+
+void SSE_Block_Predict_YUV16(const BYTE * __restrict source, BYTE * __restrict dest, const unsigned int width, const unsigned int length, const bool is_y)
+{
+   unsigned int align_shift = (8 - ((unsigned int)source&7))&7;
+
+   // predict the bottom row
+   unsigned int a;
+   __m64 t0 = _mm_setzero_si64();
+   if ( align_shift )
+   {
+      dest[0] = source[0];
+      for (a=1; a<align_shift; a++)
+      {
+         dest[a] = source[a]-source[a-1];
+      }
+      t0 = _mm_insert_pi16(t0,source[align_shift-1],0);
+   }
+
+   for(a=align_shift; a<width; a+=8)
+   {
+      __m64 x = *(__m64*)&source[a];
+      t0 = _mm_or_si64(t0,_mm_slli_si64(x,8));
+      *(__m64*)&dest[a]=_mm_sub_pi8(x,t0);
+      t0 = _mm_srli_si64(x,7*8);
+   }
+
+   if ( width==length )
+   {
+      _mm_empty();
+      return;
+   }
+
+   __m64 z = _mm_setzero_si64();
+   __m64 x = _mm_setzero_si64();
+
+   // make sure that source[a] is a multiple of 8 so that only source[a-width]
+   // will be unaligned if width is not a multiple of 8
+   a = width;
+   {
+      __m64 srcs = *(__m64 *)&source[a];
+      __m64 y = *(__m64 *)&source[a-width];
+
+      x = _mm_slli_si64(srcs,8);
+      z = _mm_slli_si64(y,8);
+      z = _mm_add_pi8(_mm_sub_pi8(x,z),y);
+
+      __m64 i = _mm_min_pu8(x,y);
+      x = _mm_max_pu8(x,y);
+      i = _mm_max_pu8(i,z);
+      x = _mm_min_pu8(x,i);
+
+      srcs = _mm_sub_pi8(srcs, x);
+      *(__m64*)&dest[a] = srcs;
+   }
+
+   if ( align_shift )
+   {
+      a = ALIGN_ROUND(a,8);
+      a += align_shift;
+      if(a > width + 8)
+      {
+         a -= 8;
+      }
+   } 
+   else 
+   {
+      a+=8;
+      a&=(~7);
+   }
+
+   z = _mm_setzero_si64();
+   x = _mm_setzero_si64();
+   x = _mm_insert_pi16(x,source[a-1],0);
+   z = _mm_insert_pi16(z,source[a-width-1],0);
+
+   const unsigned int end = (length>=7)?length-7:0;
+
+   // main prediction loop, source[a] will be a multiple of 8
+   for ( ;a<end;a+=8)
+   {
+      __m64 srcs = *(__m64 *)&source[a];
+      __m64 y = *(__m64 *)&source[a-width];
+
+      x = _mm_or_si64(x,_mm_slli_si64(srcs, 8));
+      z = _mm_or_si64(z,_mm_slli_si64(y, 8));
+      z = _mm_add_pi8(_mm_sub_pi8(x, z), y);
+
+      __m64 i = _mm_min_pu8(x, y);
+      x = _mm_max_pu8(x,y);
+      i = _mm_max_pu8(i,z);
+      x = _mm_min_pu8(x,i);
+
+      i = _mm_srli_si64(srcs, 7*8);
+
+      srcs = _mm_sub_pi8(srcs, x);
+
+      z = _mm_srli_si64(y,7*8);
+      x = i;
+
+      *(__m64*)&dest[a]=srcs;
+   }
+
+   for ( ; a<length; a++ )
+   {
+      int x = source[a-1];
+      int y = source[a-width];
+      int z = (x+y-source[a-width-1])&255;
+      dest[a] = source[a]-median(x, y, z);
+   }
+
+   if ( is_y )
+   {
+      dest[1]=source[1];
+   }
+   dest[width] = source[width]-source[width-1];
+   dest[width+1] = source[width+1]-source[width];
+
+   if ( is_y )
+   {
+      dest[width+2] = source[width+2]-source[width+1];
+      dest[width+3] = source[width+3]-source[width+2];
+   }
+
+   _mm_empty();
+}
+
+void Block_Predict_YUV16( const BYTE * __restrict source, BYTE * __restrict dest, const unsigned int width, const unsigned int length, const bool is_y)
+{
+   if ( SSE2 ){
+      SSE2_Block_Predict_YUV16(source, dest, width, length, is_y);
+   } else {
+      SSE_Block_Predict_YUV16(source, dest, width, length, is_y);
+   }
+}
+
+void Interleave_And_Restore_YUY2( BYTE * __restrict output, BYTE * __restrict ysrc, const BYTE * __restrict usrc, const BYTE * __restrict vsrc, const unsigned int width, const unsigned int height)
+{
+   output[0] = ysrc[0];
+   output[1] = usrc[0];
+   output[2] = ysrc[1];
+   output[3] = vsrc[0];
+
+   // restore the bottom row of pixels + 2 pixels
+   for(unsigned int a=1; a<width/2+2; a++)
+   {
+      output[a*4+0] = output[a*4-2] + ysrc[a*2+0];
+      output[a*4+1] = output[a*4-3] + usrc[a];
+      output[a*4+2] = output[a*4-0] + ysrc[a*2+1];
+      output[a*4+3] = output[a*4-1] + vsrc[a];
+   }
+
+   if(height == 1)
+   {
+      return;
+   }
+
+   const unsigned int stride = width*2;
+
+   // restore all the remaining pixels using median prediction
+   unsigned int a=width/2+2;
+   __m64 x = _mm_setr_pi16(output[a*4-2],output[a*4-3],0,output[a*4-1]);
+   __m64 z = _mm_setr_pi16(output[a*4-3-stride],output[a*4-2-stride],output[a*4-1-stride],0);
+   //const __m64 mask1 = _mm_setr_pi16(255,0,0,0);
+   const __m64 mask2 = _mm_setr_pi16(0,255,255,255);
+   for ( ; a<(height*width)/2; a+=2)
+   {
+      __m64 srcs = _mm_cvtsi32_si64( *(unsigned int *)&ysrc[a*2]);
+      srcs = _mm_unpacklo_pi8(srcs,_mm_setzero_si64());
+
+      __m64 s = _mm_setzero_si64();
+      s = _mm_insert_pi16(s,*(int *)&usrc[a],0);
+      s = _mm_insert_pi16(s,*(int *)&vsrc[a],1);
+      s = _mm_unpacklo_pi8(_mm_setzero_si64(),s);
+      s = _mm_shuffle_pi16(s,(0<<0)+(2<<2)+(1<<4)+(3<<6));
+      s = _mm_or_si64(s,srcs);
+
+      srcs = _mm_unpacklo_pi8(s,_mm_setzero_si64());
+
+      __m64 y = _mm_cvtsi32_si64( *(unsigned int *)&output[a*4-stride]);
+      y = _mm_unpacklo_pi8(y,_mm_setzero_si64());
+
+      z = _mm_or_si64(z,_mm_slli_si64(y,48));
+      z = _mm_shuffle_pi16(z,(1<<0)+(0<<2)+(3<<4)+(2<<6));
+      z = _mm_sub_pi8(_mm_add_pi8(x,y),z);
+
+      __m64 i = _mm_min_pu8(x,y);
+      __m64 j = _mm_max_pu8(x,y);
+      i = _mm_max_pu8(i,z);
+      j = _mm_min_pu8(j,i);
+      j = _mm_add_pi8(j, srcs);
+      //j = _mm_and_si64(j,mask1);
+      j = _mm_slli_si64(j,48);
+      j = _mm_srli_si64(j,16);
+      x = _mm_or_si64(x,j);
+      z = _mm_add_pi8(z,j);
+
+      i = _mm_min_pu8(x,y);
+      x = _mm_max_pu8(x,y);
+      i = _mm_max_pu8(i,z);
+      x = _mm_min_pu8(x,i); 
+      x = _mm_add_pi8(x,srcs);
+
+      srcs = _mm_unpackhi_pi8(s,_mm_setzero_si64());
+      s = x;
+
+      x = _mm_and_si64(x,mask2);
+      x = _mm_shuffle_pi16(x,(2<<0)+(1<<2)+(0<<4)+(3<<6));
+      z = _mm_srli_si64(y,16);
+
+      y = _mm_cvtsi32_si64( *(unsigned int *)&output[a*4-stride+4]);
+      y = _mm_unpacklo_pi8(y,_mm_setzero_si64());
+
+      z = _mm_or_si64(z,_mm_slli_si64(y,48));
+      z = _mm_shuffle_pi16(z,(1<<0)+(0<<2)+(3<<4)+(2<<6));
+      z = _mm_sub_pi8(_mm_add_pi8(x,y),z);
+
+      i = _mm_min_pu8(x,y);
+      j = _mm_max_pu8(x,y);
+      i = _mm_max_pu8(i,z);
+      j = _mm_min_pu8(j,i);
+      j = _mm_add_pi8(j,srcs);
+      //j = _mm_and_si64(j,mask1);
+      j = _mm_slli_si64(j,48);
+      j = _mm_srli_si64(j,16);
+      x = _mm_or_si64(x,j);
+      z = _mm_add_pi8(z,j);
+
+      i = _mm_min_pu8(x,y);
+      x = _mm_max_pu8(x,y);
+      i = _mm_max_pu8(i,z);
+      x = _mm_min_pu8(x,i); 
+      x = _mm_add_pi8(x,srcs); // low 4 correct
+      *(__m64 *)&output[a*4] = _mm_packs_pu16(s,x);
+
+      x = _mm_and_si64(x,mask2);
+      x = _mm_shuffle_pi16(x,(2<<0)+(1<<2)+(0<<4)+(3<<6));
+      z = _mm_srli_si64(y,16);
+   }
+
+   _mm_empty();
+}
+
+void Restore_YV12(BYTE * __restrict ysrc, BYTE * __restrict usrc, BYTE * __restrict vsrc, const unsigned int width, const unsigned int height){
+   unsigned int a;
+   for ( a=1;a<width/2;a++){
+      usrc[a]+=usrc[a-1];
+      vsrc[a]+=vsrc[a-1];
+   }
+   for ( a=1;a<width;a++){
+      ysrc[a]+=ysrc[a-1];
+   }
+
+   //if ( SSE ){
+      const __m64 mask = _mm_set_pi32(0x00ff00ff,0x00ff00ff);
+
+      __m64 x = _mm_setr_pi16(ysrc[width-1],usrc[width/2-1],vsrc[width/2-1],0);
+      __m64 z = _mm_setr_pi16(ysrc[width-1]-ysrc[0],usrc[width/2-1]-usrc[0],vsrc[width/2-1]-vsrc[0],0);
+
+      for ( a=width;a<width*height/4 + width/2 ;a+=2){
+         __m64 s = _mm_setzero_si64();
+         s = _mm_insert_pi16(s,*(int*)&ysrc[a],0);
+         s = _mm_insert_pi16(s,*(int*)&usrc[a-width/2],1);
+         s = _mm_insert_pi16(s,*(int*)&vsrc[a-width/2],2);
+
+         __m64 srcs = _mm_and_si64(s,mask);
+         s = _mm_srli_pi16(s,8);
+
+         __m64 ys = _mm_setzero_si64();
+         ys = _mm_insert_pi16(ys,*(int*)&ysrc[a-width],0);
+         ys = _mm_insert_pi16(ys,*(int*)&usrc[a-width/2-width/2],1);
+         ys = _mm_insert_pi16(ys,*(int*)&vsrc[a-width/2-width/2],2);
+
+         __m64 y = _mm_and_si64(ys,mask);
+         ys = _mm_srli_pi16(ys,8);
+         z = _mm_add_pi16(z,y);
+
+         __m64 i = _mm_min_pi16(x,y);
+         x = _mm_max_pi16(x,y);
+         i = _mm_max_pi16(i,z);
+         x = _mm_min_pi16(x,i);
+         x = _mm_add_pi16(x,srcs);
+         x = _mm_and_si64(x,mask);
+         __m64 r = x;
+
+         srcs = s;
+         z = _mm_sub_pi16(x,y);
+         y = ys;
+         z = _mm_add_pi16(z,y);
+
+         i = _mm_min_pi16(x,y);
+         x = _mm_max_pi16(x,y);
+         i = _mm_max_pi16(i,z);
+         x = _mm_min_pi16(x,i);
+         x = _mm_add_pi16(x,srcs);
+         r = _mm_or_si64(r,_mm_slli_pi16(x,8));
+         x = _mm_and_si64(x,mask);
+
+         *(unsigned short *)&ysrc[a] = _mm_extract_pi16(r,0);
+         *(unsigned short *)&usrc[a-width/2] = _mm_extract_pi16(r,1);
+         *(unsigned short *)&vsrc[a-width/2] = _mm_extract_pi16(r,2);
+
+         z = _mm_sub_pi16(x,y);
+      }
+  /* } else {
+      for ( a=width/2;a<width*height/4;a++){
+         int x = usrc[a-1];
+         int y = usrc[a-width/2];
+         int z = x+y-usrc[a-width/2-1];
+         x = median(x,y,z);
+         usrc[a]+=x;
+
+         x = vsrc[a-1];
+         y = vsrc[a-width/2];
+         z = x+y-vsrc[a-width/2-1];
+         x = median(x,y,z);
+         vsrc[a]+=x;
+      }
+      a=width;
+   } */
+
+   for ( ;a<width*height;a++){
+      int x = ysrc[a-1];
+      int y = ysrc[a-width];
+      int z = x+y-ysrc[a-width-1];
+      x = median(x,y,z);
+      ysrc[a]+=x;
+   }
+
+   _mm_empty();
 }

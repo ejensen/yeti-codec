@@ -134,8 +134,8 @@
       <OutputFile>.\Debug/yeti.bsc</OutputFile>
     </Bscmake>
     <PostBuildEvent>
-      <Message>Copying Yeti.dll to C:\Windows\System32\Yeti.dll</Message>
-      <Command>copy $(TargetPath) C:\Windows\System32\Yeti.dll</Command>
+      <Message>Copying $(TargetFileName) to $(SystemRoot)\System32\$(TargetFileName)</Message>
+      <Command>copy $(TargetPath) $(SystemRoot)\System32\$(TargetFileName)</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Profiling|Win32'">
@@ -149,11 +149,10 @@
       </HeaderFileName>
     </Midl>
     <ClCompile>
-      <Optimization>Full</Optimization>
+      <Optimization>MaxSpeed</Optimization>
       <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>_DEBUG;WIN32;_WINDOWS;_USRDLL;HUFFYUV_EXPORTS;_CRT_SECURE_NO_WARNINGS;_CRT_SECURE_NO_WARNINGS_COUNT;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>true</MinimalRebuild>
-      <ExceptionHandling>Async</ExceptionHandling>
       <BasicRuntimeChecks>Default</BasicRuntimeChecks>
       <SmallerTypeCheck>false</SmallerTypeCheck>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
@@ -191,8 +190,8 @@
       <OutputFile>.\Debug/yeti.bsc</OutputFile>
     </Bscmake>
     <PostBuildEvent>
-      <Message>Copying Yeti.dll to C:\Windows\System32\Yeti.dll</Message>
-      <Command>copy $(TargetPath) C:\Windows\System32\Yeti.dll</Command>
+      <Message>Copying $(TargetFileName) to $(SystemRoot)\System32\$(TargetFileName)</Message>
+      <Command>copy $(TargetPath) $(SystemRoot)\System32\$(TargetFileName)</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -206,7 +205,7 @@
       </HeaderFileName>
     </Midl>
     <ClCompile>
-      <Optimization>Full</Optimization>
+      <Optimization>MaxSpeed</Optimization>
       <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
@@ -217,7 +216,6 @@
       <IgnoreStandardIncludePath>false</IgnoreStandardIncludePath>
       <StringPooling>true</StringPooling>
       <MinimalRebuild>false</MinimalRebuild>
-      <ExceptionHandling>Async</ExceptionHandling>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <BufferSecurityCheck>false</BufferSecurityCheck>
       <FunctionLevelLinking>false</FunctionLevelLinking>
@@ -259,8 +257,8 @@
       <OutputFile>.\Release/yeti.bsc</OutputFile>
     </Bscmake>
     <PostBuildEvent>
-      <Message>Copying Yeti.dll to C:\Windows\System32\Yeti.dll</Message>
-      <Command>copy $(TargetPath) C:\Windows\System32\Yeti.dll</Command>
+      <Message>Copying $(TargetFileName) to $(SystemRoot)\System32\$(TargetFileName)</Message>
+      <Command>copy $(TargetPath) $(SystemRoot)\System32\$(TargetFileName)</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -271,7 +269,6 @@
     </ResourceCompile>
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\TODO.txt" />
     <None Include="drvproc.def" />
     <CustomBuild Include="huffyuv_a.asm">
       <FileType>Document</FileType>
@@ -288,13 +285,10 @@
     <ClInclude Include="bit_manager.h" />
     <ClInclude Include="codec_inst.h" />
     <ClInclude Include="common.h" />
-    <ClInclude Include="convert.h" />
     <ClInclude Include="convert_yuy2.h" />
     <ClInclude Include="golomb.h" />
-    <ClInclude Include="resolution.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="compact.h" />
-    <ClInclude Include="convert_xvid.h" />
     <ClInclude Include="convert_yv12.h" />
     <ClInclude Include="huffyuv_a.h" />
     <ClInclude Include="threading.h" />
@@ -306,7 +300,6 @@
     <ClCompile Include="bit_manager.cpp" />
     <ClCompile Include="compact.cpp" />
     <ClCompile Include="compression.cpp" />
-    <ClCompile Include="convert_xvid.cpp" />
     <ClCompile Include="convert_yuy2.cpp" />
     <ClCompile Include="convert_yv12.cpp" />
     <ClCompile Include="decompression.cpp" />
@@ -322,7 +315,6 @@
     <ClCompile Include="codec_inst.cpp" />
     <ClCompile Include="prediction.cpp" />
     <ClCompile Include="range.cpp" />
-    <ClCompile Include="resolution.cpp" />
     <ClCompile Include="threading.cpp" />
     <ClCompile Include="zerorle.cpp" />
   </ItemGroup>

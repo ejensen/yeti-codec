@@ -4,7 +4,7 @@
 #include "bit_manager.h"
 
 static void UnsignedGolombEncode(const unsigned int in, BitOutputManager& bitManger);
-unsigned int GolombEncode(const unsigned int* in, BYTE* out, unsigned int length);
+size_t GolombEncode(const unsigned int* in, BYTE* out, size_t length);
 
-static unsigned int UnsignedGolombDecode(BitInputManager& bitManger);
-unsigned int GolombDecode(const BYTE* in, unsigned int* out, unsigned int length);
+static size_t UnsignedGolombDecode(BitInputManager& bitManger);
+size_t GolombDecode(const BYTE* in, unsigned int* out, size_t length);

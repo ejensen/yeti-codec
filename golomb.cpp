@@ -28,7 +28,7 @@ static void UnsignedGolombEncode(const unsigned int in, BitOutputManager& bitMan
     }
 }
 
-unsigned int GolombEncode(const unsigned int* in, BYTE* out, unsigned int length)
+size_t GolombEncode(const unsigned int* in, BYTE* out, size_t length)
 {
    BitOutputManager bitManager(out);
    for(unsigned int i = 0; i < length; i++)
@@ -41,7 +41,7 @@ unsigned int GolombEncode(const unsigned int* in, BYTE* out, unsigned int length
    return bitManager.Size();
 }
 
-static unsigned int UnsignedGolombDecode(BitInputManager& bitManger)
+static size_t UnsignedGolombDecode(BitInputManager& bitManger)
 {    
     unsigned int M = 0;
     unsigned int info = 0;
@@ -68,7 +68,7 @@ static unsigned int UnsignedGolombDecode(BitInputManager& bitManger)
     return (1<<M) - 1 + info;
 }
 
-unsigned int GolombDecode(const BYTE* in, unsigned int* out, unsigned int length)
+size_t GolombDecode(const BYTE* in, unsigned int* out, size_t length)
 {
    BitInputManager bitManager(in);
    for(unsigned int i = 0; i < length; i++)

@@ -13,25 +13,6 @@
 
 #include "resource.h"
 
-#ifdef _DEBUG
-#define TRY_CATCH(f) \
-   try { f }\
-   catch(char* tc_cmsg){\
-   char * tc_msg = (char*)malloc(strlen(tc_cmsg) + 128);\
-   sprintf_s(tc_msg, strlen(tc_cmsg) + 128"Exception passed up to %s, line %d.\nOriginal exception: %s\n", __FILE__, __LINE__,tc_cmsg);\
-   MessageBox(HWND_DESKTOP, tc_msg, "Error", MB_OK | MB_ICONEXCLAMATION);\
-   throw tc_msg;\
-}\
-   catch (...){\
-   char * tc_msg = (char*)malloc(128);\
-   sprintf_s(tc_msg, 128,"Exception caught in %s, line %d", __FILE__, __LINE__);\
-   MessageBox(HWND_DESKTOP, tc_msg, "Error", MB_OK | MB_ICONEXCLAMATION); \
-   throw tc_msg;\
-}
-#else
-#define TRY_CATCH(f) f
-#endif
-
 inline void* ALIGNED_MALLOC (void* ptr, int size, int align, char* str) 
 {
    if(ptr)
@@ -82,6 +63,7 @@ inline void* ALIGNED_MALLOC (void* ptr, int size, int align, char* str)
 static const DWORD FOURCC_YETI = mmioFOURCC('Y','E','T','I');
 static const DWORD FOURCC_YUY2 = mmioFOURCC('Y','U','Y','2');
 static const DWORD FOURCC_UYVY = mmioFOURCC('U','Y','V','Y');
+static const DWORD FOURCC_YV16 = mmioFOURCC('Y','V','1','6');
 static const DWORD FOURCC_YV12 = mmioFOURCC('Y','V','1','2');
 
 static const char SettingsFile[] = "yeti.ini";
@@ -99,13 +81,8 @@ static const char SettingsHeading[] = "settings";
 #define YV12_DELTAFRAME       (YV12_FRAME | DELTAFRAME)
 #define YV12_KEYFRAME         (YV12_FRAME | KEYFRAME)
 
-#define REDUCED_FRAME         (BYTE)0x20
-#define REDUCED_DELTAFRAME    (REDUCED_FRAME | DELTAFRAME)
-#define REDUCED_KEYFRAME      (REDUCED_FRAME | KEYFRAME)
-
 // possible colorspaces
 #define RGB24	   24
 #define RGB32	   32
 #define YUY2	   16
 #define YV12	   12
-#define REDUCED   6

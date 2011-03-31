@@ -28,10 +28,7 @@ public:
    unsigned int m_compressFormat;
    bool m_nullframes;
    bool m_deltaframes;
-   bool m_multithreading;
    bool m_started;			//if the codec has been properly initialized yet
-   bool m_SSE2;
-   bool m_SSE;
 
    CodecInst();
    ~CodecInst();
@@ -57,11 +54,11 @@ public:
 
    BOOL QueryConfigure();
 
-   void InitDecompressionThreads(const BYTE* in, BYTE* out, unsigned int length, unsigned int width, unsigned int height, threadInfo* thread, int format);
+   void InitDecompressionThreads(const BYTE* in, BYTE* out, unsigned int length, threadInfo* thread);
    DWORD InitThreads(bool encode);
    void EndThreads();
 
-   DWORD CompressYUY2(ICCOMPRESS* icinfo);
+   DWORD CompressYUV16(ICCOMPRESS* icinfo);
    DWORD CompressYV12(ICCOMPRESS* icinfo);
    DWORD CompressReduced(ICCOMPRESS* icinfo);
 

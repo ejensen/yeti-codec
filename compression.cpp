@@ -1,7 +1,6 @@
 #include "yeti.h"
 #include "codec_inst.h"
 #include "prediction.h"
-#include "resolution.h"
 #include "threading.h"
 
 #include "huffyuv_a.h"
@@ -17,7 +16,6 @@ DWORD CodecInst::CompressBegin(LPBITMAPINFOHEADER lpbiIn, LPBITMAPINFOHEADER lpb
 
    m_nullframes = GetPrivateProfileInt(SettingsHeading, "nullframes", FALSE, SettingsFile) > 0;
    m_deltaframes = GetPrivateProfileInt(SettingsHeading, "deltaframes", FALSE, SettingsFile) > 0;
-   m_multithreading = GetPrivateProfileInt(SettingsHeading, "multithreading", FALSE, SettingsFile) > 0;
 
    if (int error = CompressQuery(lpbiIn, lpbiOut) != ICERR_OK)
    {
@@ -57,22 +55,16 @@ DWORD CodecInst::CompressBegin(LPBITMAPINFOHEADER lpbiIn, LPBITMAPINFOHEADER lpb
       return (DWORD)ICERR_MEMORY;
    }
 
-   int cb_size = m_width * m_height * 5/4;
-
-   if (!m_compressWorker.InitCompressBuffers(cb_size))
+   if (!m_compressWorker.InitCompressBuffers(m_width * m_height))
    {
       return (DWORD)ICERR_MEMORY;
    }
 
-   if (m_multithreading)
+   int code = InitThreads(true);
+   if(code != ICERR_OK)
    {
-      int code = InitThreads(true);
-      if(code != ICERR_OK)
-      {
-         return code;
-      }
+      return code;
    }
-
    m_started = true;
 
    return ICERR_OK;
@@ -91,10 +83,7 @@ DWORD CodecInst::CompressEnd()
 {
    if(m_started)
    {
-      if(m_multithreading)
-      {
-         EndThreads();
-      }
+      EndThreads();
 
       ALIGNED_FREE(m_buffer, "buffer");
       ALIGNED_FREE(m_buffer2, "buffer2");
@@ -110,7 +99,7 @@ DWORD CodecInst::CompressEnd()
 
 // called to compress a frame; the actual compression will be
 // handed off to other functions depending on the color space and settings
-DWORD CodecInst::Compress(ICCOMPRESS* icinfo, DWORD dwSize)
+DWORD CodecInst::Compress(ICCOMPRESS* icinfo, DWORD /*dwSize*/)
 {
    m_out = (BYTE*)icinfo->lpOutput;
    m_in  = (BYTE*)icinfo->lpInput;
@@ -125,12 +114,10 @@ DWORD CodecInst::Compress(ICCOMPRESS* icinfo, DWORD dwSize)
    } 
 
    const BYTE* src = m_in;
-   BYTE* dest;
+   BYTE* dest = (m_compressFormat == YUY2) ? m_colorTransBuffer : m_buffer;
 
    if(m_format >= RGB24)
    {
-      dest = (m_compressFormat == YUY2) ? m_colorTransBuffer : m_buffer;
-
       if(m_format == RGB24)
       {
          mmx_ConvertRGB24toYUY2(m_in, dest, m_width * 3, DOUBLE(m_width), m_width, m_height);
@@ -145,7 +132,7 @@ DWORD CodecInst::Compress(ICCOMPRESS* icinfo, DWORD dwSize)
    if(m_compressFormat == YUY2)
    {
       m_in = dest;
-      return CompressYUY2(icinfo);
+      return CompressYUV16(icinfo);
    }
 
    unsigned int dw = DOUBLE(m_width);
@@ -198,24 +185,16 @@ DWORD CodecInst::Compress(ICCOMPRESS* icinfo, DWORD dwSize)
    {
       return CompressYV12(icinfo);
    }
-   else if(m_compressFormat == REDUCED)
-   {
-      return CompressReduced(icinfo);
-   }
 
    return (DWORD)ICERR_BADFORMAT;
 }
 
-DWORD CodecInst::CompressYUY2(ICCOMPRESS* icinfo)
+DWORD CodecInst::CompressYUV16(ICCOMPRESS* icinfo)
 {
-   const unsigned int mod		   = (m_SSE2 ? 15 : 7);
-   const unsigned int hw         = HALF(m_width);
-   const unsigned int pixels     = m_width * m_height;
-   const unsigned int ay_stride  = ALIGN_ROUND(m_width, mod + 1);
-   const unsigned int ac_stride  = ALIGN_ROUND(hw, mod + 1);
-   const unsigned int ay_len     = ay_stride * m_height;
-   const unsigned int ac_len     = ac_stride * m_height;
-   const unsigned long len       = ay_len + DOUBLE(ac_len);
+   const unsigned int pixels    = m_width * m_height;
+   const unsigned int y_stride  = ALIGN_ROUND(pixels + 16, 16);
+   const unsigned int c_stride  = ALIGN_ROUND(HALF(pixels) + 32, 16);
+   const size_t len             = y_stride + DOUBLE(c_stride);
 
    BYTE frameType;
    BYTE* source = m_deltaBuffer;
@@ -225,9 +204,9 @@ DWORD CodecInst::CompressYUY2(ICCOMPRESS* icinfo)
    {
       if(m_deltaframes)
       {
-         unsigned long minDelta = len * 3;
-         unsigned long bitCount = Fast_Sub_Count(m_deltaBuffer, m_in, m_prevFrame, len, minDelta);
-         //unsigned long bitCount = Fast_XOR_Count(m_deltaBuffer, m_in, m_prevFrame, FOURTH(len), minDelta);
+         assert(false); //TODO: remove
+         const unsigned __int64 minDelta = len * 3;
+         const unsigned __int64 bitCount = Fast_Sub_Count(m_deltaBuffer, m_in, m_prevFrame, len, minDelta);
 
          if(bitCount == ULONG_MAX)
          {
@@ -252,6 +231,7 @@ DWORD CodecInst::CompressYUY2(ICCOMPRESS* icinfo)
       {
          if(m_nullframes)
          {
+            assert(false); //TODO: remove
             unsigned int pos = HALF(len) + 15;
             pos &= (~15);
             if(memcmp(m_in + pos, m_prevFrame + pos, len - pos) == 0 && memcmp(m_in, m_prevFrame, pos) == 0)
@@ -281,239 +261,67 @@ DWORD CodecInst::CompressYUY2(ICCOMPRESS* icinfo)
    }
 
    BYTE* ysrc  = m_buffer;
-   BYTE* usrc  = ysrc + ay_len;
-   BYTE* vsrc  = usrc + ac_len;
+   BYTE* usrc  = ysrc + y_stride;
+   BYTE* vsrc  = usrc + c_stride;
 
-   if(!(hw & mod))
+   BYTE* ydest	= m_buffer2;
+   BYTE* udest	= ydest + y_stride;
+   BYTE* vdest	= udest + c_stride;
+
+   BYTE *y, *u, *v;
+
+   //if ( icinfo->lpbiInput->biCompression == FOURCC_YUY2 || lossy_option == 1 )
+   //{
+      Split_YUY2(source, ysrc, usrc, vsrc, m_width, m_height);
+   //} 
+   //else
+   //{
+   //   Split_UYVY(source, ysrc, usrc, vsrc, m_width, m_height);
+   //}
+   y = ysrc;
+   u = usrc;
+   v = vsrc;
+
+   m_info_a.m_source = u;
+   m_info_a.m_dest = udest;
+   m_info_a.m_length = HALF(pixels);
+   RESUME_THREAD(m_info_a.m_thread);
+   m_info_b.m_source = v;
+   m_info_b.m_dest = vdest;
+   m_info_b.m_length =  HALF(pixels);
+   RESUME_THREAD(m_info_b.m_thread);
+
+   Block_Predict_YUV16(y, ydest, m_width, pixels, true);
+
+   unsigned int size = m_compressWorker.Compact(ydest, m_out + 9, pixels);
+   while ( m_info_a.m_length )
    {
-      const unsigned int size = HALF(pixels);
-      if(icinfo->lpbiInput->biCompression != FOURCC_UYVY)
-      {
-         for(unsigned int a = 0; a < size; a++)
-         {
-            const unsigned int a2 = DOUBLE(a);
-            const unsigned int a4 = QUADRUPLE(a);
-
-            ysrc[a2]    = source[a4    ];
-            usrc[a]     = source[a4 + 1];
-            ysrc[a2+1]  = source[a4 + 2];
-            vsrc[a]     = source[a4 + 3];
-         }
-      } 
-      else  // UYVY format
-      {
-         for(unsigned int a = 0; a < size; a++)
-         {
-            const unsigned int a2 = DOUBLE(a);
-            const unsigned int a4 = QUADRUPLE(a);
-
-            usrc[a]     = source[a4    ];
-            ysrc[a2]    = source[a4 + 1];
-            vsrc[a]     = source[a4 + 2];
-            ysrc[a2+1]  = source[a4 + 3];
-         }
-      }
-   } 
-   else
-   {
-      const BYTE* src = source;
-      BYTE* u = usrc;
-      BYTE* v = vsrc;
-      BYTE* y = ysrc;
-
-      if(icinfo->lpbiInput->biCompression != FOURCC_UYVY)
-      {
-         for(unsigned int h = 0; h < m_height; h++)
-         {
-            unsigned int x = 0;
-            for (; x < DOUBLE(m_width); x += 4)
-            {
-               y[0] = src[0];
-               u[0] = src[1];
-               y[1] = src[2];
-               v[0] = src[3];
-               y += 2;
-               u++;
-               v++;
-               src += 4;
-            }
-
-            BYTE i, j, k;
-            i = y[-1];
-            j = u[-1];
-            k = v[-1];
-
-            for(unsigned int z = FOURTH(x); z < ac_stride; z++)
-            {
-               u[0] = j;
-               v[0] = k;
-               u++;
-               v++;
-            }
-            for(x /= 2; x < ay_stride; x += 2)
-            {
-               y[0] = i;
-               y[1] = i;
-               y += 2;
-            }
-         }
-      } 
-      else // UYVY format
-      {
-         for(unsigned int h = 0; h < m_height; h++)
-         {
-            unsigned int x = 0;
-
-            for(;x < DOUBLE(m_width); x += 4)
-            {
-               u[0] = src[0];
-               y[0] = src[1];
-               v[0] = src[2];
-               y[1] = src[3];
-               y += 2;
-               u++;
-               v++;
-               src += 4;
-            }
-
-            BYTE i,j,k;
-            i = y[-1];
-            j = u[-1];
-            k = v[-1];
-
-            for(unsigned int z = FOURTH(x); z < ac_stride; z++)
-            {
-               u[0] = j;
-               v[0] = k;
-               u++;
-               v++;
-            }
-            for(x /= 2; x < ay_stride; x += 2)
-            {
-               y[0] = i;
-               y[1] = i;
-               y += 2;
-            }
-         }
-      }
+      Sleep(0);
    }
 
-   BYTE* ydest = m_buffer2;
-   BYTE* udest = ydest + ay_len;
-   BYTE* vdest = udest + ac_len;
+   unsigned int sizea = m_info_a.m_size;
+   *(UINT32*)(m_out+1) = size + 9;
+   memcpy(m_out + size + 9, udest, sizea);
 
-   size_t size;
-   if (!m_multithreading)
+   while ( m_info_b.m_length )
    {
-      if (m_SSE2)
-      {
-         SSE2_Predict_YUY2(ysrc, ydest, ay_stride, m_height, 1);
-         SSE2_Predict_YUY2(usrc, udest, ac_stride, m_height, 0);
-         SSE2_Predict_YUY2(vsrc, vdest, ac_stride, m_height, 0);
-      } 
-      else 
-      {
-         MMX_Predict_YUY2(ysrc, ydest, ay_stride, m_height, 1);
-         MMX_Predict_YUY2(usrc, udest, ac_stride, m_height, 0);
-         MMX_Predict_YUY2(vsrc, vdest, ac_stride, m_height, 0);
-      }
-
-      SWAP(ysrc, ydest);
-      SWAP(usrc, udest);
-      SWAP(vsrc, vdest);
-
-      // remove alignment padding
-      if (m_width & mod) // remove luminance padding 
-      {
-         for(unsigned int y = 0; y < m_height; y++)
-         {
-            memcpy(ydest + y * m_width, ysrc + y * ay_stride, m_width);
-         }
-         SWAP(ysrc, ydest);
-      }
-      if(hw & mod)  // remove chroma padding
-      {
-         unsigned int y;
-         for(y = 0; y < m_height; y++)
-         {
-            memcpy(udest + HALF(y * m_width), usrc + y * ac_stride, hw);
-         }
-         for(y = 0; y < m_height; y++)
-         {
-            memcpy(vdest + HALF(y * m_width), vsrc + y * ac_stride, hw);
-         }
-         SWAP(usrc, udest);
-         SWAP(vsrc, vdest);
-      }
-
-      size = m_compressWorker.Compact(ysrc, m_out + 9, pixels) + 9;
-      *(UINT32*)(m_out + 1) = size;
-      size += m_compressWorker.Compact(usrc, m_out + size, HALF(pixels));
-      *(UINT32*)(m_out + 5) = size;
-      size += m_compressWorker.Compact(vsrc, m_out + size, HALF(pixels));
-   } 
-   else
-   { 
-      m_info_a.m_source = ysrc;
-      m_info_a.m_dest = m_out + 9;
-      m_info_a.m_length = pixels;
-      RESUME_THREAD(m_info_a.m_thread);
-      m_info_b.m_source = usrc;
-      m_info_b.m_dest = m_buffer2;
-      m_info_b.m_length = HALF(pixels);
-      RESUME_THREAD(m_info_b.m_thread);
-
-      if(m_SSE2)
-      {
-         SSE2_Predict_YUY2(vsrc, vdest, ac_stride, m_height, 0);
-      } 
-      else 
-      {
-         MMX_Predict_YUY2(vsrc, vdest, ac_stride, m_height, 0);
-      }
-
-
-      vsrc  = ydest + ay_len + ac_len;
-      vdest  = m_in + ay_len + ac_len;
-
-      if(hw & mod)
-      { // remove chroma padding
-         for(unsigned int y = 0; y < m_height; y++)
-         {
-            memcpy(vdest + HALF(y * m_width), vsrc + y * ac_stride, hw);
-         }
-         SWAP(vsrc, vdest);
-      }
-
-      size = m_compressWorker.Compact(vsrc, m_deltaBuffer, HALF(pixels)); //TODO: change
-      while(m_info_a.m_length)
-      {
-         Sleep(0);
-      }
-
-      int sizea = m_info_a.m_size;
-      *(UINT32*)(m_out + 5) = sizea + 9;
-      memcpy(m_out + sizea + 9, m_deltaBuffer, size);
-
-      while(m_info_b.m_length)
-      {
-         Sleep(0);
-      }
-
-      int sizeb = m_info_b.m_size;
-      *(UINT32*)(m_out + 1) = sizea + 9 + size;
-      memcpy(m_out + sizea + size + 9, m_buffer2, sizeb);
-
-      size += sizea + sizeb + 9;
+      Sleep(0);
    }
+
+   unsigned int sizeb = m_info_b.m_size;
+   *(UINT32*)(m_out+5) = sizea + 9 + size;
+   memcpy(m_out + sizea + size + 9, vdest, sizeb);
+
+   size += sizea + sizeb + 9;
 
    m_out[0] = frameType;
    icinfo->lpbiOutput->biSizeImage = size;
-
-   assert(*(__int64*)(m_out + *(UINT32*)(m_out + 1)) != 0);
-   assert(*(__int64*)(m_out + *(UINT32*)(m_out + 5)) != 0);
+   //assert( *(__int64*)(out+9) != 0 );
+   assert( *(__int64*)(m_out+*(UINT32*)(m_out+1)) != 0 );
+   assert( *(__int64*)(m_out+*(UINT32*)(m_out+5)) != 0 );
    return ICERR_OK;
 }
+
 
 DWORD CodecInst::CompressYV12(ICCOMPRESS* icinfo)
 {
@@ -531,9 +339,8 @@ DWORD CodecInst::CompressYV12(ICCOMPRESS* icinfo)
    {
       if(m_deltaframes)
       {
-         const unsigned long minDelta = len * 3;
-         const unsigned long bitCount = Fast_Sub_Count(source, m_in, m_prevFrame, len, minDelta);
-         //const unsigned long bitCount = Fast_XOR_Count(source, m_in, m_prevFrame, FOURTH(len), minDelta);
+         const unsigned __int64 minDelta = len * 3;
+         const unsigned __int64 bitCount = Fast_Sub_Count(source, m_in, m_prevFrame, len, minDelta);
 
          if(bitCount == ULONG_MAX)
          {
@@ -590,442 +397,52 @@ DWORD CodecInst::CompressYV12(ICCOMPRESS* icinfo)
       m_colorTransBuffer = temp;
    }
 
-   //TODO: Optimize for subsequent calls
-   const unsigned int mod = (m_SSE2 ? 16 : 8) - 1;
+   const BYTE* ysrc = source;
+   const BYTE* vsrc = ysrc + y_len;
+   const BYTE* usrc = vsrc + c_len;
 
-   const unsigned int hw = HALF(m_width);
-   const unsigned int hh = HALF(m_height);
+   m_info_a.m_source = vsrc;
+   m_info_a.m_dest = m_buffer2;
+   m_info_a.m_length = c_len;
+   RESUME_THREAD(m_info_a.m_thread);
+   m_info_b.m_source = usrc;
+   m_info_b.m_dest = m_buffer2 + HALF(y_len);
+   m_info_b.m_length = c_len;
+   RESUME_THREAD(m_info_b.m_thread);
 
-   const unsigned int y_stride = ALIGN_ROUND(m_width, mod + 1);
-   const unsigned int c_stride = ALIGN_ROUND(hw, mod + 1);
+   BYTE* ydest = m_buffer;
+   ydest += (unsigned int)ysrc & 15;
 
-   const unsigned int ay_len	= y_stride * m_height;
-   const unsigned int ac_len	= HALF(c_stride * m_height);
-   const unsigned int ayu_len	= ay_len + ac_len;
+   Block_Predict(ysrc, ydest, m_width, y_len);
 
-   const BYTE* ysrc;
-   const BYTE* usrc;
-   const BYTE* vsrc;
-
-   const unsigned int in_aligned = !((int)m_in & mod);
-
-   //note: chroma has only half the width of luminance, it may need to be aligned separately
-
-   if(((hw) & mod) == 0)  // no alignment padding needed
+   size_t size = m_compressWorker.Compact(ydest, m_out + 9, y_len);
+   while ( m_info_a.m_length && m_info_b.m_length)
    {
-      if(in_aligned)  // no alignment needed
-      {
-         ysrc = source;
-         usrc = source + y_len;
-         vsrc = source + yu_len;
-      } 
-      else // data is naturally aligned,	input buffer is not
-      {
-         memcpy(m_buffer, source, len);
-         ysrc = m_buffer;
-         usrc = m_buffer + y_len;
-         vsrc = m_buffer + yu_len;
-      }
-   } 
-   else if((m_width & mod) == 0) // chroma needs alignment padding
-   { 
-      if (in_aligned)
-      {
-         ysrc = source;
-      } 
-      else 
-      {
-         memcpy(m_buffer, source, y_len);
-         ysrc = m_buffer;
-      }
-
-      m_buffer += y_len; // step over luminance (not always needed...)
-
-      for(unsigned int y = 0; y < DOUBLE(hh); y++) // TODO: Optimize?
-      {
-         memcpy(m_buffer + y * c_stride, source + y * hw + y_len, hw);
-         BYTE val = m_buffer[y * c_stride + hw - 1];
-
-         for(unsigned int x = hw; x < c_stride; x++)
-         {
-            m_buffer[y * c_stride + x] = val;
-         }
-      }
-
-      usrc = m_buffer;
-      vsrc = m_buffer + ac_len;
-
-      m_buffer -= y_len;
-   } 
-   else  // both chroma and luminance need alignment padding
-   {
-      // align luminance
-      unsigned int y;
-      for(y = 0; y < m_height; y++)
-      {
-         memcpy(m_buffer + y * y_stride, source + y * m_width, m_width);
-         BYTE val = m_buffer[y * y_stride + m_width - 1];
-
-         for(unsigned int x = m_width; x < y_stride; x++)
-         {
-            m_buffer[y * y_stride + x]=val;
-         }
-      }
-
-      ysrc = m_buffer;
-      m_buffer += ay_len;
-
-      for(y = 0; y < DOUBLE(hh); y++)//Optimize?
-      {
-         memcpy(m_buffer + y * c_stride, source + y * hw + y_len, hw);
-         BYTE val = m_buffer[y * c_stride + hw - 1];
-
-         for(unsigned int x = hw; x < c_stride; x++)
-         {
-            m_buffer[y * c_stride + x] = val;
-         }
-      }
-      usrc = m_buffer;
-      vsrc = m_buffer + c_stride * hh;
-
-      m_buffer -= ay_len;
+      Sleep(0);
    }
-   // done aligning, aligned data is in 'in' which may actually be prev or buffer 
 
-   size_t size;
-   if(!m_multithreading)
+   if (!m_info_a.m_length)
    {
-      BYTE* buffer3 = (BYTE*)ALIGN_ROUND(m_out, 16);
-
-      //set up dest buffers based on if alignment padding needs removal later
-      BYTE* ydest;
-      BYTE* udest;
-      BYTE* vdest;
-
-      ydest = (m_width & mod) ? buffer3 : m_buffer2; // TODO: needed?
-
-      if (hw & mod)
-      {
-         udest = buffer3 + ay_len;
-         vdest = buffer3 + ay_len + ac_len;
-      }          
-      else       
-      {          
-         udest = m_buffer2 + ay_len;
-         vdest = m_buffer2 + ay_len + ac_len;
-      }
-
-      if(m_SSE2)
-      {
-         SSE2_BlockPredict(ysrc, ydest, y_stride, ay_len);
-         SSE2_BlockPredict(usrc, udest, c_stride, ac_len);
-         SSE2_BlockPredict(vsrc, vdest, c_stride, ac_len);
-      } 
-      else
-      {
-         MMX_BlockPredict(ysrc, ydest, y_stride, ay_len);
-         MMX_BlockPredict(usrc, udest, c_stride, ac_len);
-         MMX_BlockPredict(vsrc, vdest, c_stride, ac_len);
-      }
-
-      // remove alignment padding, all data will end up in buffer2
-      if(m_width & mod) // remove luminance padding 
-      {
-         for(unsigned int y = 0; y < m_height; y++)
-         {
-            memcpy(m_buffer2 + y * m_width, ydest + y * y_stride, m_width);
-         }
-      }
-
-      if(hw & mod)  // remove chroma padding
-      {
-         for(unsigned int y = 0 ; y< DOUBLE(hh); y++) // TODO: Optimize?
-         {
-            memcpy(m_buffer2 + y_len + y * hw, udest + y * c_stride, hw);
-         }
-      }
-
-      size = 9;
-      size += m_compressWorker.Compact(m_buffer2, m_out + size, y_len);
-      *(UINT32*)(m_out + 1) = size;
-      size += m_compressWorker.Compact(m_buffer2 + y_len, m_out + size, c_len);
-      *(UINT32*)(m_out + 5) = size;
-      size += m_compressWorker.Compact(m_buffer2 + yu_len, m_out + size , c_len);
+      unsigned int sizea = m_info_a.m_size;
+      *(UINT32*)(m_out + 1) = 9 + size;
+      memcpy(m_out + size + 9, m_buffer2, sizea);
+      while ( m_info_b.m_length )
+         Sleep(0);
+      unsigned int sizeb = m_info_b.m_size;
+      *(UINT32*)(m_out + 5) = sizea + 9 + size;
+      memcpy(m_out + sizea + 9 + size, m_buffer2 + HALF(y_len), sizeb);
+      size += sizea + sizeb + 9;
    } 
    else 
    {
-
-      m_info_a.m_source = ysrc;
-      m_info_a.m_dest = m_out + 9;
-      m_info_a.m_length = y_len;
-      RESUME_THREAD(m_info_a.m_thread);
-      m_info_b.m_source = usrc;
-      m_info_b.m_dest = m_buffer2;
-      m_info_b.m_length = c_len;
-      RESUME_THREAD(m_info_b.m_thread);
-
-      BYTE* vdest = m_buffer2 + ayu_len;
-
-      if(m_SSE2)
-      {
-         SSE2_BlockPredict(vsrc, vdest, c_stride, ac_len);
-      } 
-      else 
-      {
-         MMX_BlockPredict(vsrc, vdest, c_stride, ac_len);
-      }
-
-      const bool keyframe = frameType & KEYFRAME;
-      // remove alignment if needed
-      if(hw & mod)  // remove chroma padding
-      {
-         vsrc = (keyframe) ? m_deltaBuffer : m_buffer;
-         for(unsigned int y = 0; y < hh; y++)
-         {
-            memcpy((BYTE*)(int)vsrc + y * hw, vdest + y * c_stride, hw);
-         }
-      } 
-      else
-      {
-         vsrc = vdest;
-         vdest = (keyframe) ? m_deltaBuffer : m_buffer;
-      }
-
-      size = m_compressWorker.Compact(vsrc, vdest, c_len);
-
-      while(m_info_a.m_length)
-      {
+      unsigned int sizeb = m_info_b.m_size;
+      *(UINT32*)(m_out + 5) = 9 + size;
+      memcpy(m_out + 9 + size, m_buffer2 + HALF(y_len), sizeb);
+      while ( m_info_a.m_length )
          Sleep(0);
-      }
-
-      int sizea = m_info_a.m_size;
-      *(UINT32*)(m_out + 5) = 9 + sizea;
-      memcpy(m_out + sizea + 9, vdest, size);
-
-      while(m_info_b.m_length)
-      {
-         Sleep(0);
-      }
-
-      int sizeb = m_info_b.m_size;
-      *(UINT32*)(m_out + 1) = sizea + 9 + size;
-      memcpy(m_out + sizea + 9 + size, m_buffer2, sizeb);
-
-      size += sizea + sizeb + 9;
-   }
-
-   m_out[0] = frameType;
-   icinfo->lpbiOutput->biSizeImage = size;
-   return (DWORD)ICERR_OK;
-}
-
-DWORD CodecInst::CompressReduced(ICCOMPRESS *icinfo)
-{
-   const unsigned int mod = (m_SSE2 ? 16 : 8);
-
-   const unsigned int hh = HALF(m_height);
-   const unsigned int hw = HALF(m_width);
-
-   const unsigned int ry_stride = ALIGN_ROUND(hw, mod);
-   const unsigned int rc_stride = ALIGN_ROUND(FOURTH(m_width), mod);
-   const unsigned int ry_size   = ry_stride * hh;
-   const unsigned int rc_size   = FOURTH(rc_stride * m_height);
-   const unsigned int ryu_size  = ry_size + rc_size;
-   const unsigned int y_size    = m_width * m_height;
-   const unsigned int quarterSize = FOURTH(y_size);
-   const unsigned int c_size    = quarterSize;
-   const unsigned int yu_size   = y_size + c_size;
-   const unsigned int ry_bytes  = quarterSize;
-   const unsigned int rc_bytes  = FOURTH(quarterSize); 
-
-   BYTE* ysrc = m_buffer;
-   BYTE* usrc = m_buffer + ry_size;
-   BYTE* vsrc = m_buffer + ryu_size;
-
-   ReduceRes(m_in, ysrc, m_buffer2, m_width, m_height, m_SSE2);
-   ReduceRes(m_in + y_size, usrc, m_buffer2, hw, hh, m_SSE2);
-   ReduceRes(m_in + yu_size, vsrc, m_buffer2, hw, hh, m_SSE2);
-
-   //TODO: Remove duplication.
-   BYTE frameType;
-   const unsigned int len = ry_size + DOUBLE(rc_size);
-   if(icinfo->dwFlags != ICCOMPRESS_KEYFRAME && icinfo->lFrameNum > 0) //TODO: Optimize
-   {
-      if(m_deltaframes)
-      {
-         const unsigned long minDelta = len * 3;
-         const unsigned long bitCount = Fast_Sub_Count(m_deltaBuffer, ysrc, m_prevFrame, len, minDelta);
-         //const unsigned long bitCount = Fast_XOR_Count(m_deltaBuffer, ysrc, m_prevFrame, FOURTH(len), minDelta);
-
-         if(bitCount == ULONG_MAX)
-         {
-            *icinfo->lpdwFlags |= AVIIF_KEYFRAME;
-            icinfo->dwFlags |= ICCOMPRESS_KEYFRAME;
-            frameType = REDUCED_KEYFRAME;
-         }
-         else if(bitCount == 0 && m_nullframes)
-         {
-            icinfo->lpbiOutput->biSizeImage = 0;
-            *icinfo->lpdwFlags = 0;
-            return (DWORD)ICERR_OK;
-         }
-         else
-         {
-            ysrc = m_deltaBuffer;
-            usrc = m_deltaBuffer + ry_size;
-            vsrc = m_deltaBuffer + ryu_size;
-            *icinfo->lpdwFlags |= AVIIF_LASTPART;
-            frameType = REDUCED_DELTAFRAME;
-         }
-      }
-      else
-      {
-         if(m_nullframes)
-         {
-            unsigned int pos = HALF(len) + 15;
-            pos &= (~15);
-            if(memcmp(ysrc + pos, m_prevFrame + pos, len - pos) == 0 && memcmp(ysrc, m_prevFrame, pos) == 0)
-            {
-               icinfo->lpbiOutput->biSizeImage = 0;
-               *icinfo->lpdwFlags = 0;
-               return (DWORD)ICERR_OK;
-            }
-         }
-
-         *icinfo->lpdwFlags |= AVIIF_KEYFRAME;
-         icinfo->dwFlags |= ICCOMPRESS_KEYFRAME;
-         frameType = REDUCED_KEYFRAME;
-      }
-   }
-   else
-   {
-      *icinfo->lpdwFlags |= AVIIF_KEYFRAME;
-      icinfo->dwFlags |= ICCOMPRESS_KEYFRAME;
-      frameType = REDUCED_KEYFRAME;
-   }
-
-   if(m_nullframes || m_deltaframes)
-   {
-      memcpy(m_prevFrame, m_buffer, len);
-   }
-
-   size_t size;
-   if(!m_multithreading)
-   {
-      BYTE* ydest = m_buffer2;
-      BYTE* udest = m_buffer2 + ry_size;
-      BYTE* vdest = m_buffer2 + ryu_size;
-
-      if(m_SSE2)
-      {
-         SSE2_BlockPredict(ysrc, ydest, ry_stride, ry_size);
-         SSE2_BlockPredict(usrc, udest, rc_stride, rc_size);
-         SSE2_BlockPredict(vsrc, vdest, rc_stride, rc_size);
-      } 
-      else
-      {
-         MMX_BlockPredict(ysrc, ydest, ry_stride, ry_size);
-         MMX_BlockPredict(usrc, udest, rc_stride, rc_size);
-         MMX_BlockPredict(vsrc, vdest, rc_stride, rc_size);
-      }
-
-      if(hw % mod) // remove luminance padding
-      {
-         for(unsigned int y = 0; y < hh; y++)
-         {
-            memcpy(ysrc + y * hw, ydest + y * ry_stride, hw);
-         }
-      }
-      else
-      {
-         ysrc = ydest;
-      }
-
-      unsigned int quarterWidth = FOURTH(m_width);
-      unsigned int quarterHeight = FOURTH(m_height);
-
-      if(rc_stride != quarterWidth)  // remove chroma padding
-      {
-         unsigned int y;
-         for(y = 0; y < quarterHeight; y++) // TODO: Optimize
-         {
-            memcpy(usrc + y * quarterWidth, udest + y * rc_stride, quarterWidth);
-         }
-         for(y = 0; y < quarterHeight; y++)// TODO: Optimize
-         {
-            memcpy(vsrc + y * quarterWidth, vdest + y * rc_stride, quarterWidth);
-         }
-      } 
-      else
-      {
-         usrc = udest;
-         vsrc = vdest;
-      }
-
-      size = 9;
-      size += m_compressWorker.Compact(ysrc, m_out + size, ry_bytes);
-      *(UINT32*)(m_out + 1) = size;
-      size += m_compressWorker.Compact(usrc, m_out + size, rc_bytes);
-      *(UINT32*)(m_out + 5) = size;
-      size += m_compressWorker.Compact(vsrc, m_out + size, rc_bytes);
-   } 
-   else
-   {
-      m_info_a.m_source = ysrc;
-      m_info_a.m_dest = m_out + 9;
-      m_info_a.m_length = ry_bytes;
-      RESUME_THREAD(m_info_a.m_thread);
-
-      m_info_b.m_source = usrc;
-      m_info_b.m_dest = m_colorTransBuffer; //TODO: change
-      m_info_b.m_length = rc_bytes;
-      RESUME_THREAD(m_info_b.m_thread);
-
-      BYTE* vdest = m_buffer2;
-
-      if(m_SSE2)
-      {
-         SSE2_BlockPredict(vsrc, vdest, rc_stride, rc_size);
-      } 
-      else
-      {
-         MMX_BlockPredict(vsrc, vdest, rc_stride, rc_size);
-      }
-
-      // remove alignment if needed
-      unsigned int quarterWidth = FOURTH(m_width);
-      if(rc_stride != quarterWidth)  // remove chroma padding
-      {
-         const unsigned int quarterHeight = FOURTH(m_height);
-         vsrc = vdest;
-         vdest = m_buffer2 + rc_size;
-         for (unsigned int y = 0; y< quarterHeight; y++)
-         {
-            memcpy(vdest + y * quarterWidth, vsrc + y * rc_stride, quarterWidth);
-         }
-      }
-      vsrc = vdest;
-      vdest = m_buffer2 + DOUBLE(rc_size);
-
-      size = m_compressWorker.Compact(vsrc, vdest, rc_bytes);
-      while(m_info_a.m_length)
-      {
-         Sleep(0);
-      }
-
-      int sizea = m_info_a.m_size;
-      *(UINT32*)(m_out + 5) = 9 + sizea;
-      memcpy(m_out + sizea + 9, vdest, size);
-
-      while(m_info_b.m_length)
-      {
-         Sleep(0);
-      }
-
-      int sizeb = m_info_b.m_size;
-      *(UINT32*)(m_out + 1)= sizea + 9 + size;
-      memcpy(m_out + sizea + 9 + size, m_colorTransBuffer, sizeb);
-
+      unsigned int sizea = m_info_a.m_size;
+      *(UINT32*)(m_out + 1) = 9 + size + sizeb;
+      memcpy(m_out + size + sizeb + 9, m_buffer2, sizea);
       size += sizea + sizeb + 9;
    }
 

@@ -9,60 +9,31 @@ DWORD WINAPI EncodeWorkerTread(LPVOID i)
    threadInfo* info = (threadInfo*)i;
    const unsigned int width = info->m_width;
    const unsigned int height = info->m_height;
-
-   const unsigned int SSE2 = info->m_SSE2;
-   const unsigned int stride = ALIGN_ROUND(width, (SSE2 ? 16 : 8));
+   const unsigned int length = width * height;
 
    const BYTE* src = NULL;
    BYTE* dest = NULL;
    const unsigned int format=info->m_format;
-   const unsigned int lum = info->m_lum;
    BYTE* const buffer = (BYTE*)info->m_buffer;
 
-   while(info->m_length != UINT32_MAX) //TODO: Optimize
+   while(info->m_length != UINT32_MAX)
    {
       src = (const BYTE*)info->m_source;
       dest = (BYTE*)info->m_dest;
 
-      BYTE* dst = (width == stride) ? buffer : (BYTE*)ALIGN_ROUND(dest, 16);
+      BYTE* dst = buffer + ((unsigned int)src&15);
 
-       if(format == YUY2) //TODO: Optimize
-       {
-         if (SSE2)
-         {
-            SSE2_Predict_YUY2(src, dst, stride, height, lum);
-         } 
-         else
-         {
-            MMX_Predict_YUY2(src, dst, stride, height, lum);
-         }
-       }
-       else
-       {
-         if(SSE2)
-         {
-            SSE2_BlockPredict(src, dst, stride, stride * height);
-         } 
-         else 
-         {
-            MMX_BlockPredict(src, dst, stride, stride * height);
-         }
-       }
+      if ( format == YUY2 )
+      {
+         Block_Predict_YUV16(src, dst, width, length, false);
+      } 
+      else
+      {
+         Block_Predict(src, dst, width, length );
+      }
 
-         if(width != stride)
-         {
-            BYTE* padded = dst;
-            BYTE* stripped = buffer;
-            for(unsigned int y = 0; y < height; y++)
-            {
-               memcpy(stripped + y * width, padded + y * stride, width);
-            }
-         }
-
-      info->m_size = info->m_compressWorker.Compact(buffer, dest, width * height);
-
-      assert(*(__int64*)dest != 0);
-
+      info->m_size = info->m_compressWorker.Compact(dst, dest, length);
+      assert( *(__int64*)dest != 0 );
       info->m_length = 0;
       SuspendThread(info->m_thread);// go to sleep, main thread will resume it
    }
@@ -76,14 +47,9 @@ DWORD WINAPI EncodeWorkerTread(LPVOID i)
 DWORD WINAPI DecodeWorkerThread(LPVOID i)
 {
    threadInfo* info = (threadInfo*)i;
-   const unsigned int width = info->m_width;
-   const unsigned int height = info->m_height;
-   const unsigned int hxw = height * width;
-   const unsigned int format = info->m_format;
    BYTE* src = NULL;
    BYTE* dest = NULL;
    unsigned int length;
-   const unsigned int mode = format != YV12;
 
    while(info->m_length != UINT32_MAX) //TODO:Optimize
    {
@@ -93,12 +59,6 @@ DWORD WINAPI DecodeWorkerThread(LPVOID i)
       length = info->m_length;
 
       info->m_compressWorker.Uncompact(src, dest, length);
-
-      if(format != YUY2)
-      {
-         ASM_BlockRestore(dest, width, hxw, mode);
-      }
-
       info->m_length = 0;
       SuspendThread(info->m_thread);
    }
@@ -117,20 +77,10 @@ DWORD CodecInst::InitThreads(bool encode)
 
    int useFormat = (encode) ? m_compressFormat : m_format;
 
-   if(m_compressFormat == REDUCED)
-   {
-      m_info_a.m_width = HALF(m_width);
-      m_info_a.m_height = HALF(m_height);
-      m_info_b.m_width = FOURTH(m_width);
-      m_info_b.m_height = FOURTH(m_height);
-   }
-   else
-   {
-      m_info_a.m_width = m_width;
-      m_info_a.m_height = m_height;
-      m_info_b.m_width = HALF(m_width);
-      m_info_b.m_height = (useFormat == YUY2) ? m_height : HALF(m_height);
-   }
+   m_info_a.m_width = m_width;
+   m_info_a.m_height = m_height;
+   m_info_b.m_width = HALF(m_width);
+   m_info_b.m_height = (useFormat == YUY2) ? m_height : HALF(m_height);
 
    m_info_c.m_width = m_width;
    m_info_c.m_height = m_height;
@@ -139,10 +89,6 @@ DWORD CodecInst::InitThreads(bool encode)
    m_info_b.m_format = useFormat;
    m_info_c.m_format = useFormat;
 
-   m_info_a.m_SSE2 = m_SSE2;
-   m_info_b.m_SSE2 = m_SSE2;
-   m_info_c.m_SSE2 = m_SSE2;
-
    m_info_a.m_thread = NULL;
    m_info_b.m_thread = NULL;
    m_info_c.m_thread = NULL;
@@ -150,72 +96,82 @@ DWORD CodecInst::InitThreads(bool encode)
    m_info_b.m_buffer = NULL;
    m_info_c.m_buffer = NULL;
 
-   m_info_a.m_lum = 1;
-   m_info_b.m_lum = 0;
-   m_info_c.m_lum = 0;
+   size_t buffer_size = ALIGN_ROUND(m_info_a.m_width, 16) * m_info_a.m_height + 2048;
 
-   const unsigned int buffer_a = DOUBLE(ALIGN_ROUND(m_info_a.m_width, 16) * m_info_a.m_height) + 2048;
-   const unsigned int buffer_b = DOUBLE(ALIGN_ROUND(m_info_b.m_width, 16) * m_info_b.m_height) + 2048;
+   bool memerror = false;
+   bool interror = false;
 
-   if(!m_info_a.m_compressWorker.InitCompressBuffers(buffer_a) || !m_info_b.m_compressWorker.InitCompressBuffers(buffer_b) 
-      || !(m_info_a.m_buffer = (BYTE*)ALIGNED_MALLOC(m_info_a.m_buffer, buffer_a, 16, "Info_a.buffer"))
-      || !(m_info_b.m_buffer = (BYTE*)ALIGNED_MALLOC(m_info_b.m_buffer, buffer_b, 16, "Info_b.buffer")))
-   {
-      m_info_a.m_compressWorker.FreeCompressBuffers();
-      m_info_b.m_compressWorker.FreeCompressBuffers();
-      ALIGNED_FREE(m_info_a.m_buffer, "Info_a.buffer");
-      ALIGNED_FREE(m_info_b.m_buffer, "Info_b.buffer");
-      m_info_a.m_thread = NULL;
-      m_info_b.m_thread = NULL;
-      return (DWORD)ICERR_MEMORY;
-   } 
-   else 
-   { 
-      LPTHREAD_START_ROUTINE threadDelegate = encode ? EncodeWorkerTread : DecodeWorkerThread;
-      if(m_format == RGB32)
-      {
-         if(!m_info_c.m_compressWorker.InitCompressBuffers(buffer_a * 3) 
-            || !(m_info_c.m_buffer = (BYTE*)ALIGNED_MALLOC(m_info_c.m_buffer, buffer_a, 16, "Info_c.buffer")))
-         {
-            m_info_a.m_compressWorker.FreeCompressBuffers();
-            m_info_b.m_compressWorker.FreeCompressBuffers();
-            m_info_c.m_compressWorker.FreeCompressBuffers();
-            ALIGNED_FREE(m_info_a.m_buffer, "Info_a.buffer");
-            ALIGNED_FREE(m_info_b.m_buffer, "Info_b.buffer");
-            ALIGNED_FREE(m_info_c.m_buffer, "Info_c.buffer");
-            m_info_a.m_thread = NULL;
-            m_info_b.m_thread = NULL;
-            m_info_c.m_thread = NULL;
-            return (DWORD)ICERR_MEMORY;
-         }
-
-         m_info_c.m_thread = CreateThread(NULL, 0, threadDelegate, &m_info_c, CREATE_SUSPENDED, NULL);
+   if ( encode ) {
+      if ( !m_info_a.m_compressWorker.InitCompressBuffers( buffer_size ) || !m_info_b.m_compressWorker.InitCompressBuffers( buffer_size )) {
+         memerror = true;
       }
+   }
+   if ( !memerror ){
+      LPTHREAD_START_ROUTINE threadDelegate = encode ? EncodeWorkerTread : DecodeWorkerThread;
 
-      m_info_a.m_thread = CreateThread(NULL, 0, threadDelegate, &m_info_a, CREATE_SUSPENDED, NULL);
-      m_info_b.m_thread = CreateThread(NULL, 0, threadDelegate, &m_info_b, CREATE_SUSPENDED, NULL);
-
-      if(!m_info_a.m_thread || !m_info_b.m_thread || (m_format == RGB32 && !m_info_c.m_thread))
-      {
-         m_info_a.m_compressWorker.FreeCompressBuffers();
-         m_info_b.m_compressWorker.FreeCompressBuffers();
-         if(m_format == RGB32)
-         {
-            m_info_c.m_compressWorker.FreeCompressBuffers();
-            ALIGNED_FREE(m_info_c.m_buffer, "Info_c.buffer");
+      if ( m_format == RGB32 ){
+         if ( encode ){
+            if ( !m_info_c.m_compressWorker.InitCompressBuffers( buffer_size )) {
+               memerror = true;
+            }
          }
-         ALIGNED_FREE(m_info_a.m_buffer, "Info_a.buffer");
-         ALIGNED_FREE(m_info_b.m_buffer, "Info_b.buffer");
-         m_info_a.m_thread = NULL;
-         m_info_b.m_thread = NULL;
-         m_info_c.m_thread = NULL;
-         return (DWORD)ICERR_INTERNAL;
+         if ( !memerror ){
+            if ( encode ){
+               m_info_c.m_thread = CreateThread(NULL, 0, threadDelegate, &m_info_c, CREATE_SUSPENDED, NULL);
+            } else {
+               m_info_c.m_thread = CreateThread(NULL, 0, threadDelegate, &m_info_c, CREATE_SUSPENDED, NULL);
+            }
+         }
+      }
+      if ( !memerror ){
+         if ( encode ){
+            m_info_a.m_thread = CreateThread(NULL, 0, threadDelegate, &m_info_a, CREATE_SUSPENDED, NULL);
+            m_info_b.m_thread = CreateThread(NULL, 0, threadDelegate, &m_info_b, CREATE_SUSPENDED, NULL);
+         } else {
+            m_info_a.m_thread = CreateThread(NULL, 0, threadDelegate, &m_info_a, CREATE_SUSPENDED, NULL);
+            m_info_b.m_thread = CreateThread(NULL, 0, threadDelegate, &m_info_b, CREATE_SUSPENDED, NULL);
+         }
+         if ( !m_info_a.m_thread || !m_info_b.m_thread || (m_format==RGB32 && !m_info_c.m_thread )){
+            interror = true;
+         }
       }
    }
 
-   SetThreadPriority(m_info_a.m_thread, THREAD_PRIORITY_ABOVE_NORMAL); 
+   if ( !memerror && !interror && encode ){
+      m_info_a.m_buffer = (BYTE *)ALIGNED_MALLOC((void *)m_info_a.m_buffer,buffer_size,16,"Info_a.buffer");
+      m_info_b.m_buffer = (BYTE *)ALIGNED_MALLOC((void *)m_info_b.m_buffer,buffer_size,16,"Info_b.buffer");
+      if ( m_format == RGB32 ){
+         m_info_c.m_buffer = (BYTE *)ALIGNED_MALLOC((void *)m_info_c.m_buffer,buffer_size,16,"Info_c.buffer");
+         if ( m_info_c.m_buffer == NULL )
+            memerror = true;
+      }
+      if (m_info_a.m_buffer == NULL || m_info_b.m_buffer == NULL ){
+         memerror = true;
+      }
+   }
 
-   return (DWORD)ICERR_OK;
+   if ( memerror || interror ){
+
+      if ( encode ){
+         ALIGNED_FREE(m_info_a.m_buffer,"Info_a.buffer");
+         ALIGNED_FREE(m_info_b.m_buffer,"Info_b.buffer");
+         m_info_a.m_compressWorker.FreeCompressBuffers();
+         m_info_b.m_compressWorker.FreeCompressBuffers();
+         m_info_c.m_compressWorker.FreeCompressBuffers();
+         ALIGNED_FREE(m_info_c.m_buffer,"Info_c.buffer");
+      }
+
+      m_info_a.m_thread=NULL;
+      m_info_b.m_thread=NULL;
+      m_info_c.m_thread=NULL;
+      if ( memerror ){
+         return (DWORD)ICERR_MEMORY;
+      } else {
+         return (DWORD)ICERR_INTERNAL;
+      }
+   } else {
+      return (DWORD)ICERR_OK;
+   }
 }
 
 void CodecInst::EndThreads()

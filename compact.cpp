@@ -19,12 +19,20 @@ void CompressClass::ScaleBitProbability(unsigned int length)
    }
 
    const double factor = temp / (double)length;
-   unsigned int newlen = 0;
+   double temp_array[256];
 
    int a;
-   for(a = 1; a < 257; a++)
+   for ( a = 0; a < 256; a++ )
    {
-      m_probRanges[a] = (unsigned int)(m_probRanges[a] * factor);
+      temp_array[a] = (int)(((int)m_probRanges[a+1])*factor);
+   }
+   for ( a = 0; a < 256; a++ )
+   {
+      m_probRanges[a+1] = (int)temp_array[a];
+   }
+   unsigned int newlen=0;
+   for ( a = 1; a < 257; a++ )
+   {
       newlen += m_probRanges[a];
    }
 
@@ -42,10 +50,10 @@ void CompressClass::ScaleBitProbability(unsigned int length)
          newlen--;
       }
 
-      if((b & 0x80) == 0)
+      if((b & 0x80) == 0) //TODO: change?
       {
-      	b =- (signed int) b;
-      	b &= 0xFF;
+         b =- (signed int) b;
+         b &= 0xFF;
       } 
       else
       {
@@ -72,7 +80,8 @@ unsigned int CompressClass::ReadBitProbability(const BYTE* in)
    try 
    {
       unsigned int length = 0;
-      m_probRanges[0] = 0;
+      //m_probRanges[0] = 0;
+      ZeroMemory(m_probRanges, sizeof(m_probRanges));
 
       const unsigned int skip = GolombDecode(in, &m_probRanges[1], 256);
 
@@ -97,67 +106,89 @@ unsigned int CompressClass::ReadBitProbability(const BYTE* in)
    } 
    catch(...)
    {
-      return 0;
+      MessageBox(HWND_DESKTOP, "ReadBitProbability", "Error", MB_OK | MB_ICONEXCLAMATION);
    }
 }
 
 // Determine the frequency of each byte in a byte stream; the frequencies are then scaled
 // so the total is a power of 2. This allows binary shifts to be used instead of some
 // multiply and divides in the compression/decompression routines
-void CompressClass::CalcBitProbability(const BYTE* const in, const unsigned int length)
+unsigned int CompressClass::CalcBitProbability(const BYTE* const in, const unsigned int length, BYTE* out)
 {
-   m_probRanges[0] = 0;
-   ZeroMemory(m_bytecounts, 256 * sizeof(unsigned int));
+   unsigned int table2[256];
+   ZeroMemory(m_probRanges, 257 * sizeof(unsigned int));
+   ZeroMemory(table2, sizeof(table2));
 
-   for(unsigned int a = 0; a < length; a++)
+   unsigned int a=0;
+   for (a = 0; a < (length&(~1)); a+=2)
    {
-      m_bytecounts[in[a]]++;
+      m_probRanges[in[a]+1]++;
+      table2[in[a+1]]++;
+   }
+   if ( a < length )
+   {
+      m_probRanges[in[a]+1]++;
+   }
+   for (a = 0; a < 256; a++){
+      m_probRanges[a+1] += table2[a];
    }
 
-   memcpy(&m_probRanges[1], m_bytecounts, 256 * sizeof(unsigned int));
+   unsigned int size = 0;
+   if ( out != NULL )
+   {
+      size = GolombEncode(&m_probRanges[1], out, 256);
+   }
 
    ScaleBitProbability(length);
+
+   return size;
 }
 
-unsigned int CompressClass::Compact(const BYTE* in, BYTE* out, const unsigned int length)
+unsigned int CompressClass::Compact(BYTE* in, BYTE* out, const unsigned int length)
 {
-   int bytes_used = 0;
-   
-   const BYTE level = 2;
-   unsigned int size = RLE2(in, m_buffer, length);
-   out[0] = level;
+   unsigned int bytes_used=0;
 
-   const BYTE* source = m_buffer;
+   BYTE* const buffer_1 = m_buffer;
+   BYTE* const buffer_2 = m_buffer + ALIGN_ROUND(length * 3/2 + 16, 16);
+   int rle = 0;
+   unsigned int size = TestAndRLE(in, buffer_1, buffer_2, length, &rle);
 
-   if(size >= length) // RLE size is greater than uncompressed size
+   out[0] = rle;
+   if ( rle )
    {
-      source = in;
-      size = length;
-      out[0] = 0;
-   }
+      if (rle == -1 )
+      { // solid run of 0s, only 1st byte is needed
+         out[0] = 0xFF;
+         out[1] = in[0];
+         bytes_used = 2;
+      } 
+      else 
+      {
+         BYTE* b2 = ( rle == 1 ) ? buffer_1 : buffer_2;
 
-   *(UINT32*)(out + 1) = size;
-   CalcBitProbability(source, size);
+         *(UINT32*)(out+1)=size;
+         unsigned int skip = CalcBitProbability(b2, size, out + 5);
 
-   unsigned int skip = GolombEncode(m_bytecounts, out + 5, 256);
+         skip += RangeEncode(b2, out + 5 + skip, size) + 5;
 
-   BYTE tempc = out[4 + skip];
-   unsigned int y = RangeEncode(source, out + 4 + skip, size);
-   out[4 + skip] = tempc;
-   skip += y + 5;
-
-   if(size < skip)  // RLE size is less than range compressed size
+         if ( size < skip ) { // RLE size is less than range compressed size
+            out[0]+=4;
+            memcpy(out+1,b2,size);
+            skip=size+1;
+         }
+         bytes_used = skip;
+      }
+   } 
+   else 
    {
-      //MessageBox(HWND_DESKTOP, "RLE Smaller", "Info", MB_OK);
-      out[0] += 4;
-      memcpy(out + 1, source, size);
-      skip = size + 1;
+      unsigned int skip = CalcBitProbability(in, length, out + 1);
+      skip += RangeEncode(in,out+skip+1,length) +1;
+      bytes_used=skip;
    }
-
-   bytes_used = skip;
 
    assert(bytes_used >= 2);
-   assert(out[0] == level || out[0]== level + 4 || out[0] == 0);
+   assert(rle <=3 && rle >= -1);
+   assert(out[0] == rle || rle == -1 || out[0]== rle + 4 );
 
    return bytes_used;
 }
@@ -167,63 +198,51 @@ void CompressClass::Uncompact(const BYTE* in, BYTE* out, const unsigned int leng
    try
    {
       char rle = in[0];
-      if(rle >= 0 && rle < 8)
+      if(rle && ( rle < 8 || rle == 0xff ))
       {
          if(rle < 4)
          {
-            unsigned int size = *(UINT32*)(in + 1);
             unsigned int skip = ReadBitProbability(in + 5);
-            
+
             if(!skip)
             {
                return;
             }
 
-            BYTE* dest = rle ? m_buffer : out;
-            RangeDecode(in + 4 + skip, dest, size);
-
-            if(rle == 2)
-            {
-               deRLE2(m_buffer, out, length);
-            }
-            else if( rle == 3)
-            {
-               deRLE3(m_buffer, out, length);
-            }
+            Decode_And_DeRLE(in + 4 + skip + 1, out, length, in[0]);
          } 
          else  // RLE length is less than range compressed length
          {
-            rle -= 4;
-            if(rle == 2)
-            {
-               deRLE2(in + 1, out, length);
-            }
-            else if(rle == 3)
-            {
-               deRLE3(in + 1, out, length);
+            if ( rle == 0xff )
+            { // solid run of 0s, only need to set 1 byte
+               ZeroMemory(out, length);
+               out[0] = in[1];
+            } 
+            else 
+            { // RLE length is less than range compressed length
+               rle-=4;
+               if ( rle )
+                  deRLE(in+1, out, length, rle);
+               else // uncompressed length is smallest...
+                  memcpy((void*)(in+1), out, length);
             }
          } 
-      }
-#ifdef _DEBUG
-      else   // any other values may indicate a corrupted RLE level
+      }else //TODO: RemoveFmessag 
       {
-         char msg[128];
-         sprintf_s(msg,128,"Error! in[0] = %d",in[0]);
-         MessageBox (HWND_DESKTOP, msg, "Error", MB_OK | MB_ICONEXCLAMATION);
-         ZeroMemory(out, length);
-         return;
+         assert(false);
       }
-#endif
-   } 
-   catch(...){};
+   }
+   catch(...)
+   {
+      MessageBox(HWND_DESKTOP, "Uncompact", "Error", MB_OK | MB_ICONEXCLAMATION);
+   };
 }
 
 bool CompressClass::InitCompressBuffers(const unsigned int length)
 {
-   m_buffer = (BYTE*)ALIGNED_MALLOC(m_buffer, length, 32, "Compress::temp");
-   m_probRanges = (unsigned int*)ALIGNED_MALLOC(m_probRanges, 260 * sizeof(unsigned int), 64, "Compress::ranges");
-   m_bytecounts = (unsigned int*)ALIGNED_MALLOC(m_bytecounts, 260 * sizeof(unsigned int), 64, "Compress::bytecounts");
-   if (!( m_buffer && m_probRanges && m_bytecounts))
+   m_buffer = (BYTE*)ALIGNED_MALLOC(m_buffer, length * 3/2 + length * 5/4 + 32, 8, "Compress::buffer");
+
+   if (!m_buffer)
    {
       FreeCompressBuffers();
       return false;
@@ -234,15 +253,11 @@ bool CompressClass::InitCompressBuffers(const unsigned int length)
 void CompressClass::FreeCompressBuffers()
 {	
    ALIGNED_FREE( m_buffer,"Compress::buffer");
-   ALIGNED_FREE( m_probRanges, "Compress::prob_ranges");
-   ALIGNED_FREE( m_bytecounts, "Compress::bytecounts");
 }
 
 CompressClass::CompressClass()
 {
    m_buffer = NULL;
-   m_probRanges = NULL;
-   m_bytecounts = NULL;
 }
 
 CompressClass::~CompressClass()

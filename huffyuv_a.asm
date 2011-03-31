@@ -254,65 +254,6 @@ ENDIF
 
 	ENDM
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-	PUBLIC	C _asm_MedianRestore
-
-;void __cdecl asm_MedianRestore(
-;	[esp+ 4] BYTE* buf,
-;	[esp+ 8] BYTE* buf_end,
-;	[esp+12] int stride);
-
-_asm_MedianRestore	PROC
-
-	push	ebp
-	mov	ebp,esp
-	push	esi
-	push	edi
-	push	ebx
-
-	mov	esi,[ebp+4+4]
-	mov	ebx,[ebp+12+4]
-	lea	edi,[esi+ebx+8]
-	add	esi,4
-	neg	ebx
-
-	; process first row (left predict)
-
-loop0:
-	mov	al,[esi-2]
-	mov	ah,[esi-3]
-	mov	dl,[esi]
-	mov	dh,[esi-1]
-	add	dl,al
-	add	[esi+1],ah
-	mov	[esi],dl
-	add	[esi+2],dl
-	add	[esi+3],dh
-	add	esi,4
-	cmp	esi,edi
-	jb	loop0
-
-	; process remaining rows
-
-	mov	edi,[ebp+8+4]
-
-	align	32
-loop1:
-	MEDIAN_RESTORE	0,-2,0
-	MEDIAN_RESTORE	1,-3,2
-	cmp	esi,edi
-	jb	loop1
-
-	pop	ebx
-	pop	edi
-	pop	esi
-	pop	ebp
-	retn
-
-_asm_MedianRestore	ENDP
-
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 	END

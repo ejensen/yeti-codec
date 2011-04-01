@@ -15,13 +15,13 @@
 //   return ((v + (v >> 4) & 0xF0F0F0F) * 0x1010101) >> 24;
 //}
 
-template <class T>
+template <typename T>
 unsigned int COUNT_BITS(T v)
 {
    v = v - ((v >> 1) & (T)~(T)0/3);
    v = (v & (T)~(T)0/15*3) + ((v >> 2) & (T)~(T)0/15*3);
    v = (v + (v >> 4)) & (T)~(T)0/255*15;
-   return (T)(v * ((T)~(T)0/255)) >> (sizeof(T) - 1) * CHAR_BIT; // count
+   return ((T)(v * ((T)~(T)0/255)) >> (sizeof(T) - 1) * CHAR_BIT);
 }
 
 void MMX_Fast_Add(BYTE* dest, const BYTE* src1, const BYTE* src2, const size_t len) 
@@ -71,8 +71,8 @@ unsigned __int64 MMX_Fast_Sub_Count(BYTE* dest, const BYTE* src1, const BYTE* sr
    unsigned __int64 oldTotalBits = 0;
    unsigned __int64 totalBits = 0;
 
-   unsigned __int64* intDest = (unsigned __int64*)dest;
-   unsigned __int64* intSrc = (unsigned __int64*)src1;
+   unsigned int* intDest = (unsigned int*)dest;
+   unsigned int* intSrc = (unsigned int*)src1;
 
    __m64* mxDest = (__m64*) dest;
    __m64* mxSrc1 = (__m64*) src1;
@@ -80,12 +80,14 @@ unsigned __int64 MMX_Fast_Sub_Count(BYTE* dest, const BYTE* src1, const BYTE* sr
 
    _mm_empty();
 
-   for(size_t i = 0; i < EIGHTH(len); i++)
+   for(size_t i = 0; i < FOURTH(len); i += 2)
    {
-      oldTotalBits += COUNT_BITS(intSrc[i]);
+      oldTotalBits += COUNT_BITS(intSrc[i]) + COUNT_BITS(intSrc[i + 1]);
       *mxDest++ = _mm_sub_pi8(*mxSrc1++, *mxSrc2++);
-      totalBits += COUNT_BITS(intDest[i]);
+      totalBits += COUNT_BITS(intDest[i]) + COUNT_BITS(intDest[i + 1]);
    }
+
+   _mm_empty();
 
    return (oldTotalBits - totalBits < minDelta) ? ULLONG_MAX : totalBits;
 }
@@ -102,8 +104,8 @@ unsigned __int64 SSE2_Fast_Sub_Count(BYTE* dest, const BYTE* src1, const BYTE* s
    __m128i* mxSrc1 = (__m128i*) src1;
    __m128i* mxSrc2 = (__m128i*) src2;
 
-   //TODO: Optimize bit counting
-   for(size_t i = 0; i < len / 16; i += 2)
+   //TODO: Optimize bit counting with SSE
+   for(size_t i = 0; i < EIGHTH(len); i += 2)
    {
       oldTotalBits += COUNT_BITS(intSrc[i]) + COUNT_BITS(intSrc[i+1]);
       *mxDest++ = _mm_sub_epi8(*mxSrc1++, *mxSrc2++);

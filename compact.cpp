@@ -50,7 +50,7 @@ void CompressClass::ScaleBitProbability(unsigned int length)
          newlen--;
       }
 
-      if((b & 0x80) == 0) //TODO: change?
+      if((b & 0x80) == 0)
       {
          b =- (signed int) b;
          b &= 0xFF;
@@ -106,7 +106,6 @@ unsigned int CompressClass::ReadBitProbability(const BYTE* in)
    } 
    catch(...)
    {
-      MessageBox(HWND_DESKTOP, "ReadBitProbability", "Error", MB_OK | MB_ICONEXCLAMATION);
    }
 }
 
@@ -227,15 +226,11 @@ void CompressClass::Uncompact(const BYTE* in, BYTE* out, const unsigned int leng
                   memcpy((void*)(in+1), out, length);
             }
          } 
-      }else //TODO: RemoveFmessag 
-      {
-         assert(false);
       }
    }
    catch(...)
    {
-      MessageBox(HWND_DESKTOP, "Uncompact", "Error", MB_OK | MB_ICONEXCLAMATION);
-   };
+   }
 }
 
 bool CompressClass::InitCompressBuffers(const unsigned int length)

@@ -77,17 +77,13 @@ DWORD CodecInst::InitThreads(bool encode)
 
    int useFormat = (encode) ? m_compressFormat : m_format;
 
-   m_info_a.m_width = m_width;
-   m_info_a.m_height = m_height;
-   m_info_b.m_width = HALF(m_width);
-   m_info_b.m_height = (useFormat == YUY2) ? m_height : HALF(m_height);
+   m_info_a.m_width =  m_info_b.m_width = HALF(m_width);
+   m_info_a.m_height = m_info_b.m_height = (useFormat != YV12) ? m_height : HALF(m_height); m_height;
 
    m_info_c.m_width = m_width;
    m_info_c.m_height = m_height;
 
-   m_info_a.m_format = useFormat;
-   m_info_b.m_format = useFormat;
-   m_info_c.m_format = useFormat;
+   m_info_a.m_format =  m_info_b.m_format =  m_info_c.m_format = useFormat;
 
    m_info_a.m_thread = NULL;
    m_info_b.m_thread = NULL;

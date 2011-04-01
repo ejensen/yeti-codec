@@ -1,7 +1,5 @@
-#include <stdlib.h>
-#include <memory.h>
-#include <stdio.h>
 #include <string.h>
+#define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #include <math.h>
 #include <mmintrin.h>

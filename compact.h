@@ -58,7 +58,7 @@ static inline unsigned __int64 Fast_Sub_Count(BYTE* dest, const BYTE* src1, cons
 class CompressClass 
 {
 public:
-   unsigned int m_probRanges[260];		// Byte probability range table
+   unsigned int m_probRanges[257];		// Byte probability range table
    unsigned int m_scale;				// Used to replace some multiply/divides with binary shifts,
    // (1<<scale) is equal to the cumulative probability of all bytes
    BYTE* m_buffer;

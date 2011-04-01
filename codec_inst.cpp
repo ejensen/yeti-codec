@@ -20,16 +20,10 @@ static BOOL CALLBACK ConfigureDialogProc(HWND hwndDlg, UINT uMsg, WPARAM wParam,
    {
       CheckDlgButton(hwndDlg, IDC_NULLFRAMES, GetPrivateProfileInt(SettingsHeading, "nullframes", FALSE, SettingsFile) ? BST_CHECKED : BST_UNCHECKED);
       CheckDlgButton(hwndDlg, IDC_DELTAFRAMES, GetPrivateProfileInt(SettingsHeading, "deltaframes", FALSE, SettingsFile) ? BST_CHECKED : BST_UNCHECKED);
-      CheckDlgButton(hwndDlg, IDC_MULTI, GetPrivateProfileInt(SettingsHeading, "multithreading", FALSE, SettingsFile) ? BST_CHECKED : BST_UNCHECKED);
 
       unsigned int compressFormat = GetPrivateProfileInt(SettingsHeading, "format", YUY2, SettingsFile);
 
-      int id = IDC_YUY2;
-
-      if(compressFormat == YV12)
-         id = IDC_YV12;
-
-      CheckRadioButton(hwndDlg, IDC_YUY2, IDC_REDUCED, id);
+      CheckRadioButton(hwndDlg, IDC_YUY2, IDC_REDUCED, (compressFormat == YV12) ? IDC_YV12 : IDC_YUY2);
    } 
    else if(uMsg == WM_COMMAND) 
    {
@@ -37,7 +31,6 @@ static BOOL CALLBACK ConfigureDialogProc(HWND hwndDlg, UINT uMsg, WPARAM wParam,
       {
          WritePrivateProfileString(SettingsHeading, "nullframes", (IsDlgButtonChecked(hwndDlg, IDC_NULLFRAMES) == BST_CHECKED) ? "1" : NULL, SettingsFile);
          WritePrivateProfileString(SettingsHeading, "deltaframes", (IsDlgButtonChecked(hwndDlg, IDC_DELTAFRAMES) == BST_CHECKED) ? "1" : NULL, SettingsFile);
-         WritePrivateProfileString(SettingsHeading, "multithreading", (IsDlgButtonChecked(hwndDlg, IDC_MULTI) == BST_CHECKED) ? "1" : NULL, SettingsFile);
 
          int format = YUY2;
 
@@ -141,7 +134,7 @@ DWORD CodecInst::CompressQuery(LPBITMAPINFOHEADER lpbiIn, LPBITMAPINFOHEADER lpb
          RETURN_ERROR();
       }
    } 
-   else if(lpbiIn->biCompression == FOURCC_YUY2)
+   else if(lpbiIn->biCompression == FOURCC_YUY2 || lpbiIn->biCompression == FOURCC_UYVY || lpbiIn->biCompression == FOURCC_YV16)
    {
       if(lpbiIn->biBitCount != YUY2) 
       {
@@ -166,6 +159,10 @@ DWORD CodecInst::CompressQuery(LPBITMAPINFOHEADER lpbiIn, LPBITMAPINFOHEADER lpb
    }
 
    m_compressFormat = GetPrivateProfileInt(SettingsHeading, "format", YUY2, SettingsFile);
+
+    // down sampling routines only accept YUV2
+   if ( m_compressFormat == YV12 && (lpbiIn->biCompression == FOURCC_UYVY || lpbiIn->biCompression == FOURCC_YV16) )
+      RETURN_ERROR()
 
    // Make sure width is mod 4 for YUV formats
    if(lpbiIn->biWidth % 4)
@@ -214,14 +211,20 @@ DWORD CodecInst::CompressGetFormat(LPBITMAPINFOHEADER lpbiIn, LPBITMAPINFOHEADER
 
    m_compressFormat = GetPrivateProfileInt(SettingsHeading, "format", YUY2, SettingsFile);
 
+    // down sampling UYUV is not supported
+   if ( m_compressFormat == YV12 && (lpbiIn->biCompression == FOURCC_UYVY || lpbiIn->biCompression == FOURCC_YV16) )
+   {
+      RETURN_ERROR()
+   }
+
    *lpbiOut = *lpbiIn;
    lpbiOut->biSize = sizeof(BITMAPINFOHEADER) + sizeof(UINT32);
    lpbiOut->biPlanes = 1;
    lpbiOut->biCompression = FOURCC_YETI;
 
+
    if(lpbiIn->biBitCount != RGB24)
    {
-      lpbiOut->biSizeImage = EIGHTH(lpbiIn->biWidth * lpbiIn->biHeight * lpbiIn->biBitCount);
       lpbiOut->biSizeImage = EIGHTH(lpbiIn->biWidth * lpbiIn->biHeight * lpbiIn->biBitCount);
    } 
    else 

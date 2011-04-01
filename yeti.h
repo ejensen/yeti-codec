@@ -42,7 +42,7 @@ inline void* ALIGNED_MALLOC (void* ptr, int size, int align, char* str)
 #define ALIGNED_FREE(ptr, str) { \
    if (ptr){ \
    try {\
-   _aligned_free(ptr);\
+   _aligned_free((void*)ptr);\
 } catch ( ... ){ } \
    } \
    ptr = NULL;\
@@ -50,7 +50,7 @@ inline void* ALIGNED_MALLOC (void* ptr, int size, int align, char* str)
 #else
 #define ALIGNED_FREE(ptr, str) { \
    if(ptr){ \
-   try { _aligned_free(ptr); } catch ( ... ){\
+   try { _aligned_free((void*)ptr); } catch ( ... ){\
    char err_msg[256];\
    sprintf_s(err_msg, 256, "Error when attempting to free pointer %s, value = 0x%X - file %s line %d", str, ptr, __FILE__, __LINE__);\
    MessageBox(HWND_DESKTOP, err_msg, "Error", MB_OK | MB_ICONEXCLAMATION);\

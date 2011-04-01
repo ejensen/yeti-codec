@@ -74,7 +74,7 @@ DWORD CodecInst::CompressBegin(LPBITMAPINFOHEADER lpbiIn, LPBITMAPINFOHEADER lpb
 // 110% of image size + 4KB should be plenty even for random static
 DWORD CodecInst::CompressGetSize(LPBITMAPINFOHEADER lpbiIn, LPBITMAPINFOHEADER lpbiOut)
 {
-   return (DWORD)(EIGHTH(ALIGN_ROUND(lpbiIn->biWidth, 16) * lpbiIn->biHeight * lpbiIn->biBitCount) * 1.1 + 4096); // TODO: Optimize
+   return (DWORD)(ALIGN_ROUND(lpbiIn->biWidth, 16) * lpbiIn->biHeight * lpbiIn->biBitCount / 8 * 1.1 + 2048); // TODO: Optimize
 }
 
 // release resources when compression is done
@@ -131,7 +131,10 @@ DWORD CodecInst::Compress(ICCOMPRESS* icinfo, DWORD /*dwSize*/)
 
    if(m_compressFormat == YUY2)
    {
-      m_in = dest;
+      if(m_format != YUY2)
+      {
+         m_in = dest;
+      }
       return CompressYUV16(icinfo);
    }
 
@@ -146,11 +149,11 @@ DWORD CodecInst::Compress(ICCOMPRESS* icinfo, DWORD /*dwSize*/)
    {
       for(unsigned int h = 0; h < m_height; h++)
       {
-         memcpy(dst2 + yuy2_pitch * h, src + dw * h, dw);
+         memcpy(m_buffer + yuy2_pitch * h, src + dw * h, dw);
       }
 
-      src = dst2;
-      dst2 = m_buffer;
+      src = m_buffer;
+      dst2 = m_buffer2;
    }
 
    isse_yuy2_to_yv12(src, dw, yuy2_pitch, dst2, dst2 + y_pitch * m_height + HALF(uv_pitch * m_height), dst2 + y_pitch * m_height, y_pitch, uv_pitch, m_height);
@@ -204,7 +207,6 @@ DWORD CodecInst::CompressYUV16(ICCOMPRESS* icinfo)
    {
       if(m_deltaframes)
       {
-         assert(false); //TODO: remove
          const unsigned __int64 minDelta = len * 3;
          const unsigned __int64 bitCount = Fast_Sub_Count(m_deltaBuffer, m_in, m_prevFrame, len, minDelta);
 
@@ -231,7 +233,6 @@ DWORD CodecInst::CompressYUV16(ICCOMPRESS* icinfo)
       {
          if(m_nullframes)
          {
-            assert(false); //TODO: remove
             unsigned int pos = HALF(len) + 15;
             pos &= (~15);
             if(memcmp(m_in + pos, m_prevFrame + pos, len - pos) == 0 && memcmp(m_in, m_prevFrame, pos) == 0)
@@ -270,17 +271,31 @@ DWORD CodecInst::CompressYUV16(ICCOMPRESS* icinfo)
 
    BYTE *y, *u, *v;
 
-   //if ( icinfo->lpbiInput->biCompression == FOURCC_YUY2 || lossy_option == 1 )
-   //{
-      Split_YUY2(source, ysrc, usrc, vsrc, m_width, m_height);
-   //} 
-   //else
-   //{
-   //   Split_UYVY(source, ysrc, usrc, vsrc, m_width, m_height);
-   //}
-   y = ysrc;
-   u = usrc;
-   v = vsrc;
+   if ( icinfo->lpbiInput->biCompression == FOURCC_YV16 )
+   {
+      y = m_in;
+      v = v + pixels;
+      u = u + HALF(pixels);
+
+      ydest += ((int)y)&15;
+      udest += ((int)u)&15;
+      vdest += ((int)v)&15;
+
+   } 
+   else 
+   {
+      if ( icinfo->lpbiInput->biCompression == FOURCC_UYVY )
+      {
+         Split_UYVY(m_in, ysrc, usrc, vsrc, m_width, m_height);
+      } 
+      else
+      {
+         Split_YUY2(m_in, ysrc, usrc, vsrc, m_width, m_height);
+      }
+      y = ysrc;
+      u = usrc;
+      v = vsrc;
+   }
 
    m_info_a.m_source = u;
    m_info_a.m_dest = udest;
@@ -325,7 +340,6 @@ DWORD CodecInst::CompressYUV16(ICCOMPRESS* icinfo)
 
 DWORD CodecInst::CompressYV12(ICCOMPRESS* icinfo)
 {
-   //TODO: Optimize for subsequent calls
    const unsigned int y_len	= m_width * m_height;
    const unsigned int c_len	= FOURTH(y_len);
    const unsigned int yu_len	= y_len + c_len;

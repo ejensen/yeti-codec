@@ -10,7 +10,7 @@
 
 #include "resource.h"
 
-inline void* ALIGNED_MALLOC (void* ptr, int size, int align, char* str) 
+inline void* ALIGNED_MALLOC (void* ptr, size_t size, int align, char* str) 
 {
    if(ptr)
    {

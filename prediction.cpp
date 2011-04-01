@@ -816,7 +816,7 @@ void Restore_YV12(BYTE * __restrict ysrc, BYTE * __restrict usrc, BYTE * __restr
       ysrc[a]+=ysrc[a-1];
    }
 
-   //if ( SSE ){
+   {
       const __m64 mask = _mm_set_pi32(0x00ff00ff,0x00ff00ff);
 
       __m64 x = _mm_setr_pi16(ysrc[width-1],usrc[width/2-1],vsrc[width/2-1],0);
@@ -867,22 +867,7 @@ void Restore_YV12(BYTE * __restrict ysrc, BYTE * __restrict usrc, BYTE * __restr
 
          z = _mm_sub_pi16(x,y);
       }
-  /* } else {
-      for ( a=width/2;a<width*height/4;a++){
-         int x = usrc[a-1];
-         int y = usrc[a-width/2];
-         int z = x+y-usrc[a-width/2-1];
-         x = median(x,y,z);
-         usrc[a]+=x;
-
-         x = vsrc[a-1];
-         y = vsrc[a-width/2];
-         z = x+y-vsrc[a-width/2-1];
-         x = median(x,y,z);
-         vsrc[a]+=x;
-      }
-      a=width;
-   } */
+   }
 
    for ( ;a<width*height;a++){
       int x = ysrc[a-1];

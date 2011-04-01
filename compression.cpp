@@ -60,7 +60,7 @@ DWORD CodecInst::CompressBegin(LPBITMAPINFOHEADER lpbiIn, LPBITMAPINFOHEADER lpb
       return (DWORD)ICERR_MEMORY;
    }
 
-   int code = InitThreads(true);
+   DWORD code = InitThreads(true);
    if(code != ICERR_OK)
    {
       return code;
@@ -71,10 +71,10 @@ DWORD CodecInst::CompressBegin(LPBITMAPINFOHEADER lpbiIn, LPBITMAPINFOHEADER lpb
 }
 
 // get the maximum size a compressed frame will take;
-// 110% of image size + 4KB should be plenty even for random static
+// 105% of image size + 1KB should be plenty even for random static
 DWORD CodecInst::CompressGetSize(LPBITMAPINFOHEADER lpbiIn, LPBITMAPINFOHEADER lpbiOut)
 {
-   return (DWORD)(ALIGN_ROUND(lpbiIn->biWidth, 16) * lpbiIn->biHeight * lpbiIn->biBitCount / 8 * 1.1 + 4096); // TODO: Optimize
+   return (DWORD)(ALIGN_ROUND(lpbiIn->biWidth, 16) * lpbiIn->biHeight * lpbiIn->biBitCount / 8 * 1.05 + 1024); // TODO: Optimize
 }
 
 // release resources when compression is done
@@ -203,7 +203,7 @@ DWORD CodecInst::CompressYUV16(ICCOMPRESS* icinfo)
    BYTE* source = m_deltaBuffer;
 
    //TODO: Remove duplication.
-   if(icinfo->dwFlags != ICCOMPRESS_KEYFRAME && icinfo->lFrameNum > 0) //TODO: Optimize
+   if(icinfo->dwFlags != ICCOMPRESS_KEYFRAME && icinfo->lFrameNum > 0)
    {
       if(m_deltaframes)
       {
@@ -280,17 +280,16 @@ DWORD CodecInst::CompressYUV16(ICCOMPRESS* icinfo)
       ydest += ((int)y)&15;
       udest += ((int)u)&15;
       vdest += ((int)v)&15;
-
    } 
    else 
    {
       if ( icinfo->lpbiInput->biCompression == FOURCC_UYVY )
       {
-         Split_UYVY(m_in, ysrc, usrc, vsrc, m_width, m_height);
+         Split_UYVY(source, ysrc, usrc, vsrc, m_width, m_height);
       } 
       else
       {
-         Split_YUY2(m_in, ysrc, usrc, vsrc, m_width, m_height);
+         Split_YUY2(source, ysrc, usrc, vsrc, m_width, m_height);
       }
       y = ysrc;
       u = usrc;
@@ -331,7 +330,6 @@ DWORD CodecInst::CompressYUV16(ICCOMPRESS* icinfo)
 
    m_out[0] = frameType;
    icinfo->lpbiOutput->biSizeImage = size;
-   //assert( *(__int64*)(out+9) != 0 );
    assert( *(__int64*)(m_out+*(UINT32*)(m_out+1)) != 0 );
    assert( *(__int64*)(m_out+*(UINT32*)(m_out+5)) != 0 );
    return ICERR_OK;
@@ -349,7 +347,7 @@ DWORD CodecInst::CompressYV12(ICCOMPRESS* icinfo)
    BYTE frameType;
 
    //TODO: Remove duplication.
-   if(icinfo->dwFlags != ICCOMPRESS_KEYFRAME && icinfo->lFrameNum > 0) //TODO: Optimize
+   if(icinfo->dwFlags != ICCOMPRESS_KEYFRAME && icinfo->lFrameNum > 0)
    {
       if(m_deltaframes)
       {

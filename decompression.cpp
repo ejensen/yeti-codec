@@ -229,7 +229,7 @@ DWORD CodecInst::Decompress(ICDECOMPRESS* idcinfo)
 		if(idcinfo->lpbiInput->biSizeImage == 0)
 		{
 #ifdef _DEBUG
-         MessageBox (HWND_DESKTOP, "Received request to decode a null frame", "Error", MB_OK | MB_ICONEXCLAMATION); //TODO remove
+         MessageBox (HWND_DESKTOP, "Received request to decode a null frame", "Error", MB_OK | MB_ICONEXCLAMATION);
 #endif     
 			return ICERR_OK;
 		}

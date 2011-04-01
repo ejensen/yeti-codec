@@ -75,7 +75,7 @@ DWORD CodecInst::InitThreads(bool encode)
    m_info_b.m_length = 0;
    m_info_c.m_length = 0;
 
-   int useFormat = (encode) ? m_compressFormat : m_format;
+   unsigned int useFormat = (encode) ? m_compressFormat : m_format;
 
    m_info_a.m_width =  m_info_b.m_width = HALF(m_width);
    m_info_a.m_height = m_info_b.m_height = (useFormat != YV12) ? m_height : HALF(m_height); m_height;

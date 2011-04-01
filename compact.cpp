@@ -8,12 +8,12 @@
 #include "zerorle.h"
 #include "golomb.h"
 
-unsigned int COUNT_BITS(unsigned int v)
-{
-   v = v - ((v >> 1) & 0x55555555);
-   v = (v & 0x33333333) + ((v >> 2) & 0x33333333);
-   return ((v + (v >> 4) & 0xF0F0F0F) * 0x1010101) >> 24;
-}
+//unsigned int COUNT_BITS(unsigned int v)
+//{
+//   v = v - ((v >> 1) & 0x55555555);
+//   v = (v & 0x33333333) + ((v >> 2) & 0x33333333);
+//   return ((v + (v >> 4) & 0xF0F0F0F) * 0x1010101) >> 24;
+//}
 
 template <class T>
 unsigned int COUNT_BITS(T v)
@@ -48,14 +48,10 @@ void SSE2_Fast_Add(BYTE* dest, const BYTE* src1, const BYTE* src2, const size_t 
    __m128i* mxDest = (__m128i*) dest;
    const __m128i* end = mxDest + len / 16;
 
-   _mm_empty();
-
    while(mxDest < end)
    {
       *mxDest++ = _mm_add_epi8 (*mxSrc1++, *mxSrc2++);
    }
-
-   _mm_empty();
 }
 
 void Fast_Add(BYTE* dest, const BYTE* src1, const BYTE* src2, const size_t len) 
@@ -75,8 +71,8 @@ unsigned __int64 MMX_Fast_Sub_Count(BYTE* dest, const BYTE* src1, const BYTE* sr
    unsigned __int64 oldTotalBits = 0;
    unsigned __int64 totalBits = 0;
 
-   unsigned int* intDest = (unsigned int*)dest;
-   unsigned int* intSrc = (unsigned int*)src1;
+   unsigned __int64* intDest = (unsigned __int64*)dest;
+   unsigned __int64* intSrc = (unsigned __int64*)src1;
 
    __m64* mxDest = (__m64*) dest;
    __m64* mxSrc1 = (__m64*) src1;
@@ -84,14 +80,12 @@ unsigned __int64 MMX_Fast_Sub_Count(BYTE* dest, const BYTE* src1, const BYTE* sr
 
    _mm_empty();
 
-   for(size_t i = 0; i < FOURTH(len); i += 2)
+   for(size_t i = 0; i < EIGHTH(len); i++)
    {
-      oldTotalBits += COUNT_BITS(intSrc[i]) + COUNT_BITS(intSrc[i+1]);
+      oldTotalBits += COUNT_BITS(intSrc[i]);
       *mxDest++ = _mm_sub_pi8(*mxSrc1++, *mxSrc2++);
-      totalBits += COUNT_BITS(intDest[i]) + COUNT_BITS(intDest[i+1]);
+      totalBits += COUNT_BITS(intDest[i]);
    }
-
-   _mm_empty();
 
    return (oldTotalBits - totalBits < minDelta) ? ULLONG_MAX : totalBits;
 }
@@ -101,24 +95,20 @@ unsigned __int64 SSE2_Fast_Sub_Count(BYTE* dest, const BYTE* src1, const BYTE* s
    unsigned __int64 oldTotalBits = 0;
    unsigned __int64 totalBits = 0;
 
-   unsigned int* intDest = (unsigned int*)dest;
-   unsigned int* intSrc = (unsigned int*)src1;
+   unsigned __int64* intDest = (unsigned __int64*)dest;
+   unsigned __int64* intSrc = (unsigned __int64*)src1;
 
    __m128i* mxDest = (__m128i*) dest;
    __m128i* mxSrc1 = (__m128i*) src1;
    __m128i* mxSrc2 = (__m128i*) src2;
 
-   _mm_empty();
-
    //TODO: Optimize bit counting
-   for(size_t i = 0; i < EIGHTH(len); i += 4)
+   for(size_t i = 0; i < len / 16; i += 2)
    {
-      oldTotalBits += COUNT_BITS(intSrc[i]) + COUNT_BITS(intSrc[i+1]) + COUNT_BITS(intSrc[i+3]) + COUNT_BITS(intSrc[i+4]);
+      oldTotalBits += COUNT_BITS(intSrc[i]) + COUNT_BITS(intSrc[i+1]);
       *mxDest++ = _mm_sub_epi8(*mxSrc1++, *mxSrc2++);
-      totalBits += COUNT_BITS(intDest[i]) + COUNT_BITS(intDest[i+1]) +  COUNT_BITS(intDest[i+3]) + COUNT_BITS(intDest[i+4]);
+      totalBits += COUNT_BITS(intDest[i]) + COUNT_BITS(intDest[i+1]);
    }
-
-   _mm_empty();
 
    return (oldTotalBits - totalBits < minDelta) ? ULLONG_MAX : totalBits;
 }

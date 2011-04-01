@@ -3,7 +3,7 @@
 
 template <class T>
 unsigned int COUNT_BITS(T v);
-unsigned int COUNT_BITS(unsigned int v);
+//unsigned int COUNT_BITS(unsigned int v);
 void MMX_Fast_Add(BYTE* dest, const BYTE* src1, const BYTE* src2, const size_t len);
 void SSE2_Fast_Add(BYTE* dest, const BYTE* src1, const BYTE* src2, const size_t len);
 void Fast_Add(BYTE* dest, const BYTE* src1, const BYTE* src2, const size_t len);

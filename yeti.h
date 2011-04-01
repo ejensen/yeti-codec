@@ -1,15 +1,12 @@
 #pragma once
 
-#include <process.h>
 #include <malloc.h>
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #include <vfw.h>
 #include <malloc.h>
 #include <stdio.h>
-#include <math.h>
 #include <assert.h>
-#include <stdio.h>
 
 #include "resource.h"
 

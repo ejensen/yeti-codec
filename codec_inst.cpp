@@ -23,7 +23,7 @@ static BOOL CALLBACK ConfigureDialogProc(HWND hwndDlg, UINT uMsg, WPARAM wParam,
 
       unsigned int compressFormat = GetPrivateProfileInt(SettingsHeading, "format", YUY2, SettingsFile);
 
-      CheckRadioButton(hwndDlg, IDC_YUY2, IDC_REDUCED, (compressFormat == YV12) ? IDC_YV12 : IDC_YUY2);
+      CheckRadioButton(hwndDlg, IDC_YUY2, IDC_YV12, (compressFormat == YV12) ? IDC_YV12 : IDC_YUY2);
    } 
    else if(uMsg == WM_COMMAND) 
    {

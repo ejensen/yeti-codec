@@ -71,7 +71,7 @@ static size_t UnsignedGolombDecode(BitInputManager& bitManger)
 size_t GolombDecode(const BYTE* in, unsigned int* out, size_t length)
 {
    BitInputManager bitManager(in);
-   for(unsigned int i = 0; i < length; i++)
+   for(size_t i = 0; i < length; i++)
    {
        *(out + i) = UnsignedGolombDecode(bitManager);
    }

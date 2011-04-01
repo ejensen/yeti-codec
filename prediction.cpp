@@ -17,7 +17,7 @@ inline int median(int x, int y, int z)
    return  (i <= j) ? i : j;	//j = min(i,j);
 }
 
-void SSE2_Block_Predict(const BYTE * __restrict source, BYTE * __restrict dest, const unsigned int width, const unsigned int length)
+void SSE2_Block_Predict(const BYTE * __restrict source, BYTE * __restrict dest, const size_t width, const size_t length)
 {
    unsigned int align_shift = (16 - ((unsigned int)source&15))&15;
 
@@ -190,7 +190,7 @@ void SSE2_Block_Predict(const BYTE * __restrict source, BYTE * __restrict dest, 
    }
 }
 
-void SSE2_Block_Predict_YUV16( const BYTE * __restrict source, BYTE * __restrict dest, const unsigned int width, const unsigned int length, const bool is_y)
+void SSE2_Block_Predict_YUV16( const BYTE * __restrict source, BYTE * __restrict dest, const size_t width, const size_t length, const bool is_y)
 {
    unsigned int align_shift = (16 - ((int)source&15))&15;
 
@@ -219,7 +219,7 @@ void SSE2_Block_Predict_YUV16( const BYTE * __restrict source, BYTE * __restrict
    __m128i z;
    __m128i x;
 
-   const __m128i zero = _mm_setzero_si128();
+   /*const __m128i zero = */_mm_setzero_si128();
    a = width;
    {
       // this block makes sure that source[a] is aligned to 16
@@ -338,7 +338,7 @@ void SSE2_Block_Predict_YUV16( const BYTE * __restrict source, BYTE * __restrict
    }
 }
 
-void Split_YUY2(const BYTE * __restrict src, BYTE * __restrict ydst, BYTE * __restrict udst, BYTE * __restrict vdst, const unsigned int width, const unsigned int height)
+void Split_YUY2(const BYTE * __restrict src, BYTE * __restrict ydst, BYTE * __restrict udst, BYTE * __restrict vdst, const size_t width, const size_t height)
 {
    const __m64 ymask = _mm_set_pi32(0x00FF00FF,0x00FF00FF);
    const __m64 cmask = _mm_set_pi32(0x000000FF,0x000000FF);
@@ -380,7 +380,7 @@ void Split_YUY2(const BYTE * __restrict src, BYTE * __restrict ydst, BYTE * __re
    _mm_empty();
 }
 
-void Split_UYVY(const BYTE * __restrict src, BYTE * __restrict ydst, BYTE * __restrict udst, BYTE * __restrict vdst, const unsigned int width, const unsigned int height)
+void Split_UYVY(const BYTE * __restrict src, BYTE * __restrict ydst, BYTE * __restrict udst, BYTE * __restrict vdst, const size_t width, const size_t height)
 {
    const __m64 ymask = _mm_set_pi32(0x00FF00FF,0x00FF00FF);
    const __m64 cmask = _mm_set_pi32(0x000000FF,0x000000FF);
@@ -422,7 +422,7 @@ void Split_UYVY(const BYTE * __restrict src, BYTE * __restrict ydst, BYTE * __re
    _mm_empty();
 }
 
-void Block_Predict(const BYTE * __restrict source, BYTE * __restrict dest, const unsigned int width, const unsigned int length)
+void Block_Predict(const BYTE * __restrict source, BYTE * __restrict dest, const size_t width, const size_t length)
 {
    if ( SSE2 ){
       SSE2_Block_Predict(source, dest, width, length);
@@ -431,7 +431,7 @@ void Block_Predict(const BYTE * __restrict source, BYTE * __restrict dest, const
    }
 }
 
-void SSE_Block_Predict(const BYTE * __restrict source, BYTE * __restrict dest, const unsigned int width, const unsigned int length)
+void SSE_Block_Predict(const BYTE * __restrict source, BYTE * __restrict dest, const size_t width, const size_t length)
 {
    unsigned int align_shift = (8 - ((unsigned int)source&7))&7;
 
@@ -565,7 +565,7 @@ void SSE_Block_Predict(const BYTE * __restrict source, BYTE * __restrict dest, c
    }
 }
 
-void SSE_Block_Predict_YUV16(const BYTE * __restrict source, BYTE * __restrict dest, const unsigned int width, const unsigned int length, const bool is_y)
+void SSE_Block_Predict_YUV16(const BYTE * __restrict source, BYTE * __restrict dest, const size_t width, const size_t length, const bool is_y)
 {
    unsigned int align_shift = (8 - ((unsigned int)source&7))&7;
 
@@ -690,7 +690,7 @@ void SSE_Block_Predict_YUV16(const BYTE * __restrict source, BYTE * __restrict d
    _mm_empty();
 }
 
-void Block_Predict_YUV16( const BYTE * __restrict source, BYTE * __restrict dest, const unsigned int width, const unsigned int length, const bool is_y)
+void Block_Predict_YUV16( const BYTE * __restrict source, BYTE * __restrict dest, const size_t width, const size_t length, const bool is_y)
 {
    if ( SSE2 ){
       SSE2_Block_Predict_YUV16(source, dest, width, length, is_y);
@@ -699,7 +699,7 @@ void Block_Predict_YUV16( const BYTE * __restrict source, BYTE * __restrict dest
    }
 }
 
-void Interleave_And_Restore_YUY2( BYTE * __restrict output, BYTE * __restrict ysrc, const BYTE * __restrict usrc, const BYTE * __restrict vsrc, const unsigned int width, const unsigned int height)
+void Interleave_And_Restore_YUY2( BYTE * __restrict output, BYTE * __restrict ysrc, const BYTE * __restrict usrc, const BYTE * __restrict vsrc, const size_t width, const size_t height)
 {
    output[0] = ysrc[0];
    output[1] = usrc[0];
@@ -806,7 +806,7 @@ void Interleave_And_Restore_YUY2( BYTE * __restrict output, BYTE * __restrict ys
    _mm_empty();
 }
 
-void Restore_YV12(BYTE * __restrict ysrc, BYTE * __restrict usrc, BYTE * __restrict vsrc, const unsigned int width, const unsigned int height){
+void Restore_YV12(BYTE * __restrict ysrc, BYTE * __restrict usrc, BYTE * __restrict vsrc, const size_t width, const size_t height){
    unsigned int a;
    for ( a=1;a<width/2;a++){
       usrc[a]+=usrc[a-1];

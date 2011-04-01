@@ -40,11 +40,11 @@ static const unsigned int countlookup[] =  {8,0,1,0,2,0,1,0,3,0,1,0,2,0,1,0,4,0,
 
 // This function encodes zero runs longer than 256 bytes;
 // This is rare and takes a variable amount of bytes per level
-void Encode_Long_Run( BYTE ** l1, BYTE ** l3, unsigned int count)
+void Encode_Long_Run( BYTE ** l1, BYTE ** l3, size_t count)
 {
    BYTE* lvl1 = l1[0];
    BYTE* lvl3 = l3[0];
-   unsigned int x = count;
+   size_t x = count;
    do {
       lvl1[0]=0;
       lvl1[1]=dist_match_max;
@@ -101,7 +101,7 @@ first is zero, in this case the function will return -1, and only
 the first byte needs to be saved.
 */
 
-unsigned int TestAndRLE(BYTE * const __restrict in, BYTE * const __restrict out1, BYTE * const __restrict out3, const unsigned int length, int * level)
+size_t TestAndRLE(BYTE * const __restrict in, BYTE * const __restrict out1, BYTE * const __restrict out3, const size_t length, int* level)
 {
    BYTE * lvl1 = out1;
    BYTE * lvl3 = out3;
@@ -236,11 +236,11 @@ SSE_RLE_Start_With_0:
 // 0 bytes to output. This routine is only used in the rare occurrence
 // where RLE compression is better than header + range coding
 
-int deRLE(const BYTE * in, BYTE * out, const int length, const int level)
+size_t deRLE(const BYTE * in, BYTE * out, const size_t length, const BYTE level)
 {
-   int a=0;
-   int b=0;
-   memset(out, 0, length);
+   unsigned int a = 0;
+   unsigned int b = 0;
+   ZeroMemory(out, length);
    if( level == 1 )
    {
       while ( b < length)

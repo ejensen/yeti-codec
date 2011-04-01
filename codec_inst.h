@@ -21,9 +21,9 @@ public:
    BYTE* m_buffer2;
    BYTE* m_deltaBuffer;
    BYTE* m_colorTransBuffer;
-   unsigned int m_length;
-   unsigned int m_width;
-   unsigned int m_height;
+   size_t m_length;
+   size_t m_width;
+   size_t m_height;
    unsigned int m_format;	//input format for compressing, output format for decompression. Also the bitdepth.
    unsigned int m_compressFormat;
    bool m_nullframes;
@@ -54,7 +54,7 @@ public:
 
    BOOL QueryConfigure();
 
-   void InitDecompressionThreads(const BYTE* in, BYTE* out, unsigned int length, threadInfo* thread);
+   void InitDecompressionThreads(const BYTE* in, BYTE* out, size_t length, threadInfo* thread);
    DWORD InitThreads(bool encode);
    void EndThreads();
 

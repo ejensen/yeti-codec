@@ -23,7 +23,7 @@ const unsigned int* dist_rest = &dist_restore[0];
 
 // Compress a byte stream using range coding. The frequency table
 // "prob_ranges" will previously have been set up by the calcProb function
-unsigned int CompressClass::RangeEncode(const BYTE* in, BYTE* out, const unsigned int length)
+size_t CompressClass::RangeEncode(const BYTE* in, BYTE* out, const size_t length)
 {
    unsigned int low = 0;
    unsigned int range = TOP_VALUE;
@@ -89,7 +89,7 @@ unsigned int CompressClass::RangeEncode(const BYTE* in, BYTE* out, const unsigne
    out[3] = low<<1;
    out += 4;
 
-   return (unsigned int)(out - count);
+   return (size_t)(out - count);
 }
 
 #define IN_BYTE() ((unsigned int)(*in++))
@@ -97,8 +97,8 @@ unsigned int CompressClass::RangeEncode(const BYTE* in, BYTE* out, const unsigne
 // Decompress a byte stream that has had range coding applied to it.
 // The frequency table "prob_ranges" will have previously been set up using
 // the Readprob function. RLE is also undone if needed.
-void CompressClass::Decode_And_DeRLE( const BYTE * __restrict in, BYTE * __restrict out, const unsigned int length,unsigned int level){
-
+void CompressClass::Decode_And_DeRLE( const BYTE * __restrict in, BYTE * __restrict out, const size_t length, size_t level)
+{
    __assume(length>=1);
    unsigned int buffer = in[0];
    unsigned int low = buffer >> 1;

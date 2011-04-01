@@ -41,7 +41,7 @@ DWORD CodecInst::DecompressBegin(LPBITMAPINFOHEADER lpbiIn, LPBITMAPINFOHEADER l
 		return (DWORD)ICERR_MEMORY;
 	}
 
-	//if(!m_compressWorker.InitCompressBuffers( m_width * m_height * 5/4 ))
+	//if(!m_compressWorker.InitCompressBuffers( m_width * m_height))
 	//{
 	//	return (DWORD)ICERR_MEMORY;
 	//}
@@ -72,7 +72,7 @@ DWORD CodecInst::DecompressEnd()
 	return ICERR_OK;
 }
 
-inline void CodecInst::InitDecompressionThreads(const BYTE* in, BYTE* out, unsigned int length, threadInfo* thread)
+inline void CodecInst::InitDecompressionThreads(const BYTE* in, BYTE* out, size_t length, threadInfo* thread)
 {
 	if (thread)
 	{
@@ -100,8 +100,8 @@ void CodecInst::YUY2Decompress(DWORD flags)
 		dst2 = m_out;
 	}
 
-	const unsigned int pixels = m_width * m_height;
-	const unsigned int half = HALF(pixels);
+	const size_t pixels = m_width * m_height;
+	const size_t half = HALF(pixels);
 	BYTE* y, *u, *v;
 	y = dst;
 	u = y + pixels;
@@ -118,9 +118,6 @@ void CodecInst::YUY2Decompress(DWORD flags)
 	// need to set 2nd Y value for restoration to work right
 	if(size == 11) //TODO: Needed?
 	{
-#if _DEBUG
-		MessageBox(HWND_DESKTOP, "Size == 11", "Info", MB_OK | MB_ICONEXCLAMATION);
-#endif
 		dst[1] = dst[0];
 	}
 
@@ -130,6 +127,7 @@ void CodecInst::YUY2Decompress(DWORD flags)
 
 	if((flags & ICDECOMPRESS_NOTKEYFRAME) == ICDECOMPRESS_NOTKEYFRAME)
 	{
+      //MessageBox(HWND_DESKTOP, "DeltaFrame", "Info", MB_OK);
 		Fast_Add(dst2, dst2, m_prevFrame, DOUBLE(pixels));
 	}
 
@@ -177,7 +175,7 @@ void CodecInst::YV12Decompress(DWORD flags)
 
 	Restore_YV12(dst, usrc, vsrc, m_width, m_height);
 
-	const unsigned int length = EIGHTH(wxh * YV12);
+	const size_t length = EIGHTH(wxh * YV12);
 
 	if((flags & ICDECOMPRESS_NOTKEYFRAME) == ICDECOMPRESS_NOTKEYFRAME)
 	{
@@ -230,6 +228,9 @@ DWORD CodecInst::Decompress(ICDECOMPRESS* idcinfo)
 		// according to the avi specs, the calling application is responsible for handling null frames.
 		if(idcinfo->lpbiInput->biSizeImage == 0)
 		{
+#ifdef _DEBUG
+         MessageBox (HWND_DESKTOP, "Received request to decode a null frame", "Error", MB_OK | MB_ICONEXCLAMATION); //TODO remove
+#endif     
 			return ICERR_OK;
 		}
 

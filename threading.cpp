@@ -7,9 +7,9 @@
 DWORD WINAPI EncodeWorkerTread(LPVOID i)
 {
    threadInfo* info = (threadInfo*)i;
-   const unsigned int width = info->m_width;
-   const unsigned int height = info->m_height;
-   const unsigned int length = width * height;
+   const size_t width = info->m_width;
+   const size_t height = info->m_height;
+   const size_t length = width * height;
 
    const BYTE* src = NULL;
    BYTE* dest = NULL;
@@ -49,7 +49,7 @@ DWORD WINAPI DecodeWorkerThread(LPVOID i)
    threadInfo* info = (threadInfo*)i;
    BYTE* src = NULL;
    BYTE* dest = NULL;
-   unsigned int length;
+   size_t length;
 
    while(info->m_length != UINT32_MAX) //TODO:Optimize
    {

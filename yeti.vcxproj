@@ -22,18 +22,14 @@
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
-    <UseOfMfc>false</UseOfMfc>
     <WholeProgramOptimization>true</WholeProgramOptimization>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
-    <UseOfMfc>false</UseOfMfc>
-    <CharacterSet>NotSet</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Profiling|Win32'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
-    <UseOfMfc>false</UseOfMfc>
-    <CharacterSet>NotSet</CharacterSet>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
@@ -115,14 +111,14 @@
     <ResourceCompile>
       <PreprocessorDefinitions>_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <Culture>0x0409</Culture>
-      <AdditionalIncludeDirectories>C:\Program Files\Microsoft Platform SDK\Include\mfc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ResourceCompile>
     <PreLinkEvent>
       <Command>
       </Command>
     </PreLinkEvent>
     <Link>
-      <AdditionalDependencies>winmm.lib;shell32.lib;comctl32.lib;User32.lib;Kernel32.lib;libcmt.lib;huffyuv_a.obj;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>winmm.lib;shell32.lib;comctl32.lib;User32.lib;Kernel32.lib;libcmt.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <IgnoreAllDefaultLibraries>true</IgnoreAllDefaultLibraries>
       <ModuleDefinitionFile>drvproc.def</ModuleDefinitionFile>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -169,15 +165,14 @@
     </ClCompile>
     <ResourceCompile>
       <PreprocessorDefinitions>_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <Culture>0x0409</Culture>
-      <AdditionalIncludeDirectories>C:\Program Files\Microsoft Platform SDK\Include\mfc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ResourceCompile>
     <PreLinkEvent>
       <Command>
       </Command>
     </PreLinkEvent>
     <Link>
-      <AdditionalDependencies>winmm.lib;shell32.lib;comctl32.lib;User32.lib;Kernel32.lib;libcmt.lib;huffyuv_a.obj;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>winmm.lib;shell32.lib;comctl32.lib;User32.lib;Kernel32.lib;libcmt.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <IgnoreAllDefaultLibraries>true</IgnoreAllDefaultLibraries>
       <ModuleDefinitionFile>drvproc.def</ModuleDefinitionFile>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -217,23 +212,20 @@
       <StringPooling>true</StringPooling>
       <MinimalRebuild>false</MinimalRebuild>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
-      <BufferSecurityCheck>false</BufferSecurityCheck>
       <FunctionLevelLinking>false</FunctionLevelLinking>
-      <TreatWChar_tAsBuiltInType>true</TreatWChar_tAsBuiltInType>
-      <RuntimeTypeInfo>false</RuntimeTypeInfo>
       <WarningLevel>Level4</WarningLevel>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <DebugInformationFormat>
       </DebugInformationFormat>
-      <CallingConvention>FastCall</CallingConvention>
       <EnablePREfast>true</EnablePREfast>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <EnableEnhancedInstructionSet>StreamingSIMDExtensions2</EnableEnhancedInstructionSet>
+      <EnableFiberSafeOptimizations>true</EnableFiberSafeOptimizations>
+      <CallingConvention>FastCall</CallingConvention>
     </ClCompile>
     <ResourceCompile>
       <PreprocessorDefinitions>NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <Culture>0x0409</Culture>
-      <AdditionalIncludeDirectories>C:\Program Files\Microsoft Platform SDK\Include\mfc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ResourceCompile>
     <PreLinkEvent>
       <Command>
@@ -241,8 +233,7 @@
     </PreLinkEvent>
     <Link>
       <AdditionalOptions>/filealign:512 %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalDependencies>WinMM.Lib;Shell32.Lib;comctl32.lib;User32.lib;Kernel32.lib;LIBCMT.LIB;huffyuv_a.obj;%(AdditionalDependencies)</AdditionalDependencies>
-      <SuppressStartupBanner>true</SuppressStartupBanner>
+      <AdditionalDependencies>WinMM.Lib;Shell32.Lib;comctl32.lib;User32.lib;Kernel32.lib;LIBCMT.LIB;%(AdditionalDependencies)</AdditionalDependencies>
       <IgnoreAllDefaultLibraries>true</IgnoreAllDefaultLibraries>
       <IgnoreSpecificDefaultLibraries>%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
       <ModuleDefinitionFile>drvproc.def</ModuleDefinitionFile>
@@ -272,12 +263,12 @@
     <None Include="drvproc.def" />
     <CustomBuild Include="huffyuv_a.asm">
       <FileType>Document</FileType>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">"C:\Program Files\Microsoft Visual Studio 10.0\VC\bin\ml.exe" /c /Zd /coff /nologo .\huffyuv_a.asm</Command>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Profiling|Win32'">"C:\Program Files\Microsoft Visual Studio 10.0\VC\bin\ml.exe" /c /Zd /coff /nologo .\huffyuv_a.asm</Command>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">"C:\Program Files\Microsoft Visual Studio 10.0\VC\bin\ml.exe" /c /Zd /coff /nologo .\huffyuv_a.asm</Command>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">huffyuv_a.obj</Outputs>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Profiling|Win32'">huffyuv_a.obj</Outputs>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">huffyuv_a.obj</Outputs>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">"C:\Program Files\Microsoft Visual Studio 10.0\VC\bin\ml.exe" /c /Zd /coff /W3 /nologo /Fo $(Configuration)\huffyuv_a.obj huffyuv_a.asm</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Profiling|Win32'">"C:\Program Files\Microsoft Visual Studio 10.0\VC\bin\ml.exe" /c /Zd /coff /W3 /nologo /Fo $(Configuration)\huffyuv_a.obj huffyuv_a.asm</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">"C:\Program Files\Microsoft Visual Studio 10.0\VC\bin\ml.exe" /c /Zd /coff /W3 /nologo /Fo $(Configuration)\huffyuv_a.obj huffyuv_a.asm</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(Configuration)\huffyuv_a.obj</Outputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Profiling|Win32'">$(Configuration)\huffyuv_a.obj</Outputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(Configuration)\huffyuv_a.obj</Outputs>
     </CustomBuild>
     <None Include="Yeti.inf" />
   </ItemGroup>

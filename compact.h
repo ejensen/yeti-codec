@@ -12,7 +12,7 @@ static inline unsigned int COUNT_BITS(unsigned int v)
    return ((v + (v >> 4) & 0xF0F0F0F) * 0x1010101) >> 24;
 }
 
-static inline void Fast_Add(BYTE* dest, const BYTE* src1, const BYTE* src2, const unsigned int len) 
+static inline void Fast_Add(BYTE* dest, const BYTE* src1, const BYTE* src2, const size_t len) 
 {
    __m64* mxSrc1 = (__m64*) src1;
    __m64* mxSrc2 = (__m64*) src2;
@@ -29,7 +29,7 @@ static inline void Fast_Add(BYTE* dest, const BYTE* src1, const BYTE* src2, cons
    _mm_empty();
 }
 
-static inline unsigned __int64 Fast_Sub_Count(BYTE* dest, const BYTE* src1, const BYTE* src2, const unsigned int len, const unsigned __int64 minDelta)
+static inline unsigned __int64 Fast_Sub_Count(BYTE* dest, const BYTE* src1, const BYTE* src2, const size_t len, const unsigned __int64 minDelta)
 {
    unsigned __int64 oldTotalBits = 0;
    unsigned __int64 totalBits = 0;
@@ -43,7 +43,7 @@ static inline unsigned __int64 Fast_Sub_Count(BYTE* dest, const BYTE* src1, cons
 
    _mm_empty();
 
-   for(unsigned int i = 0; i < FOURTH(len); i += 2)
+   for(size_t i = 0; i < FOURTH(len); i += 2)
    {
       oldTotalBits += COUNT_BITS(intSrc[i]) + COUNT_BITS(intSrc[i+1]);
       *mxDest++ = _mm_sub_pi8(*mxSrc1++, *mxSrc2++);
@@ -52,7 +52,7 @@ static inline unsigned __int64 Fast_Sub_Count(BYTE* dest, const BYTE* src1, cons
 
    _mm_empty();
 
-   return (oldTotalBits - totalBits < minDelta) ? ULONG_MAX : totalBits;
+   return (oldTotalBits - totalBits < minDelta) ? ULLONG_MAX : totalBits;
 }
 
 class CompressClass 
@@ -66,14 +66,14 @@ public:
    CompressClass();
    ~CompressClass();
 
-   bool InitCompressBuffers(const unsigned int length);
+   bool InitCompressBuffers(const size_t length);
    void FreeCompressBuffers();
 
-   unsigned int Compact(BYTE* __restrict in, BYTE* __restrict out, const unsigned int length);
-   void Uncompact(const BYTE* __restrict in, BYTE* __restrict out, const unsigned int length);
-   unsigned int CalcBitProbability(const BYTE* in, const unsigned int length, BYTE* out = 0);
-   void ScaleBitProbability(const unsigned int length);
-   unsigned int ReadBitProbability(const BYTE* in);
-   unsigned int RangeEncode( const BYTE* in, BYTE* out, const unsigned int length);
-   void Decode_And_DeRLE( const BYTE* __restrict in, BYTE* __restrict out, const unsigned int length, unsigned int level);
+   size_t Compact(BYTE* __restrict in, BYTE* __restrict out, const size_t length);
+   void Uncompact(const BYTE* __restrict in, BYTE* __restrict out, const size_t length);
+   size_t CalcBitProbability(const BYTE* in, const size_t length, BYTE* out = 0);
+   void ScaleBitProbability(const size_t length);
+   size_t ReadBitProbability(const BYTE* in);
+   size_t RangeEncode(const BYTE* in, BYTE* out, const size_t length);
+   void Decode_And_DeRLE(const BYTE* __restrict in, BYTE* __restrict out, const size_t length, unsigned int level);
 };

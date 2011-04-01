@@ -28,11 +28,11 @@ struct threadInfo
    volatile const BYTE* m_source;
    volatile BYTE* m_dest;
    volatile BYTE* m_buffer;
-   volatile unsigned int m_width;
-   volatile unsigned int m_height;
+   volatile size_t m_width;
+   volatile size_t m_height;
+   volatile size_t m_length;	// uncompressed data length
+   volatile size_t m_size;		// compressed data length
    volatile unsigned int m_format;
-   volatile unsigned int m_length;	// uncompressed data length
-   volatile unsigned int m_size;		// compressed data length
 };
 
 DWORD WINAPI EncodeWorkerTread(LPVOID i);

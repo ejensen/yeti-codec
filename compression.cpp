@@ -74,7 +74,7 @@ DWORD CodecInst::CompressBegin(LPBITMAPINFOHEADER lpbiIn, LPBITMAPINFOHEADER lpb
 // 110% of image size + 4KB should be plenty even for random static
 DWORD CodecInst::CompressGetSize(LPBITMAPINFOHEADER lpbiIn, LPBITMAPINFOHEADER lpbiOut)
 {
-   return (DWORD)(ALIGN_ROUND(lpbiIn->biWidth, 16) * lpbiIn->biHeight * lpbiIn->biBitCount / 8 * 1.1 + 2048); // TODO: Optimize
+   return (DWORD)(ALIGN_ROUND(lpbiIn->biWidth, 16) * lpbiIn->biHeight * lpbiIn->biBitCount / 8 * 1.1 + 4096); // TODO: Optimize
 }
 
 // release resources when compression is done
@@ -138,16 +138,16 @@ DWORD CodecInst::Compress(ICCOMPRESS* icinfo, DWORD /*dwSize*/)
       return CompressYUV16(icinfo);
    }
 
-   unsigned int dw = DOUBLE(m_width);
+   size_t dw = DOUBLE(m_width);
    BYTE* dst2 = m_colorTransBuffer;
-   unsigned int yuy2_pitch = ALIGN_ROUND(dw, 16);
-   unsigned int y_pitch = ALIGN_ROUND(m_width, 8);
-   unsigned int uv_pitch = ALIGN_ROUND(HALF(m_width), 8);
+   size_t yuy2_pitch = ALIGN_ROUND(dw, 16);
+   size_t y_pitch = ALIGN_ROUND(m_width, 8);
+   size_t uv_pitch = ALIGN_ROUND(HALF(m_width), 8);
 
    bool is_aligned = (m_width % 16) == 0;
    if(!is_aligned)
    {
-      for(unsigned int h = 0; h < m_height; h++)
+      for(size_t h = 0; h < m_height; h++)
       {
          memcpy(m_buffer + yuy2_pitch * h, src + dw * h, dw);
       }
@@ -161,7 +161,7 @@ DWORD CodecInst::Compress(ICCOMPRESS* icinfo, DWORD /*dwSize*/)
    dest = m_colorTransBuffer;
    if(!is_aligned)
    {
-      unsigned int h;
+      size_t h;
 
       for(h = 0; h < m_height; h++)
       {
@@ -171,7 +171,7 @@ DWORD CodecInst::Compress(ICCOMPRESS* icinfo, DWORD /*dwSize*/)
       dst2 += y_pitch * m_height;
       dest += m_width * m_height;
 
-      const unsigned int hw = HALF(m_width);
+      const size_t hw = HALF(m_width);
       for(h = 0 ; h < m_height; h++)
       {
          memcpy(dest + hw * h, dst2 + uv_pitch * h, hw);
@@ -194,10 +194,10 @@ DWORD CodecInst::Compress(ICCOMPRESS* icinfo, DWORD /*dwSize*/)
 
 DWORD CodecInst::CompressYUV16(ICCOMPRESS* icinfo)
 {
-   const unsigned int pixels    = m_width * m_height;
-   const unsigned int y_stride  = ALIGN_ROUND(pixels + 16, 16);
-   const unsigned int c_stride  = ALIGN_ROUND(HALF(pixels) + 32, 16);
-   const size_t len             = y_stride + DOUBLE(c_stride);
+   const size_t pixels    = m_width * m_height;
+   const size_t y_stride  = ALIGN_ROUND(pixels + 16, 16);
+   const size_t c_stride  = ALIGN_ROUND(HALF(pixels) + 32, 16);
+   const size_t len       = y_stride + DOUBLE(c_stride);
 
    BYTE frameType;
    BYTE* source = m_deltaBuffer;
@@ -210,7 +210,7 @@ DWORD CodecInst::CompressYUV16(ICCOMPRESS* icinfo)
          const unsigned __int64 minDelta = len * 3;
          const unsigned __int64 bitCount = Fast_Sub_Count(m_deltaBuffer, m_in, m_prevFrame, len, minDelta);
 
-         if(bitCount == ULONG_MAX)
+         if(bitCount == ULLONG_MAX)
          {
             source = m_in;
             *icinfo->lpdwFlags |= AVIIF_KEYFRAME;
@@ -233,7 +233,7 @@ DWORD CodecInst::CompressYUV16(ICCOMPRESS* icinfo)
       {
          if(m_nullframes)
          {
-            unsigned int pos = HALF(len) + 15;
+            size_t pos = HALF(len) + 15;
             pos &= (~15);
             if(memcmp(m_in + pos, m_prevFrame + pos, len - pos) == 0 && memcmp(m_in, m_prevFrame, pos) == 0)
             {
@@ -274,8 +274,8 @@ DWORD CodecInst::CompressYUV16(ICCOMPRESS* icinfo)
    if ( icinfo->lpbiInput->biCompression == FOURCC_YV16 )
    {
       y = m_in;
-      v = v + pixels;
-      u = u + HALF(pixels);
+      v = y + pixels;
+      u = v + HALF(pixels);
 
       ydest += ((int)y)&15;
       udest += ((int)u)&15;
@@ -308,13 +308,13 @@ DWORD CodecInst::CompressYUV16(ICCOMPRESS* icinfo)
 
    Block_Predict_YUV16(y, ydest, m_width, pixels, true);
 
-   unsigned int size = m_compressWorker.Compact(ydest, m_out + 9, pixels);
+   size_t size = m_compressWorker.Compact(ydest, m_out + 9, pixels);
    while ( m_info_a.m_length )
    {
       Sleep(0);
    }
 
-   unsigned int sizea = m_info_a.m_size;
+   size_t sizea = m_info_a.m_size;
    *(UINT32*)(m_out+1) = size + 9;
    memcpy(m_out + size + 9, udest, sizea);
 
@@ -323,7 +323,7 @@ DWORD CodecInst::CompressYUV16(ICCOMPRESS* icinfo)
       Sleep(0);
    }
 
-   unsigned int sizeb = m_info_b.m_size;
+   size_t sizeb = m_info_b.m_size;
    *(UINT32*)(m_out+5) = sizea + 9 + size;
    memcpy(m_out + sizea + size + 9, vdest, sizeb);
 
@@ -340,10 +340,10 @@ DWORD CodecInst::CompressYUV16(ICCOMPRESS* icinfo)
 
 DWORD CodecInst::CompressYV12(ICCOMPRESS* icinfo)
 {
-   const unsigned int y_len	= m_width * m_height;
-   const unsigned int c_len	= FOURTH(y_len);
-   const unsigned int yu_len	= y_len + c_len;
-   const unsigned int len		= yu_len + c_len;
+   const size_t y_len	= m_width * m_height;
+   const size_t c_len	= FOURTH(y_len);
+   const size_t yu_len	= y_len + c_len;
+   const size_t len		= yu_len + c_len;
 
    BYTE* source = m_deltaBuffer;
    BYTE frameType;
@@ -356,7 +356,7 @@ DWORD CodecInst::CompressYV12(ICCOMPRESS* icinfo)
          const unsigned __int64 minDelta = len * 3;
          const unsigned __int64 bitCount = Fast_Sub_Count(source, m_in, m_prevFrame, len, minDelta);
 
-         if(bitCount == ULONG_MAX)
+         if(bitCount == ULLONG_MAX)
          {
             source = m_in;
             *icinfo->lpdwFlags |= AVIIF_KEYFRAME;
@@ -437,24 +437,24 @@ DWORD CodecInst::CompressYV12(ICCOMPRESS* icinfo)
 
    if (!m_info_a.m_length)
    {
-      unsigned int sizea = m_info_a.m_size;
+      size_t sizea = m_info_a.m_size;
       *(UINT32*)(m_out + 1) = 9 + size;
       memcpy(m_out + size + 9, m_buffer2, sizea);
       while ( m_info_b.m_length )
          Sleep(0);
-      unsigned int sizeb = m_info_b.m_size;
+      size_t sizeb = m_info_b.m_size;
       *(UINT32*)(m_out + 5) = sizea + 9 + size;
       memcpy(m_out + sizea + 9 + size, m_buffer2 + HALF(y_len), sizeb);
       size += sizea + sizeb + 9;
    } 
    else 
    {
-      unsigned int sizeb = m_info_b.m_size;
+      size_t sizeb = m_info_b.m_size;
       *(UINT32*)(m_out + 5) = 9 + size;
       memcpy(m_out + 9 + size, m_buffer2 + HALF(y_len), sizeb);
       while ( m_info_a.m_length )
          Sleep(0);
-      unsigned int sizea = m_info_a.m_size;
+      size_t sizea = m_info_a.m_size;
       *(UINT32*)(m_out + 1) = 9 + size + sizeb;
       memcpy(m_out + size + sizeb + 9, m_buffer2, sizea);
       size += sizea + sizeb + 9;

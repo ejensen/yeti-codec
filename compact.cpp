@@ -192,8 +192,10 @@ void CompressClass::ScaleBitProbability(size_t length)
 // read the byte frequency header
 size_t CompressClass::ReadBitProbability(const BYTE* in)
 {
+#ifdef _DEBUG
    try 
    {
+#endif
       size_t length = 0;
       m_probRanges[0] = 0;
       //ZeroMemory(m_probRanges, sizeof(m_probRanges)); //TODO: change?
@@ -218,10 +220,13 @@ size_t CompressClass::ReadBitProbability(const BYTE* in)
       ScaleBitProbability(length);
 
       return skip;
+#ifdef _DEBUG
    } 
    catch(...)
    {
+      MessageBox (HWND_DESKTOP, "ReadBitProbability Failed", "Error", MB_OK | MB_ICONEXCLAMATION);
    }
+#endif
 }
 
 // Determine the frequency of each byte in a byte stream; the frequencies are then scaled
@@ -308,7 +313,9 @@ size_t CompressClass::Compact(BYTE* in, BYTE* out, const size_t length)
 
 void CompressClass::Uncompact(const BYTE* in, BYTE* out, const size_t length)
 {
+#ifdef _DEBUG
    try
+#endif
    {
       BYTE rle = in[0];
       if(rle && ( rle < 8 || rle == 0xff ))
@@ -341,10 +348,13 @@ void CompressClass::Uncompact(const BYTE* in, BYTE* out, const size_t length)
             }
          }
       }
-   }
+#ifdef _DEBUG
+   } 
    catch(...)
    {
+      MessageBox (HWND_DESKTOP, "ReadBitProbability Failed", "Error", MB_OK | MB_ICONEXCLAMATION);
    }
+#endif
 }
 
 bool CompressClass::InitCompressBuffers(const size_t length)

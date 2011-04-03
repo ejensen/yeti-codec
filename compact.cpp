@@ -202,6 +202,9 @@ size_t CompressClass::ReadBitProbability(const BYTE* in)
 
       if(!skip)
       {
+#ifdef _DEBUG
+         MessageBox (HWND_DESKTOP, "GolombDecode Failed", "Error", MB_OK | MB_ICONEXCLAMATION);
+#endif
          return 0;
       }
 
@@ -311,7 +314,7 @@ void CompressClass::Uncompact(const BYTE* in, BYTE* out, const size_t length)
    try
    {
 #endif
-      BYTE rle = in[0];
+      int rle = in[0];
       if(rle && ( rle < 8 || rle == 0xff ))
       {
          if(rle < 4)
@@ -325,7 +328,7 @@ void CompressClass::Uncompact(const BYTE* in, BYTE* out, const size_t length)
 
             Decode_And_DeRLE(in + 4 + skip + 1, out, length, in[0]);
          }
-         else  // RLE length is less than range compressed length
+         else
          {
             if ( rle == 0xff )
             { // solid run of 0s, only need to set 1 byte
@@ -333,7 +336,7 @@ void CompressClass::Uncompact(const BYTE* in, BYTE* out, const size_t length)
                out[0] = in[1];
             }
             else 
-            { // RLE length is less than range compressed length
+            {
                rle -= 4;
                if ( rle )
                   deRLE(in+1, out, length, rle);
@@ -342,11 +345,16 @@ void CompressClass::Uncompact(const BYTE* in, BYTE* out, const size_t length)
             }
          }
       }
-#ifdef _DEBUG
+      else
+      {
+         size_t skip = ReadBitProbability(in + 1);
+         Decode_And_DeRLE(in + skip + 1, out, length, 0);
+      }
    } 
+#ifdef _DEBUG
    catch(...)
    {
-      MessageBox (HWND_DESKTOP, "ReadBitProbability Failed", "Error", MB_OK | MB_ICONEXCLAMATION);
+      MessageBox(HWND_DESKTOP, "Uncompact Failed", "Error", MB_OK | MB_ICONEXCLAMATION);
    }
 #endif
 }

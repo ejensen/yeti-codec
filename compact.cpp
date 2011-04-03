@@ -7,7 +7,7 @@
 #include "yeti.h"
 #include "compact.h"
 #include "zerorle.h"
-#include "golomb.h"
+#include "fibonacci.h"
 
 //unsigned int COUNT_BITS(unsigned int v)
 //{
@@ -141,28 +141,18 @@ void CompressClass::ScaleBitProbability(size_t length)
    }
 
    const double factor = temp / (double)length;
-   double temp_array[256];
+   unsigned int newlen = 0;
 
-   int a;
-   for ( a = 0; a < 256; a++ )
+   for ( int i = 1; i < 257; i++ )
    {
-      temp_array[a] = (int)(((int)m_probRanges[a+1])*factor);
+      m_probRanges[i] = (unsigned int)((m_probRanges[i]) * factor);
+      newlen += m_probRanges[i];
    }
-   for ( a = 0; a < 256; a++ )
-   {
-      m_probRanges[a+1] = (int)temp_array[a];
-   }
-   unsigned int newlen=0;
-   for ( a = 1; a < 257; a++ )
-   {
-      newlen += m_probRanges[a];
-   }
-
+   
    newlen = temp - newlen;
 
    assert(newlen < 0x80000000);
 
-   a= 0;
    unsigned int b = 0;
    while(newlen)
    {
@@ -184,6 +174,7 @@ void CompressClass::ScaleBitProbability(size_t length)
       }
    }
 
+   unsigned int a = 0;
    for(a = 0; temp; a++)
    {
       temp >>= 1;
@@ -259,11 +250,7 @@ size_t CompressClass::CalcBitProbability(const BYTE* const in, const size_t leng
       m_probRanges[a+1] += table2[a];
    }
 
-   size_t size = 0;
-   if ( out != NULL )
-   {
-      size = GolombEncode(&m_probRanges[1], out, 256);
-   }
+   size_t size = GolombEncode(&m_probRanges[1], out, 256);
 
    ScaleBitProbability(length);
 

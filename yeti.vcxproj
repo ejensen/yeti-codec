@@ -107,6 +107,7 @@
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <WholeProgramOptimization>true</WholeProgramOptimization>
       <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
+      <OpenMPSupport>true</OpenMPSupport>
     </ClCompile>
     <ResourceCompile>
       <PreprocessorDefinitions>_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -118,7 +119,7 @@
       </Command>
     </PreLinkEvent>
     <Link>
-      <AdditionalDependencies>winmm.lib;shell32.lib;comctl32.lib;User32.lib;Kernel32.lib;libcmt.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>winmm.lib;shell32.lib;comctl32.lib;User32.lib;Kernel32.lib;libcmt.lib;VCOMPD.LIB;%(AdditionalDependencies)</AdditionalDependencies>
       <IgnoreAllDefaultLibraries>true</IgnoreAllDefaultLibraries>
       <ModuleDefinitionFile>drvproc.def</ModuleDefinitionFile>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -162,6 +163,7 @@
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <WholeProgramOptimization>true</WholeProgramOptimization>
       <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
+      <OpenMPSupport>true</OpenMPSupport>
     </ClCompile>
     <ResourceCompile>
       <PreprocessorDefinitions>_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -172,7 +174,7 @@
       </Command>
     </PreLinkEvent>
     <Link>
-      <AdditionalDependencies>winmm.lib;shell32.lib;comctl32.lib;User32.lib;Kernel32.lib;libcmt.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>winmm.lib;shell32.lib;comctl32.lib;User32.lib;Kernel32.lib;libcmt.lib;VCOMP.LIB;%(AdditionalDependencies)</AdditionalDependencies>
       <IgnoreAllDefaultLibraries>true</IgnoreAllDefaultLibraries>
       <ModuleDefinitionFile>drvproc.def</ModuleDefinitionFile>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -222,6 +224,7 @@
       <EnableEnhancedInstructionSet>StreamingSIMDExtensions2</EnableEnhancedInstructionSet>
       <EnableFiberSafeOptimizations>true</EnableFiberSafeOptimizations>
       <CallingConvention>FastCall</CallingConvention>
+      <OpenMPSupport>true</OpenMPSupport>
     </ClCompile>
     <ResourceCompile>
       <PreprocessorDefinitions>NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -233,7 +236,7 @@
     </PreLinkEvent>
     <Link>
       <AdditionalOptions>/filealign:512 %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalDependencies>WinMM.Lib;Shell32.Lib;comctl32.lib;User32.lib;Kernel32.lib;LIBCMT.LIB;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>WinMM.Lib;Shell32.Lib;comctl32.lib;User32.lib;Kernel32.lib;LIBCMT.LIB;VCOMP.LIB;%(AdditionalDependencies)</AdditionalDependencies>
       <IgnoreAllDefaultLibraries>true</IgnoreAllDefaultLibraries>
       <IgnoreSpecificDefaultLibraries>%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
       <ModuleDefinitionFile>drvproc.def</ModuleDefinitionFile>

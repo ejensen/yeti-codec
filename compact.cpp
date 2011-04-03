@@ -3,6 +3,7 @@
 #include <limits.h>
 #include <mmintrin.h>
 #include <emmintrin.h>
+#include <omp.h>
 #include "yeti.h"
 #include "compact.h"
 #include "zerorle.h"
@@ -26,16 +27,16 @@ unsigned int COUNT_BITS(T v)
 
 void MMX_Fast_Add(BYTE* dest, const BYTE* src1, const BYTE* src2, const size_t len) 
 {
+   _mm_empty();
    __m64* mxSrc1 = (__m64*) src1;
    __m64* mxSrc2 = (__m64*) src2;
    __m64* mxDest = (__m64*) dest;
-   const __m64* end = mxDest + EIGHTH(len);
+   const int end = EIGHTH(len);
 
-   _mm_empty();
-
-   while(mxDest < end)
+   #pragma omp parallel for
+   for(int i = 0; i < end; i++)
    {
-      *mxDest++ = _mm_add_pi8(*mxSrc1++, *mxSrc2++);
+      mxDest[i] = _mm_add_pi8(mxSrc1[i], mxSrc2[i]);
    }
 
    _mm_empty();
@@ -46,11 +47,12 @@ void SSE2_Fast_Add(BYTE* dest, const BYTE* src1, const BYTE* src2, const size_t 
    __m128i* mxSrc1 = (__m128i*) src1;
    __m128i* mxSrc2 = (__m128i*) src2;
    __m128i* mxDest = (__m128i*) dest;
-   const __m128i* end = mxDest + len / 16;
+   const int end = len / 16;
 
-   while(mxDest < end)
+   #pragma omp parallel for
+   for(int i = 0; i < end; i++)
    {
-      *mxDest++ = _mm_add_epi8 (*mxSrc1++, *mxSrc2++);
+      mxDest[i] = _mm_add_epi8(mxSrc1[i], mxSrc2[i]);
    }
 }
 
@@ -71,20 +73,22 @@ unsigned __int64 MMX_Fast_Sub_Count(BYTE* dest, const BYTE* src1, const BYTE* sr
    unsigned __int64 oldTotalBits = 0;
    unsigned __int64 totalBits = 0;
 
-   unsigned int* intDest = (unsigned int*)dest;
-   unsigned int* intSrc = (unsigned int*)src1;
+   unsigned __int64* intDest = (unsigned __int64*)dest;
+   unsigned __int64* intSrc = (unsigned __int64*)src1;
+
+   _mm_empty();
 
    __m64* mxDest = (__m64*) dest;
    __m64* mxSrc1 = (__m64*) src1;
    __m64* mxSrc2 = (__m64*) src2;
+   const int end = EIGHTH(len);
 
-   _mm_empty();
-
-   for(size_t i = 0; i < FOURTH(len); i += 2)
+   #pragma omp parallel for reduction(+: oldTotalBits, totalBits)
+   for(int i = 0; i < end; i++ )
    {
-      oldTotalBits += COUNT_BITS(intSrc[i]) + COUNT_BITS(intSrc[i + 1]);
-      *mxDest++ = _mm_sub_pi8(*mxSrc1++, *mxSrc2++);
-      totalBits += COUNT_BITS(intDest[i]) + COUNT_BITS(intDest[i + 1]);
+      oldTotalBits += COUNT_BITS(intSrc[i]);
+      mxDest[i] = _mm_sub_pi8(mxSrc1[i], mxSrc2[i]);
+      totalBits += COUNT_BITS(intDest[i]);
    }
 
    _mm_empty();
@@ -103,13 +107,16 @@ unsigned __int64 SSE2_Fast_Sub_Count(BYTE* dest, const BYTE* src1, const BYTE* s
    __m128i* mxDest = (__m128i*) dest;
    __m128i* mxSrc1 = (__m128i*) src1;
    __m128i* mxSrc2 = (__m128i*) src2;
+   const int end = len / 16;
 
    //TODO: Optimize bit counting with SSE
-   for(size_t i = 0; i < EIGHTH(len); i += 2)
+   #pragma omp parallel for reduction(+: oldTotalBits, totalBits)
+   for(int i = 0; i < end; i++)
    {
-      oldTotalBits += COUNT_BITS(intSrc[i]) + COUNT_BITS(intSrc[i+1]);
-      *mxDest++ = _mm_sub_epi8(*mxSrc1++, *mxSrc2++);
-      totalBits += COUNT_BITS(intDest[i]) + COUNT_BITS(intDest[i+1]);
+      int d = DOUBLE(i);
+      oldTotalBits += COUNT_BITS(intSrc[d]) + COUNT_BITS(intSrc[d + 1]);
+      mxDest[i] = _mm_sub_epi8(mxSrc1[i], mxSrc2[i]);
+      totalBits += COUNT_BITS(intDest[d]) + COUNT_BITS(intDest[d + 1]);
    }
 
    return (oldTotalBits - totalBits < minDelta) ? ULLONG_MAX : totalBits;
@@ -315,8 +322,8 @@ void CompressClass::Uncompact(const BYTE* in, BYTE* out, const size_t length)
 {
 #ifdef _DEBUG
    try
-#endif
    {
+#endif
       BYTE rle = in[0];
       if(rle && ( rle < 8 || rle == 0xff ))
       {

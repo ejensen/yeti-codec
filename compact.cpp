@@ -25,7 +25,7 @@ unsigned int COUNT_BITS(T v)
    return ((T)(v * ((T)~(T)0/255)) >> (sizeof(T) - 1) * CHAR_BIT);
 }
 
-void MMX_Fast_Add(BYTE* dest, const BYTE* src1, const BYTE* src2, const size_t len) 
+void MMX_Fast_Add(BYTE* __restrict dest, const BYTE* __restrict src1, const BYTE* __restrict src2, const size_t len) 
 {
    _mm_empty();
    __m64* mxSrc1 = (__m64*) src1;
@@ -42,7 +42,7 @@ void MMX_Fast_Add(BYTE* dest, const BYTE* src1, const BYTE* src2, const size_t l
    _mm_empty();
 }
 
-void SSE2_Fast_Add(BYTE* dest, const BYTE* src1, const BYTE* src2, const size_t len) 
+void SSE2_Fast_Add(BYTE* __restrict dest, const BYTE* __restrict src1, const BYTE* __restrict src2, const size_t len) 
 {
    __m128i* mxSrc1 = (__m128i*) src1;
    __m128i* mxSrc2 = (__m128i*) src2;
@@ -56,7 +56,7 @@ void SSE2_Fast_Add(BYTE* dest, const BYTE* src1, const BYTE* src2, const size_t 
    }
 }
 
-void Fast_Add(BYTE* dest, const BYTE* src1, const BYTE* src2, const size_t len) 
+void Fast_Add(BYTE* __restrict dest, const BYTE* __restrict src1, const BYTE* __restrict src2, const size_t len) 
 {
    if(SSE2)
    {
@@ -68,27 +68,25 @@ void Fast_Add(BYTE* dest, const BYTE* src1, const BYTE* src2, const size_t len)
    }
 }
 
-unsigned __int64 MMX_Fast_Sub_Count(BYTE* dest, const BYTE* src1, const BYTE* src2, const size_t len, const unsigned __int64 minDelta)
+unsigned __int64 MMX_Fast_Sub_Count(unsigned __int64* __restrict dest, const unsigned __int64* __restrict src1, const unsigned __int64* __restrict src2, const size_t len, const unsigned __int64 minDelta)
 {
    unsigned __int64 oldTotalBits = 0;
    unsigned __int64 totalBits = 0;
 
-   unsigned __int64* intDest = (unsigned __int64*)dest;
-   unsigned __int64* intSrc = (unsigned __int64*)src1;
+   const int end = EIGHTH(len);
 
    _mm_empty();
 
    __m64* mxDest = (__m64*) dest;
    __m64* mxSrc1 = (__m64*) src1;
    __m64* mxSrc2 = (__m64*) src2;
-   const int end = EIGHTH(len);
 
    #pragma omp parallel for reduction(+: oldTotalBits, totalBits)
    for(int i = 0; i < end; i++ )
    {
-      oldTotalBits += COUNT_BITS(intSrc[i]);
+      oldTotalBits += COUNT_BITS(src1[i]);
       mxDest[i] = _mm_sub_pi8(mxSrc1[i], mxSrc2[i]);
-      totalBits += COUNT_BITS(intDest[i]);
+      totalBits += COUNT_BITS(dest[i]);
    }
 
    _mm_empty();
@@ -96,13 +94,10 @@ unsigned __int64 MMX_Fast_Sub_Count(BYTE* dest, const BYTE* src1, const BYTE* sr
    return (oldTotalBits - totalBits < minDelta) ? ULLONG_MAX : totalBits;
 }
 
-unsigned __int64 SSE2_Fast_Sub_Count(BYTE* dest, const BYTE* src1, const BYTE* src2, const size_t len, const unsigned __int64 minDelta)
+unsigned __int64 SSE2_Fast_Sub_Count(unsigned __int64* __restrict dest, const unsigned __int64* __restrict src1, const unsigned __int64* __restrict src2, const size_t len, const unsigned __int64 minDelta)
 {
    unsigned __int64 oldTotalBits = 0;
    unsigned __int64 totalBits = 0;
-
-   unsigned __int64* intDest = (unsigned __int64*)dest;
-   unsigned __int64* intSrc = (unsigned __int64*)src1;
 
    __m128i* mxDest = (__m128i*) dest;
    __m128i* mxSrc1 = (__m128i*) src1;
@@ -114,17 +109,18 @@ unsigned __int64 SSE2_Fast_Sub_Count(BYTE* dest, const BYTE* src1, const BYTE* s
    for(int i = 0; i < end; i++)
    {
       int d = DOUBLE(i);
-      oldTotalBits += COUNT_BITS(intSrc[d]) + COUNT_BITS(intSrc[d + 1]);
+      oldTotalBits += COUNT_BITS(src1[d]) + COUNT_BITS(src1[d + 1]);
       mxDest[i] = _mm_sub_epi8(mxSrc1[i], mxSrc2[i]);
-      totalBits += COUNT_BITS(intDest[d]) + COUNT_BITS(intDest[d + 1]);
+      totalBits += COUNT_BITS(dest[d]) + COUNT_BITS(dest[d + 1]);
    }
 
    return (oldTotalBits - totalBits < minDelta) ? ULLONG_MAX : totalBits;
 }
 
-unsigned __int64 Fast_Sub_Count(BYTE* dest, const BYTE* src1, const BYTE* src2, const size_t len, const unsigned __int64 minDelta)
+unsigned __int64 Fast_Sub_Count(BYTE* __restrict dest, const BYTE* __restrict src1, const BYTE* __restrict src2, const size_t len, const unsigned __int64 minDelta)
 {
-   return (SSE2) ? SSE2_Fast_Sub_Count(dest, src1, src2, len, minDelta) : MMX_Fast_Sub_Count(dest, src1, src2, len, minDelta);
+   return (SSE2) ? SSE2_Fast_Sub_Count((unsigned __int64*)dest, (unsigned __int64*)src1, (unsigned __int64*)src2, len, minDelta) 
+                  : MMX_Fast_Sub_Count((unsigned __int64*)dest, (unsigned __int64*)src1, (unsigned __int64*)src2, len, minDelta);
 }
 
 // scale the byte probabilities so the cumulative

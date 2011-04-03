@@ -46,6 +46,7 @@ size_t CompressClass::RangeEncode(const BYTE* in, BYTE* out, const size_t length
 
       while(range <= BOTTOM_VALUE) 
       {
+         char val = (low & TOP_VALUE)>0;
          unsigned int shifted = low>>SHIFT_BITS;
          range <<= 8;
          low <<= 8;
@@ -57,7 +58,6 @@ size_t CompressClass::RangeEncode(const BYTE* in, BYTE* out, const size_t length
          } 
          else 
          {
-            char val = (low & TOP_VALUE)>0;
             out[-1]+=val;
             for ( ; help != 0 ; help-- )
             {

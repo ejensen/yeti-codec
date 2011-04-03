@@ -199,23 +199,14 @@ size_t CompressClass::ReadBitProbability(const BYTE* in)
 
       const unsigned int skip = GolombDecode(in, &m_probRanges[1], 256);
 
-      if(!skip)
-      {
-#ifdef _DEBUG
-         MessageBox (HWND_DESKTOP, "GolombDecode Failed", "Error", MB_OK | MB_ICONEXCLAMATION);
-#endif
-         return 0;
-      }
+      assert(skip);
 
       for(unsigned int a = 1; a < 257; a++)
       {
          length += m_probRanges[a];
       }
 
-      if(!length)
-      {
-         return 0;
-      }
+      assert(length);
 
       ScaleBitProbability(length);
 

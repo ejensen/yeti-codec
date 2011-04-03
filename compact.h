@@ -1,14 +1,7 @@
 #pragma once
 #include "common.h"
 
-template <class T>
-unsigned int COUNT_BITS(T v);
-//unsigned int COUNT_BITS(unsigned int v);
-void MMX_Fast_Add(BYTE* dest, const BYTE* src1, const BYTE* src2, const size_t len);
-void SSE2_Fast_Add(BYTE* dest, const BYTE* src1, const BYTE* src2, const size_t len);
 void Fast_Add(BYTE* dest, const BYTE* src1, const BYTE* src2, const size_t len);
-unsigned __int64 MMX_Fast_Sub_Count(BYTE* dest, const BYTE* src1, const BYTE* src2, const size_t len, const unsigned __int64 minDelta);
-unsigned __int64 SSE2_Fast_Sub_Count(BYTE* dest, const BYTE* src1, const BYTE* src2, const size_t len, const unsigned __int64 minDelta);
 unsigned __int64 Fast_Sub_Count(BYTE* dest, const BYTE* src1, const BYTE* src2, const size_t len, const unsigned __int64 minDelta);
 
 class CompressClass 

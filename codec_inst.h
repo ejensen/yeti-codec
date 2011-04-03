@@ -11,7 +11,6 @@ class CodecInst
 public:
    threadInfo m_info_a;
    threadInfo m_info_b;
-   threadInfo m_info_c;
    CompressClass m_compressWorker;
 
    BYTE* m_buffer;

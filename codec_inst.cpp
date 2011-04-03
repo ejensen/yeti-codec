@@ -75,11 +75,9 @@ CodecInst::CodecInst()
    m_info_a.m_length = 0;
    m_info_a.m_thread = 0;
    m_info_b = m_info_a;
-   m_info_c = m_info_a;
 
    memcpy((void*)&m_info_a.m_compressWorker, &m_compressWorker, sizeof(m_compressWorker));
    memcpy((void*)&m_info_b.m_compressWorker, &m_compressWorker, sizeof(m_compressWorker));
-   memcpy((void*)&m_info_c.m_compressWorker, &m_compressWorker, sizeof(m_compressWorker));
 }
 
 CodecInst::~CodecInst()

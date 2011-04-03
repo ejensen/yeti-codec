@@ -11,13 +11,8 @@
 }
 
 #define WAIT_FOR_THREADS(threads) { \
-      if(threads == 2) { \
          while(m_info_a.m_length || m_info_b.m_length) \
             Sleep(0); \
-      } else if(threads == 3){ \
-         while (m_info_a.m_length || m_info_b.m_length || m_info_c.m_length) \
-            Sleep(0); \
-      } \
 }
 
 struct threadInfo

@@ -7,7 +7,7 @@
 #include "yeti.h"
 #include "compact.h"
 #include "zerorle.h"
-#include "fibonacci.h"
+#include "golomb.h"
 
 //unsigned int COUNT_BITS(unsigned int v)
 //{

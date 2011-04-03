@@ -21,8 +21,8 @@ Global
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
-		AMDCaPersistentConfig = Profiling|Win32
-		AMDCaPersistentStartup = Yeti
 		AMDCaProjectFile = C:\Users\Eric\Desktop\Yeti\trunk\CodeAnalyst\Yeti.caw
+		AMDCaPersistentStartup = Yeti
+		AMDCaPersistentConfig = Profiling|Win32
 	EndGlobalSection
 EndGlobal

@@ -41,12 +41,6 @@ DWORD CodecInst::DecompressBegin(LPBITMAPINFOHEADER lpbiIn, LPBITMAPINFOHEADER l
 		return (DWORD)ICERR_MEMORY;
 	}
 
-	//if(!m_compressWorker.InitCompressBuffers( m_width * m_height))
-	//{
-	//	return (DWORD)ICERR_MEMORY;
-	//}
-
-
 	int code = InitThreads(false);
 	if (code != ICERR_OK)
 	{

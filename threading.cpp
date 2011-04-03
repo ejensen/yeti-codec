@@ -69,8 +69,7 @@ DWORD WINAPI DecodeWorkerThread(LPVOID i)
 
 DWORD CodecInst::InitThreads(bool encode)
 {
-   m_info_a.m_length = 0;
-   m_info_b.m_length = 0;
+   m_info_a.m_length = m_info_b.m_length = 0;
 
    unsigned int useFormat = (encode) ? m_compressFormat : m_format;
 
@@ -79,10 +78,8 @@ DWORD CodecInst::InitThreads(bool encode)
 
    m_info_a.m_format =  m_info_b.m_format = useFormat;
 
-   m_info_a.m_thread = NULL;
-   m_info_b.m_thread = NULL;
-   m_info_a.m_buffer = NULL;
-   m_info_b.m_buffer = NULL;
+   m_info_a.m_thread = m_info_b.m_thread = NULL;
+   m_info_a.m_buffer = m_info_b.m_buffer = NULL;
 
    size_t buffer_size = ALIGN_ROUND(m_info_a.m_width, 16) * m_info_a.m_height + 256;
 
@@ -133,11 +130,8 @@ DWORD CodecInst::InitThreads(bool encode)
 
       m_info_a.m_thread=NULL;
       m_info_b.m_thread=NULL;
-      if ( memerror ){
-         return (DWORD)ICERR_MEMORY;
-      } else {
-         return (DWORD)ICERR_INTERNAL;
-      }
+
+      return (DWORD)((memerror) ? ICERR_MEMORY : ICERR_INTERNAL);
    } else {
       return (DWORD)ICERR_OK;
    }

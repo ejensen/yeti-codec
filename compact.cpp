@@ -17,7 +17,7 @@
 //}
 
 template <typename T>
-unsigned int COUNT_BITS(T v)
+static unsigned int COUNT_BITS(T v)
 {
    v = v - ((v >> 1) & (T)~(T)0/3);
    v = (v & (T)~(T)0/15*3) + ((v >> 2) & (T)~(T)0/15*3);
@@ -25,7 +25,7 @@ unsigned int COUNT_BITS(T v)
    return ((T)(v * ((T)~(T)0/255)) >> (sizeof(T) - 1) * CHAR_BIT);
 }
 
-void MMX_Fast_Add(BYTE* __restrict dest, const BYTE* __restrict src1, const BYTE* __restrict src2, const size_t len) 
+static void MMX_Fast_Add(BYTE* __restrict dest, const BYTE* __restrict src1, const BYTE* __restrict src2, const size_t len) 
 {
    _mm_empty();
    __m64* mxSrc1 = (__m64*) src1;
@@ -42,7 +42,7 @@ void MMX_Fast_Add(BYTE* __restrict dest, const BYTE* __restrict src1, const BYTE
    _mm_empty();
 }
 
-void SSE2_Fast_Add(BYTE* __restrict dest, const BYTE* __restrict src1, const BYTE* __restrict src2, const size_t len) 
+static void SSE2_Fast_Add(BYTE* __restrict dest, const BYTE* __restrict src1, const BYTE* __restrict src2, const size_t len) 
 {
    __m128i* mxSrc1 = (__m128i*) src1;
    __m128i* mxSrc2 = (__m128i*) src2;
@@ -68,7 +68,7 @@ void Fast_Add(BYTE* __restrict dest, const BYTE* __restrict src1, const BYTE* __
    }
 }
 
-unsigned __int64 MMX_Fast_Sub_Count(unsigned __int64* __restrict dest, const unsigned __int64* __restrict src1, const unsigned __int64* __restrict src2, const size_t len, const unsigned __int64 minDelta)
+static unsigned __int64 MMX_Fast_Sub_Count(unsigned __int64* __restrict dest, const unsigned __int64* __restrict src1, const unsigned __int64* __restrict src2, const size_t len, const unsigned __int64 minDelta)
 {
    unsigned __int64 oldTotalBits = 0;
    unsigned __int64 totalBits = 0;
@@ -94,7 +94,7 @@ unsigned __int64 MMX_Fast_Sub_Count(unsigned __int64* __restrict dest, const uns
    return (oldTotalBits - totalBits < minDelta) ? ULLONG_MAX : totalBits;
 }
 
-unsigned __int64 SSE2_Fast_Sub_Count(unsigned __int64* __restrict dest, const unsigned __int64* __restrict src1, const unsigned __int64* __restrict src2, const size_t len, const unsigned __int64 minDelta)
+static unsigned __int64 SSE2_Fast_Sub_Count(unsigned __int64* __restrict dest, const unsigned __int64* __restrict src1, const unsigned __int64* __restrict src2, const size_t len, const unsigned __int64 minDelta)
 {
    unsigned __int64 oldTotalBits = 0;
    unsigned __int64 totalBits = 0;
@@ -108,7 +108,7 @@ unsigned __int64 SSE2_Fast_Sub_Count(unsigned __int64* __restrict dest, const un
    #pragma omp parallel for reduction(+: oldTotalBits, totalBits)
    for(int i = 0; i < end; i++)
    {
-      int d = DOUBLE(i);
+      const int d = DOUBLE(i);
       oldTotalBits += COUNT_BITS(src1[d]) + COUNT_BITS(src1[d + 1]);
       mxDest[i] = _mm_sub_epi8(mxSrc1[i], mxSrc2[i]);
       totalBits += COUNT_BITS(dest[d]) + COUNT_BITS(dest[d + 1]);

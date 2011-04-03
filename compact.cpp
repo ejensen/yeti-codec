@@ -196,7 +196,6 @@ size_t CompressClass::ReadBitProbability(const BYTE* in)
 #endif
       size_t length = 0;
       m_probRanges[0] = 0;
-      //ZeroMemory(m_probRanges, sizeof(m_probRanges)); //TODO: change?
 
       const unsigned int skip = GolombDecode(in, &m_probRanges[1], 256);
 
@@ -266,8 +265,8 @@ size_t CompressClass::Compact(BYTE* in, BYTE* out, const size_t length)
 
    BYTE* const buffer_1 = m_buffer;
    BYTE* const buffer_2 = m_buffer + ALIGN_ROUND(length * 3/2 + 16, 16);
-   int rle = 0;
-   size_t size = TestAndRLE(in, buffer_1, buffer_2, length, &rle);
+   char rle = 0;
+   size_t size = TestAndRLE(in, buffer_1, buffer_2, length, rle);
 
    out[0] = rle;
    if ( rle )
@@ -286,7 +285,8 @@ size_t CompressClass::Compact(BYTE* in, BYTE* out, const size_t length)
 
          skip += RangeEncode(b2, out + 5 + skip, size) + 5;
 
-         if ( size < skip ) { // RLE size is less than range compressed size
+         if ( size < skip )  // RLE size is less than range compressed size
+         {
             out[0]+=4;
             memcpy(out+1,b2,size);
             skip=size+1;
@@ -314,7 +314,7 @@ void CompressClass::Uncompact(const BYTE* in, BYTE* out, const size_t length)
    try
    {
 #endif
-      int rle = in[0];
+      BYTE rle = in[0];
       if(rle && ( rle < 8 || rle == 0xff ))
       {
          if(rle < 4)
@@ -330,8 +330,8 @@ void CompressClass::Uncompact(const BYTE* in, BYTE* out, const size_t length)
          }
          else
          {
-            if ( rle == 0xff )
-            { // solid run of 0s, only need to set 1 byte
+            if ( rle == 0xff )  // solid run of 0s, only need to set 1 byte
+            {
                ZeroMemory(out, length);
                out[0] = in[1];
             }
@@ -347,11 +347,13 @@ void CompressClass::Uncompact(const BYTE* in, BYTE* out, const size_t length)
       }
       else
       {
+         assert(*(int*)(in+1));
          size_t skip = ReadBitProbability(in + 1);
+         assert(skip);
          Decode_And_DeRLE(in + skip + 1, out, length, 0);
       }
-   } 
 #ifdef _DEBUG
+   }
    catch(...)
    {
       MessageBox(HWND_DESKTOP, "Uncompact Failed", "Error", MB_OK | MB_ICONEXCLAMATION);

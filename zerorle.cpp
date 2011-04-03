@@ -1,10 +1,8 @@
 #include <string.h>
-#define WIN32_LEAN_AND_MEAN
-#include <windows.h>
-#include <math.h>
 #include <mmintrin.h>
 #include <emmintrin.h>
 #include <xmmintrin.h>
+#include "zerorle.h"
 
 // this lookup table is used for encoding run lengths so that
 // the run byte distribution should roughly match the data
@@ -29,7 +27,7 @@ extern const unsigned int* dist_rest;
 
 // this table is used in performing RLE; it is used to look up how
 // many leading zeros or non-zeros were found in an eight-byte block
-static const unsigned int countlookup[] =  {8,0,1,0,2,0,1,0,3,0,1,0,2,0,1,0,4,0,1,0,2,
+static const BYTE countlookup[] =  {8,0,1,0,2,0,1,0,3,0,1,0,2,0,1,0,4,0,1,0,2,
    0,1,0,3,0,1,0,2,0,1,0,5,0,1,0,2,0,1,0,3,0,1,0,2,0,1,0,4,0,1,0,2,0,1,0,3,0,1,0,2,0,
    1,0,6,0,1,0,2,0,1,0,3,0,1,0,2,0,1,0,4,0,1,0,2,0,1,0,3,0,1,0,2,0,1,0,5,0,1,0,2,0,1,
    0,3,0,1,0,2,0,1,0,4,0,1,0,2,0,1,0,3,0,1,0,2,0,1,0,7,0,1,0,2,0,1,0,3,0,1,0,2,0,1,0,
@@ -101,7 +99,7 @@ first is zero, in this case the function will return -1, and only
 the first byte needs to be saved.
 */
 
-size_t TestAndRLE(BYTE * const __restrict in, BYTE * const __restrict out1, BYTE * const __restrict out3, const size_t length, int* level)
+size_t TestAndRLE(BYTE * const __restrict in, BYTE * const __restrict out1, BYTE * const __restrict out3, const size_t length, char& level)
 {
    BYTE * lvl1 = out1;
    BYTE * lvl3 = out3;
@@ -197,7 +195,7 @@ SSE_RLE_Start_With_0:
          }
          if ( solid && out1[len1-2]==0 )
          {
-            *level = -1;
+            level = -1;
             return 2;
          }
       }
@@ -214,17 +212,17 @@ SSE_RLE_Start_With_0:
    // 197/200 = 98.5%
    if ( length*197/200 <= len3 )
    {
-      *level=0;
+      level = 0;
       return length;
    }
 
    if ( len1 < len3*98/100 && len3*100/length <= 32 )
    {
-      *level=1;
+      level = 1;
       return len1;
    }
 
-   *level = 3;
+   level = 3;
    return len3;
 
 }
@@ -240,7 +238,7 @@ size_t deRLE(const BYTE * in, BYTE * out, const size_t length, const BYTE level)
 {
    unsigned int a = 0;
    unsigned int b = 0;
-   ZeroMemory(out, length);
+   memset(out, 0, length);
    if( level == 1 )
    {
       while ( b < length)

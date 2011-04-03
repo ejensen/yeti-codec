@@ -57,7 +57,7 @@ size_t CompressClass::RangeEncode(const BYTE* in, BYTE* out, const size_t length
          } 
          else 
          {
-            BYTE val = (low & TOP_VALUE)>0;
+            char val = (low & TOP_VALUE)>0;
             out[-1]+=val;
             for ( ; help != 0 ; help-- )
             {

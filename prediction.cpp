@@ -317,12 +317,13 @@ void SSE2_Block_Predict_YUV16( const BYTE * __restrict source, BYTE * __restrict
          *(__m128i*)&dest[a] = srcs;
       }
    }
+
+   int x2, y2;
    for ( ; a<length; a++ )
    {
-      int x = source[a-1];
-      int y = source[a-width];
-      int z = (x+y-source[a-width-1])&255;
-      dest[a] = source[a]-median(x,y,z);
+      x2 = source[a-1];
+      y2 = source[a-width];
+      dest[a] = source[a]-median(x2, y2,(x2+y2-source[a-width-1])&255);
    }
 
    if ( is_y )
@@ -557,12 +558,12 @@ void SSE_Block_Predict(const BYTE * __restrict source, BYTE * __restrict dest, c
    }
    _mm_empty();
 
+   int x2, y2;
    for( ; a<length; a++ )
    {
-      int x = source[a-1];
-      int y = source[a-width];
-      int z = x+y-source[a-width-1];
-      dest[a] = source[a]-median(x,y,z);
+      x2 = source[a-1];
+      y2 = source[a-width];
+      dest[a] = source[a]-median(x2, y2, x2+y2-source[a-width-1]);
    }
 }
 

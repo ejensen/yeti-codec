@@ -7,6 +7,8 @@
 // this lookup table is used for encoding run lengths so that
 // the run byte distribution should roughly match the data
 // distribution, improving compression.
+#pragma warning( push )
+#pragma warning( disable : 4245 )
 static const BYTE dist_match[]={ 0,0,0,-1,1,-2,2,-3,3,-4,4,-5,5,-6,6,-7,7,-8,8,-9,9,
    -10,10,-11,11,-12,12,-13,13,-14,14,-15,15,-16,16,-17,17,-18,18,-19,19,-20,20,
    -21,21,-22,22,-23,23,-24,24,-25,25,-26,26,-27,27,-28,28,-29,29,-30,30,-31,31,
@@ -20,6 +22,7 @@ static const BYTE dist_match[]={ 0,0,0,-1,1,-2,2,-3,3,-4,4,-5,5,-6,6,-7,7,-8,8,-
    -107,107,-108,108,-109,109,-110,110,-111,111,-112,112,-113,113,-114,114,-115,
    115,-116,116,-117,117,-118,118,-119,119,-120,120,-121,121,-122,122,-123,123,
    -124,124,-125,125,-126,126,-127,127,-128};
+#pragma warning( pop )
 
 extern const unsigned int* dist_rest;
 
@@ -34,7 +37,6 @@ static const BYTE countlookup[] =  {8,0,1,0,2,0,1,0,3,0,1,0,2,0,1,0,4,0,1,0,2,
    4,0,1,0,2,0,1,0,3,0,1,0,2,0,1,0,5,0,1,0,2,0,1,0,3,0,1,0,2,0,1,0,4,0,1,0,2,0,1,0,3,
    0,1,0,2,0,1,0,6,0,1,0,2,0,1,0,3,0,1,0,2,0,1,0,4,0,1,0,2,0,1,0,3,0,1,0,2,0,1,0,5,0,
    1,0,2,0,1,0,3,0,1,0,2,0,1,0,4,0,1,0,2,0,1,0,3,0,1,0,2,0,1,0,8};
-
 
 // This function encodes zero runs longer than 256 bytes;
 // This is rare and takes a variable amount of bytes per level

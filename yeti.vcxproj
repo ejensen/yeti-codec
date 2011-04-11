@@ -183,7 +183,7 @@
       </Command>
     </PreLinkEvent>
     <Link>
-      <AdditionalDependencies>winmm.lib;shell32.lib;comctl32.lib;User32.lib;Kernel32.lib;libcmt.lib;VCOMP.LIB;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>winmm.lib;shell32.lib;comctl32.lib;User32.lib;Kernel32.lib;LIBCMT.LIB;VCOMP.LIB;libircmt.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <IgnoreAllDefaultLibraries>true</IgnoreAllDefaultLibraries>
       <ModuleDefinitionFile>drvproc.def</ModuleDefinitionFile>
       <GenerateDebugInformation>true</GenerateDebugInformation>

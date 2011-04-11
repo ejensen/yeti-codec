@@ -184,38 +184,35 @@ void CodecInst::YV12Decompress(DWORD flags)
 
    Decode3Channels(ydst, pixels, udst, fourth, vdst, fourth);
 
-   Restore_YV12(ydst,udst,vdst, m_width, m_height);
+   Restore_YV12(ydst, udst, vdst, m_width, m_height);
 
    const size_t length = EIGHTH(pixels * YV12);
-
    if((flags & ICDECOMPRESS_NOTKEYFRAME) == ICDECOMPRESS_NOTKEYFRAME)
    {
       Fast_Add(dst, dst, m_prevFrame, length);
    }
 
    memcpy(m_prevFrame, dst, length);
-
    if(m_format == YV12 || (flags & ICDECOMPRESS_PREROLL) == ICDECOMPRESS_PREROLL)
    {
       return;
    }
 
    //upsample if needed
-   isse_yv12_to_yuy2(dst, dst + length + fourth, dst + pixels, m_width, m_width, HALF(m_width), dst2, DOUBLE(m_width), m_height); 
+   isse_yv12_to_yuy2(dst, dst + pixels + fourth, dst + pixels, m_width, m_width, HALF(m_width), dst2, DOUBLE(m_width), m_height); 
 
    if(m_format == YUY2)
    {
       return;
    }
-
    // upsample to RGB
    if(m_format == RGB32)
    {
-      mmx_YUY2toRGB32(dst2, m_out, dst2 + DOUBLE(length), DOUBLE(m_width));
+      mmx_YUY2toRGB32(dst2, m_out, dst2 + DOUBLE(pixels), DOUBLE(m_width));
    } 
    else 
    {
-      mmx_YUY2toRGB24(dst2, m_out, dst2 + DOUBLE(length), DOUBLE(m_width));
+      mmx_YUY2toRGB24(dst2, m_out, dst2 + DOUBLE(pixels), DOUBLE(m_width));
    }
 }
 

@@ -156,11 +156,14 @@ DWORD CodecInst::CompressQuery(LPBITMAPINFOHEADER lpbiIn, LPBITMAPINFOHEADER lpb
       RETURN_ERROR();
    }
 
-   m_compressFormat = GetPrivateProfileInt(SettingsHeading, "format", YUY2, SettingsFile);
+   m_compressFormat = GetPrivateProfileInt(SettingsHeading, "format", YV12, SettingsFile);
 
     // down sampling routines only accept YUV2
    if ( m_compressFormat == YV12 && (lpbiIn->biCompression == FOURCC_UYVY || lpbiIn->biCompression == FOURCC_YV16) )
       RETURN_ERROR()
+
+   if (m_compressFormat == YUY2  && ( lpbiIn->biBitCount < YUY2 || lpbiIn->biCompression == FOURCC_YV12 ) )
+      RETURN_ERROR();
 
    // Make sure width is mod 4 for YUV formats
    if(lpbiIn->biWidth % 4)
@@ -181,6 +184,8 @@ DWORD CodecInst::CompressQuery(LPBITMAPINFOHEADER lpbiIn, LPBITMAPINFOHEADER lpb
       if(lpbiIn->biWidth != lpbiOut->biWidth)
          RETURN_ERROR();
       if(lpbiOut->biCompression != FOURCC_YETI)
+         RETURN_ERROR();
+      if (m_compressFormat == YUY2  && lpbiOut->biBitCount < YUY2 )
          RETURN_ERROR();
    }
 
@@ -207,7 +212,12 @@ DWORD CodecInst::CompressGetFormat(LPBITMAPINFOHEADER lpbiIn, LPBITMAPINFOHEADER
       RETURN_ERROR();
    }
 
-   m_compressFormat = GetPrivateProfileInt(SettingsHeading, "format", YUY2, SettingsFile);
+   m_compressFormat = GetPrivateProfileInt(SettingsHeading, "format", YV12, SettingsFile);
+
+   if (m_compressFormat == YUY2  && (lpbiIn->biCompression == FOURCC_YV12 || lpbiIn->biBitCount < YUY2) )
+   {
+      RETURN_ERROR();
+   }
 
     // down sampling UYUV is not supported
    if ( m_compressFormat == YV12 && (lpbiIn->biCompression == FOURCC_UYVY || lpbiIn->biCompression == FOURCC_YV16) )

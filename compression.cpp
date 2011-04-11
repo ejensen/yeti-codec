@@ -274,7 +274,7 @@ DWORD CodecInst::CompressYUV16(ICCOMPRESS* icinfo)
    {
       y = source;
       u = source + ALIGN_ROUND(m_width * m_height + 16, 16);
-      v = source + ALIGN_ROUND(m_width * m_height * 3/2 + 32,16);
+      v = source + ALIGN_ROUND(m_width * m_height * 3/2 + 32, 16);
    } 
    else 
    {

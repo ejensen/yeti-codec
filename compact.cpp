@@ -68,7 +68,7 @@ void Fast_Add(BYTE* __restrict dest, const BYTE* __restrict src1, const BYTE* __
    }
 }
 
-static unsigned __int64 MMX_Fast_Sub_Count(unsigned __int64* __restrict dest, const unsigned __int64* __restrict src1, const unsigned __int64* __restrict src2, const size_t len, const unsigned __int64 minDelta)
+static bool MMX_Fast_Sub_Count(unsigned __int64* __restrict dest, const unsigned __int64* __restrict src1, const unsigned __int64* __restrict src2, const size_t len, const unsigned __int64 minDelta)
 {
    unsigned __int64 oldTotalBits = 0;
    unsigned __int64 totalBits = 0;
@@ -91,10 +91,10 @@ static unsigned __int64 MMX_Fast_Sub_Count(unsigned __int64* __restrict dest, co
 
    _mm_empty();
 
-   return (oldTotalBits - totalBits < minDelta) ? ULLONG_MAX : totalBits;
+   return oldTotalBits - totalBits < minDelta;
 }
 
-static unsigned __int64 SSE2_Fast_Sub_Count(unsigned __int64* __restrict dest, const unsigned __int64* __restrict src1, const unsigned __int64* __restrict src2, const size_t len, const unsigned __int64 minDelta)
+static bool SSE2_Fast_Sub_Count(unsigned __int64* __restrict dest, const unsigned __int64* __restrict src1, const unsigned __int64* __restrict src2, const size_t len, const unsigned __int64 minDelta)
 {
    unsigned __int64 oldTotalBits = 0;
    unsigned __int64 totalBits = 0;
@@ -114,10 +114,10 @@ static unsigned __int64 SSE2_Fast_Sub_Count(unsigned __int64* __restrict dest, c
       totalBits += COUNT_BITS(dest[d]) + COUNT_BITS(dest[d + 1]);
    }
 
-   return (oldTotalBits - totalBits < minDelta) ? ULLONG_MAX : totalBits;
+   return oldTotalBits - totalBits < minDelta;
 }
 
-unsigned __int64 Fast_Sub_Count(BYTE* __restrict dest, const BYTE* __restrict src1, const BYTE* __restrict src2, const size_t len, const unsigned __int64 minDelta)
+bool Fast_Sub_Count(BYTE* __restrict dest, const BYTE* __restrict src1, const BYTE* __restrict src2, const size_t len, const unsigned __int64 minDelta)
 {
    return (SSE2) ? SSE2_Fast_Sub_Count((unsigned __int64*)dest, (unsigned __int64*)src1, (unsigned __int64*)src2, len, minDelta) 
                   : MMX_Fast_Sub_Count((unsigned __int64*)dest, (unsigned __int64*)src1, (unsigned __int64*)src2, len, minDelta);

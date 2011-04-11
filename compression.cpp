@@ -188,54 +188,28 @@ DWORD CodecInst::CompressYUV16(ICCOMPRESS* icinfo)
    const size_t c_stride  = ALIGN_ROUND(HALF(pixels) + 32, 16);
    const size_t len       = y_stride + DOUBLE(c_stride);
 
+   if(m_nullframes)
+   {
+      size_t pos = HALF(len) + 15;
+      pos &= (~15);
+      if(memcmp(m_in + pos, m_prevFrame + pos, len - pos) == 0 && memcmp(m_in, m_prevFrame, pos) == 0)
+      {
+         icinfo->lpbiOutput->biSizeImage = 0;
+         *icinfo->lpdwFlags = 0;
+         return (DWORD)ICERR_OK;
+      }
+   }
+
    BYTE frameType;
    BYTE* source = m_deltaBuffer;
 
-   //TODO: Remove duplication.
-   if(icinfo->dwFlags != ICCOMPRESS_KEYFRAME && icinfo->lFrameNum > 0)
+   if(m_deltaframes 
+      && icinfo->dwFlags != ICCOMPRESS_KEYFRAME 
+      && icinfo->lFrameNum > 0 
+      && Fast_Sub_Count(m_deltaBuffer, m_in, m_prevFrame, len, len * 3) == false)
    {
-      if(m_deltaframes)
-      {
-         const unsigned __int64 minDelta = len * 3;
-         const unsigned __int64 bitCount = Fast_Sub_Count(m_deltaBuffer, m_in, m_prevFrame, len, minDelta);
-
-         if(bitCount == ULLONG_MAX)
-         {
-            source = m_in;
-            *icinfo->lpdwFlags |= AVIIF_KEYFRAME;
-            icinfo->dwFlags |= ICCOMPRESS_KEYFRAME;
-            frameType = YUY2_KEYFRAME;
-         }
-         else if(bitCount == 0 && m_nullframes)
-         {
-            icinfo->lpbiOutput->biSizeImage = 0;
-            *icinfo->lpdwFlags = 0;
-            return (DWORD)ICERR_OK;
-         }
-         else
-         {
-            *icinfo->lpdwFlags |= AVIIF_LASTPART;
-            frameType = YUY2_DELTAFRAME;
-         }
-      }
-      else
-      {
-         if(m_nullframes)
-         {
-            size_t pos = HALF(len) + 15;
-            pos &= (~15);
-            if(memcmp(m_in + pos, m_prevFrame + pos, len - pos) == 0 && memcmp(m_in, m_prevFrame, pos) == 0)
-            {
-               icinfo->lpbiOutput->biSizeImage = 0;
-               *icinfo->lpdwFlags = 0;
-               return (DWORD)ICERR_OK;
-            }
-         }
-         source = m_in;
-         *icinfo->lpdwFlags |= AVIIF_KEYFRAME;
-         icinfo->dwFlags |= ICCOMPRESS_KEYFRAME;
-         frameType = YUY2_KEYFRAME;
-      }
+      *icinfo->lpdwFlags |= AVIIF_LASTPART;
+      frameType = YUY2_DELTAFRAME;
    }
    else
    {
@@ -324,64 +298,35 @@ DWORD CodecInst::CompressYUV16(ICCOMPRESS* icinfo)
    return ICERR_OK;
 }
 
-
 DWORD CodecInst::CompressYV12(ICCOMPRESS* icinfo)
 {
    const size_t y_len	= m_width * m_height;
    const size_t c_len	= FOURTH(y_len);
-   const size_t yu_len	= y_len + c_len;
-   const size_t len		= yu_len + c_len;
+   const size_t len		= (icinfo->lpbiInput->biBitCount != YV12) ? ALIGN_ROUND(y_len * HALF(y_len) + 32, 16) + c_len : y_len + HALF(y_len);
+
+   if(m_nullframes)
+   {
+      // compare in two parts, video is more likely to change in middle than at bottom
+      unsigned int pos = HALF(len) + 15;
+      pos &= (~15);
+      if(memcmp(m_in + pos, m_prevFrame + pos, len - pos) == 0 && memcmp(m_in, m_prevFrame, pos) == 0)
+      {
+         icinfo->lpbiOutput->biSizeImage = 0;
+         *icinfo->lpdwFlags = 0;
+         return (DWORD)ICERR_OK;
+      }
+   }
 
    BYTE* source = m_deltaBuffer;
    BYTE frameType;
 
-   //TODO: Remove duplication.
-   if(icinfo->dwFlags != ICCOMPRESS_KEYFRAME && icinfo->lFrameNum > 0)
+   if(m_deltaframes 
+      && icinfo->dwFlags != ICCOMPRESS_KEYFRAME 
+      && icinfo->lFrameNum > 0 
+      && Fast_Sub_Count(source, m_in, m_prevFrame, len, len * 3) == false)
    {
-      if(m_deltaframes)
-      {
-         const unsigned __int64 minDelta = len * 3;
-         const unsigned __int64 bitCount = Fast_Sub_Count(source, m_in, m_prevFrame, len, minDelta);
-
-         if(bitCount == ULLONG_MAX)
-         {
-            source = m_in;
-            *icinfo->lpdwFlags |= AVIIF_KEYFRAME;
-            icinfo->dwFlags |= ICCOMPRESS_KEYFRAME;
-            frameType = YV12_KEYFRAME;
-         }
-         else if(bitCount == 0 && m_nullframes)
-         {
-            icinfo->lpbiOutput->biSizeImage = 0;
-            *icinfo->lpdwFlags = 0;
-            return (DWORD)ICERR_OK;
-         }
-         else
-         {
-            *icinfo->lpdwFlags |= AVIIF_LASTPART;
-            frameType = YV12_DELTAFRAME;
-         }
-      }
-      else
-      {
-         if(m_nullframes)
-         {
-            // compare in two parts, video is more likely to change in middle than at bottom
-            unsigned int pos = HALF(len) + 15;
-            pos &= (~15);
-            if(memcmp(m_in + pos, m_prevFrame + pos, len - pos) == 0 && memcmp(m_in, m_prevFrame, pos) == 0)
-            {
-               icinfo->lpbiOutput->biSizeImage = 0;
-               *icinfo->lpdwFlags = 0;
-               return (DWORD)ICERR_OK;
-            }
-         }
-
-         source = m_in;
-         *icinfo->lpdwFlags |= AVIIF_KEYFRAME;
-         icinfo->dwFlags |= ICCOMPRESS_KEYFRAME;
-         frameType = YV12_KEYFRAME;
-      }
+      *icinfo->lpdwFlags |= AVIIF_LASTPART;
+      frameType = YV12_DELTAFRAME;
    }
    else
    {

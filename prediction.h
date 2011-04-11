@@ -1,5 +1,5 @@
 #pragma once
-
+#include "common.h"
 void SSE2_Block_Predict( const BYTE * __restrict source, BYTE * __restrict dest, const size_t width, const size_t length);
 void Block_Predict( const BYTE * __restrict source, BYTE * __restrict dest, const size_t width, const size_t length);
 void SSE2_Block_Predict_YUV16( const BYTE * __restrict source, BYTE * __restrict dest, const size_t width, const size_t length, const bool is_y);

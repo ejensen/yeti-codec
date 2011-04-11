@@ -57,6 +57,9 @@
     <ClInclude Include="common.h">
       <Filter>Headers</Filter>
     </ClInclude>
+    <ClInclude Include="convert.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="compact.cpp" />
@@ -72,6 +75,7 @@
     <ClCompile Include="golomb.cpp" />
     <ClCompile Include="bit_manager.cpp" />
     <ClCompile Include="codec_inst.cpp" />
+    <ClCompile Include="convert.cpp" />
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="huffyuv_a.asm" />

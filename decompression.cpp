@@ -11,254 +11,272 @@
 // initialize the codec for decompression
 DWORD CodecInst::DecompressBegin(LPBITMAPINFOHEADER lpbiIn, LPBITMAPINFOHEADER lpbiOut)
 {
-	if(m_started)
-	{
-		DecompressEnd();
-	}
+   if(m_started == 0x1337)
+   {
+      DecompressEnd();
+   }
 
-	if(int error = DecompressQuery(lpbiIn, lpbiOut) != ICERR_OK)
-	{
-		return error;
-	}
+   m_started = 0;
 
-	m_width = lpbiIn->biWidth;
-	m_height = lpbiIn->biHeight;
+   if(int error = DecompressQuery(lpbiIn, lpbiOut) != ICERR_OK)
+   {
+      return error;
+   }
 
-	detectFlags(&SSE2, &SSE);
+   m_width = lpbiIn->biWidth;
+   m_height = lpbiIn->biHeight;
 
-	m_format = lpbiOut->biBitCount;
+   DetectFlags(&SSE2, &SSE);
 
-	m_length = EIGHTH(m_width * m_height * m_format);
+   m_format = lpbiOut->biBitCount;
 
-	const int buffer_size = (m_format >= RGB24) ? ALIGN_ROUND(QUADRUPLE(m_width), 8) * m_height + 2048 : m_length + 2048;
+   m_length = EIGHTH(m_width * m_height * m_format);
 
-	m_buffer = (BYTE*)ALIGNED_MALLOC(m_buffer, buffer_size, 16, "buffer");
-	m_buffer2 = (BYTE*)ALIGNED_MALLOC(m_buffer2, buffer_size, 16, "buffer2");
-	m_prevFrame = (BYTE*)ALIGNED_MALLOC(m_prevFrame, buffer_size, 16, "prev");
+   const int buffer_size = (m_format >= RGB24) ? ALIGN_ROUND(QUADRUPLE(m_width), 8) * m_height + 2048 : m_length + 2048;
 
-	if(!m_buffer || !m_buffer2 || !m_prevFrame)
-	{
-		return (DWORD)ICERR_MEMORY;
-	}
+   m_buffer = (BYTE*)ALIGNED_MALLOC(m_buffer, buffer_size, 16, "buffer");
+   m_buffer2 = (BYTE*)ALIGNED_MALLOC(m_buffer2, buffer_size, 16, "buffer2");
+   m_prevFrame = (BYTE*)ALIGNED_MALLOC(m_prevFrame, buffer_size, 16, "prev");
 
-	int code = InitThreads(false);
-	if (code != ICERR_OK)
-	{
-		return code;
-	}
-	m_started = true;
-	return ICERR_OK;
+   if(!m_buffer || !m_buffer2 || !m_prevFrame)
+   {
+      return (DWORD)ICERR_MEMORY;
+   }
+
+   int code = InitThreads(false);
+   if (code != ICERR_OK)
+   {
+      return code;
+   }
+   m_started = 0x1337;
+   return ICERR_OK;
 }
 
 DWORD CodecInst::DecompressEnd()
 {
-	if(m_started)
-	{
+   if(m_started)
+   {
       EndThreads();
 
-		ALIGNED_FREE(m_buffer,"buffer");
-		ALIGNED_FREE(m_buffer2,"buffer2");
-		ALIGNED_FREE(m_prevFrame, "prev");
-		m_compressWorker.FreeCompressBuffers();
-	}
+      ALIGNED_FREE(m_buffer,"buffer");
+      ALIGNED_FREE(m_buffer2,"buffer2");
+      ALIGNED_FREE(m_prevFrame, "prev");
+      m_compressWorker.FreeCompressBuffers();
+   }
 
-	m_started = false;
-	return ICERR_OK;
+   m_started = 0;
+   return ICERR_OK;
 }
 
-inline void CodecInst::InitDecompressionThreads(const BYTE* in, BYTE* out, size_t length, threadInfo* thread)
+void CodecInst::Decode3Channels(BYTE* dst1, unsigned int len1, BYTE* dst2, unsigned int len2, BYTE* dst3, unsigned int len3)
 {
-	if (thread)
-	{
-		thread->m_source = in;
-		thread->m_dest = out;
-		thread->m_length = length;
-		while ( ResumeThread(thread->m_thread) > 1){
-			Sleep(0);
-		};
-	} 
-	else 
-	{
-		m_compressWorker.Uncompact(in, out, length);
-	}
+   const BYTE* src1 = m_in + 9;
+   const BYTE* src2 = m_in + *(UINT32*)(m_in+1);
+   const BYTE* src3 = m_in + *(UINT32*)(m_in+5);
+
+   unsigned int size1 = *(UINT32*)(m_in+1);
+   unsigned int size2 = *(UINT32*)(m_in+5);
+   unsigned int size3 = m_compressed_size - size2;
+   size2 -= size1;
+   size1 -= 9;
+
+   // Compressed size should approximate decoding time.
+   // This conditional make the largest channel have highest priority - the idea
+   // is to improve load-balancing when there are fewer cores than threads.
+   if ( size1 >= size2 && size1 >= size3 )
+   {
+      SetThreadPriority(m_info_a.m_thread, THREAD_PRIORITY_BELOW_NORMAL);
+      SetThreadPriority(m_info_b.m_thread, THREAD_PRIORITY_BELOW_NORMAL);
+   } 
+   else if ( size2 >= size3 )
+   {
+      SetThreadPriority(m_info_a.m_thread, THREAD_PRIORITY_ABOVE_NORMAL);
+      SetThreadPriority(m_info_b.m_thread, THREAD_PRIORITY_NORMAL);
+   } 
+   else
+   {
+      SetThreadPriority(m_info_a.m_thread, THREAD_PRIORITY_NORMAL);
+      SetThreadPriority(m_info_b.m_thread, THREAD_PRIORITY_ABOVE_NORMAL);
+   }
+
+   m_info_a.m_source=src2;
+   m_info_a.m_dest=dst2;
+   m_info_a.m_length=len2;
+   SetEvent(m_info_a.m_startEvent);
+
+   m_info_b.m_source=src3;
+   m_info_b.m_dest=dst3;
+   m_info_b.m_length=len3;
+   SetEvent(m_info_b.m_startEvent);
+
+   m_compressWorker.Uncompact(src1,dst1,len1);
+
+   WAIT_FOR_THREADS(2);
 }
 
 void CodecInst::YUY2Decompress(DWORD flags)
 {
-	BYTE* dst = m_out;
-	BYTE* dst2 = m_buffer;
+   BYTE* dst = m_out;
+   BYTE* dst2 = m_buffer;
 
-	if(m_format == YUY2)
-	{
-		dst = m_buffer;
-		dst2 = m_out;
-	}
+   if(m_format == YUY2)
+   {
+      dst = m_buffer;
+      dst2 = m_out;
+   }
 
-	const size_t pixels = m_width * m_height;
-	const size_t half = HALF(pixels);
-	BYTE* y, *u, *v;
-	y = dst;
-	u = y + pixels;
-	v = u + half;
+   const size_t pixels = m_width * m_height;
+   const size_t half = HALF(pixels);
+   BYTE* ydst = dst;
+   BYTE* udst = ydst + pixels;
+   BYTE* vdst = udst + half;
 
-	int size = *(UINT32*)(m_in + 1);
-	InitDecompressionThreads(m_in + size, u, half, &m_info_a);
-	size = *(UINT32*)(m_in+5);
-	InitDecompressionThreads(m_in + size, v, half, &m_info_b);
-	size=*(UINT32*)(m_in+1);
-	InitDecompressionThreads(m_in + 9, y, pixels, NULL);
+   Decode3Channels(ydst, pixels, udst, half, vdst, half);
 
-	// special case: RLE detected a solid Y value (compressed size = 2),
-	// need to set 2nd Y value for restoration to work right
-	if(size == 11) //TODO: Needed?
-	{
-		dst[1] = dst[0];
-	}
+   // special case: RLE detected a solid Y value (compressed size = 2),
+   // need to set 2nd Y value for restoration to work right
+   if(*(UINT32*)(m_in+1) == 11) //TODO: Needed?
+   {
+      dst[1] = dst[0];
+   }
 
-	WAIT_FOR_THREADS(2);
+   Interleave_And_Restore_YUY2(dst2, ydst, udst, vdst, m_width, m_height);
 
-	Interleave_And_Restore_YUY2(dst2, y, u, v, m_width, m_height);
-
-	if((flags & ICDECOMPRESS_NOTKEYFRAME) == ICDECOMPRESS_NOTKEYFRAME)
-	{
+   if((flags & ICDECOMPRESS_NOTKEYFRAME) == ICDECOMPRESS_NOTKEYFRAME)
+   {
       //MessageBox(HWND_DESKTOP, "DeltaFrame", "Info", MB_OK);
-		Fast_Add(dst2, dst2, m_prevFrame, DOUBLE(pixels));
-	}
+      Fast_Add(dst2, dst2, m_prevFrame, DOUBLE(pixels));
+   }
 
-	memcpy(m_prevFrame, dst2, DOUBLE(pixels));
+   memcpy(m_prevFrame, dst2, DOUBLE(pixels));
 
-	if(m_format == YUY2 || (flags & ICDECOMPRESS_PREROLL) == ICDECOMPRESS_PREROLL)
-	{
-		return;
-	}
+   if(m_format == YUY2 || (flags & ICDECOMPRESS_PREROLL) == ICDECOMPRESS_PREROLL)
+   {
+      return;
+   }
 
-	if(m_format == RGB24)
-	{
-		mmx_YUY2toRGB24(dst2, m_out, m_buffer + DOUBLE(pixels), DOUBLE(m_width));
-	} 
-	else 
-	{
-		mmx_YUY2toRGB32(dst2, m_out, m_buffer + DOUBLE(pixels), DOUBLE(m_width));
-	}
+   if(m_format == RGB24)
+   {
+      mmx_YUY2toRGB24(dst2, m_out, m_buffer + DOUBLE(pixels), DOUBLE(m_width));
+   } 
+   else 
+   {
+      mmx_YUY2toRGB32(dst2, m_out, m_buffer + DOUBLE(pixels), DOUBLE(m_width));
+   }
 }
 
 void CodecInst::YV12Decompress(DWORD flags)
 {
-	BYTE* dst = m_out;
-	BYTE* dst2 = m_buffer;
+   BYTE* dst = m_out;
+   BYTE* dst2 = m_buffer;
 
-	if (m_format == YUY2)
-	{
-		dst = m_buffer;
-		dst2 = m_out;
-	}
+   if (m_format == YUY2)
+   {
+      dst = m_buffer;
+      dst2 = m_out;
+   }
 
-	const unsigned int wxh = m_width * m_height;
-	const unsigned int quarterArea = FOURTH(wxh);
+   const size_t pixels = m_width * m_height;
+   const size_t fourth = FOURTH(pixels);
+   BYTE* ydst = dst;
+   BYTE* udst = ydst + pixels;
+   BYTE* vdst = udst + fourth;
 
-	BYTE* usrc = dst + wxh;
-	BYTE* vsrc = usrc + quarterArea;
+   Decode3Channels(ydst, pixels, udst, fourth, vdst, fourth);
 
-	int size = *(UINT32*)(m_in+1);
-	InitDecompressionThreads(m_in + size, usrc, quarterArea, &m_info_a);
-	size = *(UINT32*)(m_in + 5);
-	InitDecompressionThreads(m_in + size, vsrc, quarterArea, &m_info_b);
-	InitDecompressionThreads(m_in + 9, dst, wxh, NULL );
+   Restore_YV12(ydst,udst,vdst, m_width, m_height);
 
-	WAIT_FOR_THREADS(2);
+   const size_t length = EIGHTH(pixels * YV12);
 
-	Restore_YV12(dst, usrc, vsrc, m_width, m_height);
+   if((flags & ICDECOMPRESS_NOTKEYFRAME) == ICDECOMPRESS_NOTKEYFRAME)
+   {
+      Fast_Add(dst, dst, m_prevFrame, length);
+   }
 
-	const size_t length = EIGHTH(wxh * YV12);
+   memcpy(m_prevFrame, dst, length);
 
-	if((flags & ICDECOMPRESS_NOTKEYFRAME) == ICDECOMPRESS_NOTKEYFRAME)
-	{
-		Fast_Add(dst, dst, m_prevFrame, length);
-	}
+   if(m_format == YV12 || (flags & ICDECOMPRESS_PREROLL) == ICDECOMPRESS_PREROLL)
+   {
+      return;
+   }
 
-	memcpy(m_prevFrame, dst, length);
+   //upsample if needed
+   isse_yv12_to_yuy2(dst, dst + length + fourth, dst + pixels, m_width, m_width, HALF(m_width), dst2, DOUBLE(m_width), m_height); 
 
-	if(m_format == YV12 || (flags & ICDECOMPRESS_PREROLL) == ICDECOMPRESS_PREROLL)
-	{
-		return;
-	}
+   if(m_format == YUY2)
+   {
+      return;
+   }
 
-	//upsample if needed
-	isse_yv12_to_yuy2(dst, dst + wxh + quarterArea, dst + wxh, m_width, m_width, HALF(m_width), dst2, DOUBLE(m_width), m_height); 
-
-	if(m_format == YUY2)
-	{
-		return;
-	}
-
-	// upsample to RGB
-	if(m_format == RGB32)
-	{
-		mmx_YUY2toRGB32(dst2, m_out, dst2 + DOUBLE(wxh), DOUBLE(m_width));
-	} 
-	else 
-	{
-		mmx_YUY2toRGB24(dst2, m_out, dst2 + DOUBLE(wxh), DOUBLE(m_width));
-	}
+   // upsample to RGB
+   if(m_format == RGB32)
+   {
+      mmx_YUY2toRGB32(dst2, m_out, dst2 + DOUBLE(length), DOUBLE(m_width));
+   } 
+   else 
+   {
+      mmx_YUY2toRGB24(dst2, m_out, dst2 + DOUBLE(length), DOUBLE(m_width));
+   }
 }
 
 DWORD CodecInst::Decompress(ICDECOMPRESS* idcinfo) 
 {
 #ifdef _DEBUG
-	try 
-	{
+   try 
+   {
 #endif
-		DWORD return_code = ICERR_OK;
+      DWORD return_code = ICERR_OK;
 
-		if(!m_started)
-		{
-			DecompressBegin(idcinfo->lpbiInput, idcinfo->lpbiOutput);
-		}
+      if(m_started != 0x1337)
+      {
+         DecompressBegin(idcinfo->lpbiInput, idcinfo->lpbiOutput);
+      }
 
-		m_out = (BYTE*)idcinfo->lpOutput;
-		m_in  = (BYTE*)idcinfo->lpInput; 
-		idcinfo->lpbiOutput->biSizeImage = m_length;
+      m_out = (BYTE*)idcinfo->lpOutput;
+      m_in  = (BYTE*)idcinfo->lpInput; 
+      idcinfo->lpbiOutput->biSizeImage = m_length;
 
-		// according to the avi specs, the calling application is responsible for handling null frames.
-		if(idcinfo->lpbiInput->biSizeImage == 0)
-		{
+      m_compressed_size = idcinfo->lpbiInput->biSizeImage;
+      // according to the avi specs, the calling application is responsible for handling null frames.
+      if(m_compressed_size == 0)
+      {
 #ifdef _DEBUG
          MessageBox (HWND_DESKTOP, "Received request to decode a null frame", "Error", MB_OK | MB_ICONEXCLAMATION);
 #endif     
-			return ICERR_OK;
-		}
+         return ICERR_OK;
+      }
 
-		switch(m_in[0] & ~KEYFRAME)
-		{
-		case YUY2_FRAME:
-			{
-				YUY2Decompress(idcinfo->dwFlags);
-				break;
-			}
-		case YV12_FRAME:
-			{
-				YV12Decompress(idcinfo->dwFlags);
-				break;
-			}
-		default:
-			{
+      switch(m_in[0] & ~KEYFRAME)
+      {
+      case YUY2_FRAME:
+         {
+            YUY2Decompress(idcinfo->dwFlags);
+            break;
+         }
+      case YV12_FRAME:
+         {
+            YV12Decompress(idcinfo->dwFlags);
+            break;
+         }
+      default:
+         {
 #ifdef _DEBUG
-				char emsg[128];
-				sprintf_s(emsg, 128, "Unrecognized frame type: %d", m_in[0]);
-				MessageBox (HWND_DESKTOP, emsg, "Error", MB_OK | MB_ICONEXCLAMATION);
+            char emsg[128];
+            sprintf_s(emsg, 128, "Unrecognized frame type: %d", m_in[0]);
+            MessageBox (HWND_DESKTOP, emsg, "Error", MB_OK | MB_ICONEXCLAMATION);
 #endif
-				return_code = (DWORD)ICERR_ERROR;
-				break;
-			}
-		}
+            return_code = (DWORD)ICERR_ERROR;
+            break;
+         }
+      }
 
-		return return_code;
+      return return_code;
 #ifdef _DEBUG
-	} 
-	catch( ... )
-	{
-		MessageBox (HWND_DESKTOP, "Exception caught in decompress main", "Error", MB_OK | MB_ICONEXCLAMATION);
-		return (DWORD)ICERR_INTERNAL;
-	}
+   } 
+   catch( ... )
+   {
+      MessageBox (HWND_DESKTOP, "Exception caught in decompress main", "Error", MB_OK | MB_ICONEXCLAMATION);
+      return (DWORD)ICERR_INTERNAL;
+   }
 #endif
 }

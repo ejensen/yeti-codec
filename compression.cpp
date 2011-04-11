@@ -2,17 +2,18 @@
 #include "codec_inst.h"
 #include "prediction.h"
 #include "threading.h"
-
+#include "convert.h"
 #include "huffyuv_a.h"
 #include "convert_yuy2.h"
 #include "convert_yv12.h"
 
 DWORD CodecInst::CompressBegin(LPBITMAPINFOHEADER lpbiIn, LPBITMAPINFOHEADER lpbiOut)
 {
-   if(m_started)
+   if(m_started == 0x1337)
    {
       CompressEnd();
    }
+   m_started = 0;
 
    m_nullframes = GetPrivateProfileInt(SettingsHeading, "nullframes", FALSE, SettingsFile) > 0;
    m_deltaframes = GetPrivateProfileInt(SettingsHeading, "deltaframes", FALSE, SettingsFile) > 0;
@@ -65,7 +66,7 @@ DWORD CodecInst::CompressBegin(LPBITMAPINFOHEADER lpbiIn, LPBITMAPINFOHEADER lpb
    {
       return code;
    }
-   m_started = true;
+   m_started = 0x1337;
 
    return ICERR_OK;
 }
@@ -81,7 +82,7 @@ DWORD CodecInst::CompressGetSize(LPBITMAPINFOHEADER lpbiIn, LPBITMAPINFOHEADER l
 
 DWORD CodecInst::CompressEnd()
 {
-   if(m_started)
+   if( m_started == 0x1337)
    {
       EndThreads();
 
@@ -93,7 +94,7 @@ DWORD CodecInst::CompressEnd()
       m_compressWorker.FreeCompressBuffers();
    }
 
-   m_started = false;
+   m_started = 0;
    return ICERR_OK;
 }
 
@@ -104,7 +105,7 @@ DWORD CodecInst::Compress(ICCOMPRESS* icinfo, DWORD /*dwSize*/)
    m_out = (BYTE*)icinfo->lpOutput;
    m_in  = (BYTE*)icinfo->lpInput;
 
-   if(icinfo->lFrameNum == 0 && !m_started)
+   if(icinfo->lFrameNum == 0 && m_started != 0x1337)
    {
       DWORD error = CompressBegin(icinfo->lpbiInput, icinfo->lpbiOutput);
       if(error != ICERR_OK)
@@ -113,83 +114,71 @@ DWORD CodecInst::Compress(ICCOMPRESS* icinfo, DWORD /*dwSize*/)
       }
    } 
 
-   const BYTE* src = m_in;
-   BYTE* dest = (m_compressFormat == YUY2) ? m_colorTransBuffer : m_buffer;
+   const size_t pixels = m_width * m_height;
+   unsigned int upos = ALIGN_ROUND(pixels + 16, 16);
+   unsigned int vpos = ALIGN_ROUND(pixels * 3/2 + 32, 16);
 
-   if(m_format >= RGB24)
+   if ( SSE2 )
    {
-      if(m_format == RGB24)
+      if(m_compressFormat == YV12)
       {
-         mmx_ConvertRGB24toYUY2(m_in, dest, m_width * 3, DOUBLE(m_width), m_width, m_height);
+         if(m_format == RGB24)
+         {
+            ConvertRGB24toYV12_SSE2(m_in, m_colorTransBuffer, m_colorTransBuffer + upos, m_colorTransBuffer + vpos, m_width, m_height);
+         } 
+         else if(m_format == RGB32)
+         {
+            ConvertRGB32toYV12_SSE2(m_in, m_colorTransBuffer, m_colorTransBuffer + upos, m_colorTransBuffer + vpos, m_width, m_height);
+         }
+         else 
+         {
+            isse_yuy2_to_yv12(m_in, m_width*2 , m_width*2, m_colorTransBuffer, m_colorTransBuffer + upos, m_colorTransBuffer + vpos, m_width, m_width/2, m_height);
+         }
+      }
+      else 
+      {
+         if ( m_format == RGB24 )
+         {
+            ConvertRGB24toYV16_SSE2(m_in,m_colorTransBuffer,m_colorTransBuffer+upos,m_colorTransBuffer+vpos, m_width, m_height);
+         } 
+         else 
+         {
+            ConvertRGB32toYV16_SSE2(m_in,m_colorTransBuffer,m_colorTransBuffer+upos,m_colorTransBuffer+vpos, m_width, m_height);
+         }
+      }
+   }
+   else 
+   {
+      if(m_compressFormat == YV12)
+      {
+         if(m_format == RGB24)
+         {
+            mmx_ConvertRGB24toYUY2(m_in,m_buffer,m_width*3,m_width*2,m_width,m_height);
+         } 
+         else if(m_format == RGB32)
+         {
+            mmx_ConvertRGB32toYUY2(m_in,m_buffer,m_width*4,m_width*2,m_width,m_height);
+         }
+         const BYTE* src = (m_format>=RGB24)?m_buffer:m_in;
+         isse_yuy2_to_yv12(src,m_width*2,m_width*2,m_colorTransBuffer,m_colorTransBuffer+upos,m_colorTransBuffer+vpos,m_width,m_width/2,m_height);
       } 
-      else if(m_format == RGB32)
+      else
       {
-         mmx_ConvertRGB32toYUY2((const unsigned int*)m_in, (unsigned int*)dest, m_width, HALF(m_width), m_width, m_height);
-      }
-      src = m_buffer;
-   }
-
-   if(m_compressFormat == YUY2)
-   {
-      if(m_format != YUY2)
-      {
-         m_in = dest;
-      }
-      return CompressYUV16(icinfo);
-   }
-
-   size_t dw = DOUBLE(m_width);
-   BYTE* dst2 = m_colorTransBuffer;
-   size_t yuy2_pitch = ALIGN_ROUND(dw, 16);
-   size_t y_pitch = ALIGN_ROUND(m_width, 8);
-   size_t uv_pitch = ALIGN_ROUND(HALF(m_width), 8);
-
-   bool is_aligned = (m_width % 16) == 0;
-   if(!is_aligned)
-   {
-      for(size_t h = 0; h < m_height; h++)
-      {
-         memcpy(m_buffer + yuy2_pitch * h, src + dw * h, dw);
-      }
-
-      src = m_buffer;
-      dst2 = m_buffer2;
-   }
-
-   isse_yuy2_to_yv12(src, dw, yuy2_pitch, dst2, dst2 + y_pitch * m_height + HALF(uv_pitch * m_height), dst2 + y_pitch * m_height, y_pitch, uv_pitch, m_height);
-
-   dest = m_colorTransBuffer;
-   if(!is_aligned)
-   {
-      size_t h;
-
-      for(h = 0; h < m_height; h++)
-      {
-         memcpy(dest + m_width * h, dst2 + y_pitch * h, m_width);
-      }
-
-      dst2 += y_pitch * m_height;
-      dest += m_width * m_height;
-
-      const size_t hw = HALF(m_width);
-      for(h = 0 ; h < m_height; h++)
-      {
-         memcpy(dest + hw * h, dst2 + uv_pitch * h, hw);
+         if(m_format == RGB24)
+         {
+            mmx_ConvertRGB24toYUY2(m_in,m_buffer,m_width*3,m_width*2,m_width,m_height);
+         } 
+         else if(m_format == RGB32 )
+         {
+            mmx_ConvertRGB32toYUY2(m_in,m_buffer,m_width*4,m_width*2,m_width,m_height);
+         }
+         Split_YUY2(m_buffer, m_colorTransBuffer, m_colorTransBuffer+upos, m_colorTransBuffer+vpos,m_width,m_height);
       }
    }
 
    m_in = m_colorTransBuffer;
 
-   //char buffer[11];
-   //_itoa_s(m_compressFormat, buffer, 11, 10);
-   //MessageBox(HWND_DESKTOP, buffer, "format", MB_OK);
-
-   if(m_compressFormat == YV12)
-   {
-      return CompressYV12(icinfo);
-   }
-
-   return (DWORD)ICERR_BADFORMAT;
+   return m_compressFormat == YV12 ? CompressYV12(icinfo) : CompressYUV16(icinfo);
 }
 
 DWORD CodecInst::CompressYUV16(ICCOMPRESS* icinfo)
@@ -273,13 +262,19 @@ DWORD CodecInst::CompressYUV16(ICCOMPRESS* icinfo)
 
    if ( icinfo->lpbiInput->biCompression == FOURCC_YV16 )
    {
-      y = m_in;
+      y = source;
       v = y + pixels;
       u = v + HALF(pixels);
 
       ydest += ((int)y)&15;
       udest += ((int)u)&15;
       vdest += ((int)v)&15;
+   }
+   else if ( icinfo->lpbiInput->biBitCount > YUY2 )
+   {
+      y = source;
+      u = source + ALIGN_ROUND(m_width * m_height + 16, 16);
+      v = source + ALIGN_ROUND(m_width * m_height * 3/2 + 32,16);
    } 
    else 
    {
@@ -299,28 +294,22 @@ DWORD CodecInst::CompressYUV16(ICCOMPRESS* icinfo)
    m_info_a.m_source = u;
    m_info_a.m_dest = udest;
    m_info_a.m_length = HALF(pixels);
-   RESUME_THREAD(m_info_a.m_thread);
+   SetEvent(m_info_a.m_startEvent);
    m_info_b.m_source = v;
    m_info_b.m_dest = vdest;
    m_info_b.m_length =  HALF(pixels);
-   RESUME_THREAD(m_info_b.m_thread);
+   SetEvent(m_info_b.m_startEvent);
 
    Block_Predict_YUV16(y, ydest, m_width, pixels, true);
 
    size_t size = m_compressWorker.Compact(ydest, m_out + 9, pixels);
-   while ( m_info_a.m_length )
-   {
-      Sleep(0);
-   }
+   WaitForSingleObject(m_info_a.m_doneEvent,INFINITE);
 
    size_t sizea = m_info_a.m_size;
    *(UINT32*)(m_out+1) = size + 9;
    memcpy(m_out + size + 9, udest, sizea);
 
-   while ( m_info_b.m_length )
-   {
-      Sleep(0);
-   }
+   WaitForSingleObject(m_info_b.m_doneEvent, INFINITE);
 
    size_t sizeb = m_info_b.m_size;
    *(UINT32*)(m_out+5) = sizea + 9 + size;
@@ -413,14 +402,20 @@ DWORD CodecInst::CompressYV12(ICCOMPRESS* icinfo)
    const BYTE* vsrc = ysrc + y_len;
    const BYTE* usrc = vsrc + c_len;
 
+   if ( icinfo->lpbiInput->biBitCount != YV12 )
+   {
+      usrc = ysrc + ALIGN_ROUND(y_len + 16, 16);
+      vsrc = ysrc + ALIGN_ROUND(y_len * 3/2 + 32, 16);
+   }
+
    m_info_a.m_source = vsrc;
    m_info_a.m_dest = m_buffer2;
    m_info_a.m_length = c_len;
-   RESUME_THREAD(m_info_a.m_thread);
+   SetEvent(m_info_a.m_startEvent);
    m_info_b.m_source = usrc;
    m_info_b.m_dest = m_buffer2 + HALF(y_len);
    m_info_b.m_length = c_len;
-   RESUME_THREAD(m_info_b.m_thread);
+   SetEvent(m_info_b.m_startEvent);
 
    BYTE* ydest = m_buffer;
    ydest += (unsigned int)ysrc & 15;
@@ -428,18 +423,19 @@ DWORD CodecInst::CompressYV12(ICCOMPRESS* icinfo)
    Block_Predict(ysrc, ydest, m_width, y_len);
 
    size_t size = m_compressWorker.Compact(ydest, m_out + 9, y_len);
-   while ( m_info_a.m_length && m_info_b.m_length)
-   {
-      Sleep(0);
-   }
+   HANDLE events[2];
+   events[0] = m_info_a.m_doneEvent;
+   events[1] = m_info_b.m_doneEvent;
 
-   if (!m_info_a.m_length)
+   DWORD object = WaitForMultipleObjects(2, &events[0], false, INFINITE);
+   object -= WAIT_OBJECT_0;
+
+   if (object == 0)
    {
       size_t sizea = m_info_a.m_size;
       *(UINT32*)(m_out + 1) = 9 + size;
       memcpy(m_out + size + 9, m_buffer2, sizea);
-      while ( m_info_b.m_length )
-         Sleep(0);
+      WaitForSingleObject(m_info_b.m_doneEvent,INFINITE);
       size_t sizeb = m_info_b.m_size;
       *(UINT32*)(m_out + 5) = sizea + 9 + size;
       memcpy(m_out + sizea + 9 + size, m_buffer2 + HALF(y_len), sizeb);
@@ -450,8 +446,7 @@ DWORD CodecInst::CompressYV12(ICCOMPRESS* icinfo)
       size_t sizeb = m_info_b.m_size;
       *(UINT32*)(m_out + 5) = 9 + size;
       memcpy(m_out + 9 + size, m_buffer2 + HALF(y_len), sizeb);
-      while ( m_info_a.m_length )
-         Sleep(0);
+      WaitForSingleObject(m_info_a.m_doneEvent,INFINITE);
       size_t sizea = m_info_a.m_size;
       *(UINT32*)(m_out + 1) = 9 + size + sizeb;
       memcpy(m_out + size + sizeb + 9, m_buffer2, sizea);

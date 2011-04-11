@@ -49,7 +49,7 @@
     *****************************/
 
 
-void mmx_ConvertRGB32toYUY2(const unsigned int* src, unsigned int* dst, int src_pitch, int dst_pitch, int w, int h) {
+void mmx_ConvertRGB32toYUY2(const unsigned char* src, unsigned char* dst, int src_pitch, int dst_pitch, int w, int h) {
    //__declspec(align(8)) static const __int64 rgb_mask = 0x00ffffff00ffffff;
    __declspec(align(8)) static const __int64 fraction = 0x0000000000084000;    //= 0x108000/2 = 0x84000
    __declspec(align(8)) static const __int64 add_32 = 0x000000000000000020;    //= 32 shifted 15 up
@@ -65,7 +65,7 @@ void mmx_ConvertRGB32toYUY2(const unsigned int* src, unsigned int* dst, int src_
   //	__declspec(align(8)) const __int64 cybgr_64 = (__int64)cyb|(((__int64)cyg)<<16)|(((__int64)cyr)<<32);
    __declspec(align(8)) const __int64 cybgr_64 = 0x000020DE40870c88;
 
-   int lwidth_bytes = w<<2;    // Width in bytes
+   //int lwidth_bytes = w<<2;    // Width in bytes
    src+=src_pitch*(h-1);       // ;Move source to bottom line (read top->bottom)
 
 
@@ -80,8 +80,8 @@ void mmx_ConvertRGB32toYUY2(const unsigned int* src, unsigned int* dst, int src_
       mov DST,dst
       mov RGBOFFSET,0
       mov YUVOFFSET,0
-      cmp       RGBOFFSET,[lwidth_bytes]
-      jge       outloop		; Jump out of loop if true (width==0?? - somebody brave should remove this test)
+      //cmp       RGBOFFSET,[lwidth_bytes]
+      //jge       outloop		; Jump out of loop if true (width==0?? - somebody brave should remove this test)
       movq mm0,[SRC+RGBOFFSET]		; mm0= XXR2 G2B2 XXR1 G1B1
       punpcklbw mm1,mm0						; mm1= 0000 R100 G100 B100
       movq mm4,[cybgr_64]
@@ -130,7 +130,7 @@ re_enter:
       paddd mm6, mm0							; Add 0x800000 to r_y and b_y 
        add RGBOFFSET,8
       psrld mm6,9									; Move down, so fraction is only 7 bits
-       cmp       RGBOFFSET,[lwidth_bytes]
+       cmp       RGBOFFSET,[src_pitch]
       jge       outloop						; Jump out of loop if true
       packssdw mm6,mm2						; mm6 = 0000 0000 VVVV UUUU (7 bits fraction) (values above 0xff are saturated)
       psllq mm6,1									; Move up, so fraction is 8 bit
@@ -178,7 +178,7 @@ void mmx_ConvertRGB24toYUY2(const BYTE* src, BYTE* dst, int src_pitch, int dst_p
    __declspec(align(8)) static const __int64 low32_mask =  0x000000000ffffffff;
    __declspec(align(8)) const __int64 cybgr_64 = 0x000020DE40870c88;
 
-   int lwidth_bytes = w*3;    // Width in bytes
+   //int lwidth_bytes = w*3;    // Width in bytes
    src+=src_pitch*(h-1);       // ;Move source to bottom line (read top->bottom)
 
 
@@ -193,8 +193,8 @@ void mmx_ConvertRGB24toYUY2(const BYTE* src, BYTE* dst, int src_pitch, int dst_p
       mov DST,dst
       mov RGBOFFSET,0
       mov YUVOFFSET,0
-      cmp  RGBOFFSET,[lwidth_bytes]
-      jge       outloop		; Jump out of loop if true (width==0)
+      //cmp  RGBOFFSET,[lwidth_bytes]
+      //jge       outloop		; Jump out of loop if true (width==0)
       movq mm0,[SRC+RGBOFFSET]		; mm0= XXXX R2G2 B2R1 G1B1
       punpcklbw mm1,mm0						; mm1= B200 R100 G100 B100
       movq mm4,[cybgr_64]
@@ -244,7 +244,7 @@ re_enter:
       paddd mm6, mm0							; Add 0x800000 to r_y and b_y 
        add RGBOFFSET,6            ; Only change for RGB24!
       psrld mm6,9									; Move down, so fraction is only 7 bits
-       cmp RGBOFFSET,[lwidth_bytes]
+       cmp RGBOFFSET,[src_pitch]
       jge       outloop						; Jump out of loop if true
       packssdw mm6,mm2						; mm6 = 0000 0000 VVVV UUUU (7 bits fraction) (values above 0xff are saturated)
       psllq mm6,1									; Move up, so fraction is 8 bit

@@ -13,6 +13,7 @@ public:
    threadInfo m_info_b;
    CompressClass m_compressWorker;
 
+   int m_started;			//if the codec has been properly initialized yet
    BYTE* m_buffer;
    BYTE* m_prevFrame;
    BYTE* m_in;
@@ -25,9 +26,9 @@ public:
    size_t m_height;
    unsigned int m_format;	//input format for compressing, output format for decompression. Also the bitdepth.
    unsigned int m_compressFormat;
+   unsigned int m_compressed_size;
    bool m_nullframes;
    bool m_deltaframes;
-   bool m_started;			//if the codec has been properly initialized yet
 
    CodecInst();
    ~CodecInst();
@@ -61,6 +62,7 @@ public:
    DWORD CompressYV12(ICCOMPRESS* icinfo);
    DWORD CompressReduced(ICCOMPRESS* icinfo);
 
+   void Decode3Channels(BYTE* dst1, unsigned int len1, BYTE* dst2, unsigned int len2, BYTE* dst3, unsigned int len3);
    void YUY2Decompress(DWORD flags);
    void YV12Decompress(DWORD flags);
    void ReduceResDecompress(DWORD flags);
@@ -69,4 +71,4 @@ public:
 CodecInst* Open(ICOPEN* icinfo);
 DWORD Close(CodecInst* pinst);
 
-void __stdcall detectFlags(bool* SSE2, bool* SSE);
+void __stdcall DetectFlags(bool* SSE2, bool* SSE);

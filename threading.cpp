@@ -8,34 +8,49 @@ DWORD WINAPI EncodeWorkerTread(LPVOID i)
 {
    threadInfo* info = (threadInfo*)i;
    const size_t width = info->m_width;
-   const size_t height = info->m_height;
-   const size_t length = width * height;
+   //const size_t height = info->m_height;
+  // const size_t length = width * height;
 
    const BYTE* src = NULL;
    BYTE* dest = NULL;
    const unsigned int format=info->m_format;
    BYTE* const buffer = (BYTE*)info->m_buffer;
+   assert(buffer != NULL);
 
-   while(info->m_length != UINT32_MAX)
+   WaitForSingleObject(info->m_startEvent, INFINITE);
+   while(true)
    {
-      src = (const BYTE*)info->m_source;
-      dest = (BYTE*)info->m_dest;
-
-      BYTE* dst = buffer + ((unsigned int)src&15);
-
-      if ( format == YUY2 )
+      unsigned int length = info->m_length;
+      if ( length == UINT32_MAX )
       {
-         Block_Predict_YUV16(src, dst, width, length, false);
+         break;
+      } 
+      else if ( length > 0 )
+      {
+         src = (const BYTE*)info->m_source;
+         dest = (BYTE*)info->m_dest;
+
+         BYTE* dst = buffer + ((unsigned int)src&15);
+         assert(dst != NULL);
+
+         if ( format == YUY2 )
+         {
+            Block_Predict_YUV16(src, dst, width, length, false);
+         } 
+         else
+         {
+            Block_Predict(src, dst, width, length );
+         }
+
+         info->m_size = info->m_compressWorker.Compact(dst, dest, length);
+         assert( *(__int64*)dest != 0 );
+         info->m_length = 0;
       } 
       else
       {
-         Block_Predict(src, dst, width, length );
+         assert(false);
       }
-
-      info->m_size = info->m_compressWorker.Compact(dst, dest, length);
-      assert( *(__int64*)dest != 0 );
-      info->m_length = 0;
-      SuspendThread(info->m_thread);// go to sleep, main thread will resume it
+      SignalObjectAndWait(info->m_doneEvent, info->m_startEvent, INFINITE, false);
    }
 
    info->m_compressWorker.FreeCompressBuffers();
@@ -50,15 +65,28 @@ DWORD WINAPI DecodeWorkerThread(LPVOID i)
    BYTE* src = NULL;
    BYTE* dest = NULL;
 
-   while(info->m_length != UINT32_MAX) //TODO:Optimize
+   WaitForSingleObject(info->m_startEvent, INFINITE);
+   while(true)
    {
-      src = (BYTE*)info->m_source;
-      dest = (BYTE*)info->m_dest;
+      unsigned int length = info->m_length;
+      if ( length == UINT32_MAX )
+      {
+         break;
+      } 
+      else if ( length > 0 )
+      {
+         src = (BYTE*)info->m_source;
+         dest = (BYTE*)info->m_dest;
 
-      assert(info->m_length>0);
-      info->m_compressWorker.Uncompact(src, dest, info->m_length);
-      info->m_length = 0;
-      SuspendThread(info->m_thread);
+         assert(info->m_length>0);
+         info->m_compressWorker.Uncompact(src, dest, info->m_length);
+         info->m_length = 0;
+      } 
+      else
+      {
+         assert(false);
+      }
+      SignalObjectAndWait(info->m_doneEvent, info->m_startEvent, INFINITE, false);
    }
 
    info->m_compressWorker.FreeCompressBuffers();
@@ -70,6 +98,11 @@ DWORD WINAPI DecodeWorkerThread(LPVOID i)
 DWORD CodecInst::InitThreads(bool encode)
 {
    m_info_a.m_length = m_info_b.m_length = 0;
+
+   m_info_a.m_startEvent = CreateEvent(NULL ,false, false, NULL);
+   m_info_a.m_doneEvent = CreateEvent(NULL, false, false, NULL);
+   m_info_b.m_startEvent = CreateEvent(NULL, false, false, NULL);
+   m_info_b.m_doneEvent = CreateEvent(NULL, false, false, NULL);
 
    unsigned int useFormat = (encode) ? m_compressFormat : m_format;
 
@@ -96,16 +129,26 @@ DWORD CodecInst::InitThreads(bool encode)
    {
       LPTHREAD_START_ROUTINE threadDelegate = encode ? EncodeWorkerTread : DecodeWorkerThread;
 
-      if ( !memerror ){
-         if ( encode ){
+      if ( !memerror )
+      {
+         if ( encode )
+         {
             m_info_a.m_thread = CreateThread(NULL, 0, threadDelegate, &m_info_a, CREATE_SUSPENDED, NULL);
             m_info_b.m_thread = CreateThread(NULL, 0, threadDelegate, &m_info_b, CREATE_SUSPENDED, NULL);
-         } else {
+         } 
+         else
+         {
             m_info_a.m_thread = CreateThread(NULL, 0, threadDelegate, &m_info_a, CREATE_SUSPENDED, NULL);
             m_info_b.m_thread = CreateThread(NULL, 0, threadDelegate, &m_info_b, CREATE_SUSPENDED, NULL);
          }
-         if ( !m_info_a.m_thread || !m_info_b.m_thread ){
+         if ( !m_info_a.m_thread || !m_info_b.m_thread )
+         {
             interror = true;
+         } 
+         else 
+         {
+            SetThreadPriority(m_info_a.m_thread, THREAD_PRIORITY_BELOW_NORMAL);
+            SetThreadPriority(m_info_b.m_thread, THREAD_PRIORITY_BELOW_NORMAL);
          }
       }
    }
@@ -119,9 +162,10 @@ DWORD CodecInst::InitThreads(bool encode)
       }
    }
 
-   if ( memerror || interror ){
-
-      if ( encode ){
+   if ( memerror || interror )
+   {
+      if ( encode )
+      {
          ALIGNED_FREE(m_info_a.m_buffer,"Info_a.buffer");
          ALIGNED_FREE(m_info_b.m_buffer,"Info_b.buffer");
          m_info_a.m_compressWorker.FreeCompressBuffers();
@@ -132,7 +176,11 @@ DWORD CodecInst::InitThreads(bool encode)
       m_info_b.m_thread=NULL;
 
       return (DWORD)((memerror) ? ICERR_MEMORY : ICERR_INTERNAL);
-   } else {
+   } 
+   else 
+   {
+      ResumeThread(m_info_a.m_thread);
+      ResumeThread(m_info_b.m_thread);
       return (DWORD)ICERR_OK;
    }
 }
@@ -144,17 +192,17 @@ void CodecInst::EndThreads()
 
    if(m_info_a.m_thread)
    {
-      RESUME_THREAD(m_info_a.m_thread);
+      SetEvent(m_info_a.m_startEvent);
    }
    if(m_info_b.m_thread)
    {
-      RESUME_THREAD(m_info_b.m_thread);
+      SetEvent(m_info_b.m_startEvent);
    }
 
-   while((m_info_a.m_length && m_info_a.m_thread) || (m_info_b.m_length && m_info_b.m_thread))
-   {
-      Sleep(1);
-   }
+   HANDLE threads[2];
+   threads[0] = m_info_a.m_thread;
+   threads[1] = m_info_b.m_thread;
+   WaitForMultipleObjectsEx(2, &threads[0], true, 10000, true);
 
    if(!CloseHandle(m_info_a.m_thread))
    {

@@ -67,7 +67,7 @@ CodecInst::CodecInst()
    m_nullframes = false;
    m_deltaframes = false;
    m_compressFormat = 0;
-   m_started = false;
+   m_started = 0;
 
    m_info_a.m_source = NULL;
    m_info_a.m_dest = NULL;
@@ -95,7 +95,7 @@ CodecInst::~CodecInst()
             DecompressEnd();
          }
       }
-      m_started = false;
+      m_started = 0;
    } 
    catch ( ... ) {};
 }
@@ -184,7 +184,7 @@ DWORD CodecInst::CompressQuery(LPBITMAPINFOHEADER lpbiIn, LPBITMAPINFOHEADER lpb
          RETURN_ERROR();
    }
 
-   detectFlags(&SSE2, &SSE);
+   DetectFlags(&SSE2, &SSE);
    if(!SSE)
    {
       RETURN_ERROR()
@@ -282,7 +282,7 @@ DWORD CodecInst::DecompressQuery(const LPBITMAPINFOHEADER lpbiIn, const LPBITMAP
       RETURN_ERROR();
    }
 
-   detectFlags(&SSE2, &SSE);
+   DetectFlags(&SSE2, &SSE);
    if(!SSE)
    {
       RETURN_ERROR();
@@ -390,7 +390,7 @@ DWORD Close(CodecInst* pinst)
    return 1;
 }
 
-void __stdcall detectFlags(bool* SSE2, bool* SSE)
+void __stdcall DetectFlags(bool* SSE2, bool* SSE)
 {
    int flags;
    __asm{

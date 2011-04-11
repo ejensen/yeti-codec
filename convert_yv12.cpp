@@ -34,8 +34,6 @@
 
 #include "convert_yv12.h"
 
-__declspec(align(8)) static const __int64 add_ones=0x0101010101010101;
-
 
 /*************************************
 * Progressive YV12 -> YUY2 conversion
@@ -50,7 +48,9 @@ void isse_yv12_to_yuy2(const BYTE* srcY, const BYTE* srcU, const BYTE* srcV, int
    int height) {
 
       unsigned int ebx_backup=0;
-      __asm mov		ebx_backup,ebx
+      __asm mov		ebx_backup,ebx;
+
+      __declspec(align(8)) static const __int64 add_ones=0x0101010101010101;
 
       const BYTE** srcp= new const BYTE*[3];
       int src_pitch_uv2 = src_pitch_uv * 2;
@@ -89,7 +89,6 @@ void isse_yv12_to_yuy2(const BYTE* srcY, const BYTE* srcU, const BYTE* srcV, int
          }
 
          __asm {
-   push ebx    // stupid compiler forgets to save ebx!!
             mov edi, [_dst]
             mov eax, [_srcY]
             mov ebx, [_srcU]
@@ -130,7 +129,6 @@ xloop_p:
 xloop_test_p:
             cmp edx,[src_rowsize]
             jl xloop_p
-     pop ebx
          }
       }
 
@@ -158,7 +156,6 @@ xloop_test_p:
       int x=0;
 
       __asm {
-  push ebx    // stupid compiler forgets to save ebx!!
          mov esi, [srcp]
          mov edi, [dst]
 
@@ -274,9 +271,9 @@ yloop_test:
             jl yloop
             sfence
             emms
-    pop ebx
       }
       delete[] srcp;
+    __asm	mov		ebx,ebx_backup
 }
 
 
@@ -293,10 +290,13 @@ void isse_yuy2_to_yv12(const BYTE* src, int src_rowsize, int src_pitch,
    BYTE* dstY, BYTE* dstU, BYTE* dstV, int dst_pitchY, int dst_pitchUV,
    int height) {
 
+  unsigned int ebx_backup=0;
+  __asm mov		ebx_backup,ebx
+
 __declspec(align(8)) static __int64 mask1	= 0x00ff00ff00ff00ff;
 __declspec(align(8)) static __int64 mask2	= 0xff00ff00ff00ff00;
 
-      const BYTE** dstp= new const BYTE*[4];
+  const BYTE* dstp[4];
       dstp[0]=dstY;
       dstp[1]=dstY+dst_pitchY;
       dstp[2]=dstU;
@@ -308,12 +308,11 @@ __declspec(align(8)) static __int64 mask2	= 0xff00ff00ff00ff00;
       //int x=0;
       src_rowsize = (src_rowsize+3)  / 4;
       __asm {
-  push ebx    // stupid compiler forgets to save ebx!!
          movq mm7,[mask2]
          movq mm4,[mask1]
          mov edx,0
             mov esi, src
-            mov edi, dstp
+    lea edi, dstp
             jmp yloop_test
             align 16
 yloop:
@@ -388,7 +387,7 @@ yloop_test:
             jl yloop
             sfence
             emms
-    pop ebx
       }
-      delete[] dstp;
+     
+   __asm mov	ebx,ebx_backup
 }

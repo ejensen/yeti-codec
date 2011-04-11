@@ -302,7 +302,7 @@ DWORD CodecInst::CompressYV12(ICCOMPRESS* icinfo)
 {
    const size_t y_len	= m_width * m_height;
    const size_t c_len	= FOURTH(y_len);
-   const size_t len		= (icinfo->lpbiInput->biBitCount != YV12) ? ALIGN_ROUND(y_len * HALF(y_len) + 32, 16) + c_len : y_len + HALF(y_len);
+   const size_t len		= (icinfo->lpbiInput->biBitCount != YV12) ? ALIGN_ROUND(y_len + HALF(y_len) + 32, 16) + c_len : y_len + HALF(y_len);
 
    if(m_nullframes)
    {
@@ -350,7 +350,7 @@ DWORD CodecInst::CompressYV12(ICCOMPRESS* icinfo)
    if ( icinfo->lpbiInput->biBitCount != YV12 )
    {
       usrc = ysrc + ALIGN_ROUND(y_len + 16, 16);
-      vsrc = ysrc + ALIGN_ROUND(y_len * 3/2 + 32, 16);
+      vsrc = ysrc + ALIGN_ROUND(y_len + HALF(y_len) + 32, 16);
    }
 
    m_info_a.m_source = vsrc;

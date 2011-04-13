@@ -71,4 +71,4 @@ public:
 CodecInst* Open(ICOPEN* icinfo);
 DWORD Close(CodecInst* pinst);
 
-void __stdcall DetectFlags(bool* SSE2, bool* SSE);
+void __stdcall DetectFlags(bool* SSE2);

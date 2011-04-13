@@ -6,9 +6,6 @@
 
 #pragma warning(disable:4731)
 
-bool SSE;
-bool SSE2;
-
 inline int median(int x, int y, int z) 
 {
    int delta = x - y;
@@ -23,7 +20,7 @@ inline int median(int x, int y, int z)
    return  j + delta;	//j=min(i,j);
 }
 
-void SSE2_Block_Predict(const BYTE * __restrict source, BYTE * __restrict dest, const size_t width, const size_t length)
+void Block_Predict(const BYTE * __restrict source, BYTE * __restrict dest, const size_t width, const size_t length)
 {
    unsigned int align_shift = (16 - ((unsigned int)source&15))&15;
 
@@ -197,7 +194,7 @@ void SSE2_Block_Predict(const BYTE * __restrict source, BYTE * __restrict dest, 
    }
 }
 
-void SSE2_Block_Predict_YUV16( const BYTE * __restrict source, BYTE * __restrict dest, const size_t width, const size_t length, const bool is_y)
+void Block_Predict_YUV16( const BYTE * __restrict source, BYTE * __restrict dest, const size_t width, const size_t length, const bool is_y)
 {
    unsigned int align_shift = (16 - ((int)source&15))&15;
 
@@ -427,275 +424,6 @@ void Split_UYVY(const BYTE * __restrict src, BYTE * __restrict ydst, BYTE * __re
    _mm_empty();
 }
 
-void Block_Predict(const BYTE * __restrict source, BYTE * __restrict dest, const size_t width, const size_t length)
-{
-   if ( SSE2 ){
-      SSE2_Block_Predict(source, dest, width, length);
-   } else {
-      SSE_Block_Predict(source, dest, width, length);
-   }
-}
-
-void SSE_Block_Predict(const BYTE * __restrict source, BYTE * __restrict dest, const size_t width, const size_t length)
-{
-   unsigned int align_shift = (8 - ((unsigned int)source&7))&7;
-
-   // predict the bottom row
-   unsigned int a;
-   __m64 t0 = _mm_setzero_si64();
-   if ( align_shift )
-   {
-      dest[0]=source[0];
-      for ( a=1;a<align_shift;a++)
-      {
-         dest[a] = source[a]-source[a-1];
-      }
-      t0 = _mm_insert_pi16(t0,source[align_shift-1],0);
-   }
-   for(a = align_shift ;a<width; a+=8)
-   {
-      __m64 x = *(__m64*)&source[a];
-      t0 = _mm_or_si64(t0,_mm_slli_si64(x,8));
-      *(__m64*)&dest[a]=_mm_sub_pi8(x,t0);
-      t0 = _mm_srli_si64(x,7*8);
-   }
-
-   if(width == length)
-   {
-      _mm_empty();
-      return;
-   }
-
-   __m64 z = _mm_cvtsi32_si64(source[0]);// load 1 byte
-   __m64 x = _mm_cvtsi32_si64(source[width-1]);// load 1 byte
-
-   // make sure that source[a] is a multiple of 8 so that only source[a-width]
-   // will be unaligned if width is not a multiple of 8
-   const __m64 zero = _mm_setzero_si64();
-   a = width;
-   {
-      __m64 srcs = *(__m64 *)&source[a];
-      __m64 y = *(__m64 *)&source[a-width];
-
-      x = _mm_or_si64(x,_mm_slli_si64(srcs,8));
-      z = _mm_or_si64(z,_mm_slli_si64(y,8));
-
-      __m64 tx = _mm_unpackhi_pi8(x,zero);
-      __m64 ty = _mm_unpackhi_pi8(y,zero);
-      __m64 tz = _mm_unpackhi_pi8(z,zero);
-
-      tz = _mm_add_pi16(_mm_sub_pi16(tx,tz),ty);
-
-      tx = _mm_unpacklo_pi8(x,zero);
-      ty = _mm_unpacklo_pi8(y,zero);
-      z = _mm_unpacklo_pi8(z,zero);
-      z = _mm_add_pi16(_mm_sub_pi16(tx,z),ty);
-      z = _mm_packs_pu16(z,tz);
-
-      __m64 i = _mm_min_pu8(x,y);
-      x = _mm_max_pu8(x,y);
-      i = _mm_max_pu8(i,z);
-      x = _mm_min_pu8(x,i);
-
-      srcs = _mm_sub_pi8(srcs,x);
-      *(__m64*)&dest[a]=srcs;
-   }
-
-   if ( align_shift )
-   {
-      a = ALIGN_ROUND(a,8);
-      a += align_shift;
-      if ( a > width+8 ){
-         a -= 8;
-      }
-   } 
-   else 
-   {
-      a+=8;
-      a&=(~7);
-   }
-
-   x = _mm_cvtsi32_si64(source[a-1]); // load 1 byte
-   z = _mm_cvtsi32_si64(source[a-width-1]); // load 1 byte
-
-   const unsigned int end = (length)&(~7);
-   // main prediction loop, source[a] will be a multiple of 8
-   for ( ; a<end; a+=8)
-   {
-      __m64 srcs = *(__m64 *)&source[a];
-      __m64 y = *(__m64 *)&source[a-width];
-
-      x = _mm_or_si64(x,_mm_slli_si64(srcs,8));
-      z = _mm_or_si64(z,_mm_slli_si64(y,8));
-
-      __m64 tx = _mm_unpackhi_pi8(x,zero);
-      __m64 ty = _mm_unpackhi_pi8(y,zero);
-      __m64 tz = _mm_unpackhi_pi8(z,zero);
-
-      tz = _mm_add_pi16(_mm_sub_pi16(tx,tz),ty);
-
-      tx = _mm_unpacklo_pi8(x,zero);
-      ty = _mm_unpacklo_pi8(y,zero);
-      z = _mm_unpacklo_pi8(z,zero);
-      z = _mm_add_pi16(_mm_sub_pi16(tx,z),ty);
-      z = _mm_packs_pu16(z,tz);
-
-      __m64 i = _mm_min_pu8(x,y);
-      x = _mm_max_pu8(x,y);
-      i = _mm_max_pu8(i,z);
-      x = _mm_min_pu8(x,i);
-
-      i = _mm_srli_si64(srcs,7*8);
-
-      srcs = _mm_sub_pi8(srcs,x);
-
-      z = _mm_srli_si64(y,7*8);
-      x = i;
-
-      *(__m64*)&dest[a]=srcs;
-   }
-   _mm_empty();
-
-   int x2, y2;
-   for( ; a<length; a++ )
-   {
-      x2 = source[a-1];
-      y2 = source[a-width];
-      dest[a] = source[a]-median(x2, y2, x2+y2-source[a-width-1]);
-   }
-}
-
-void SSE_Block_Predict_YUV16(const BYTE * __restrict source, BYTE * __restrict dest, const size_t width, const size_t length, const bool is_y)
-{
-   unsigned int align_shift = (8 - ((unsigned int)source&7))&7;
-
-   // predict the bottom row
-   unsigned int a;
-   __m64 t0 = _mm_setzero_si64();
-   if ( align_shift )
-   {
-      dest[0] = source[0];
-      for (a=1; a<align_shift; a++)
-      {
-         dest[a] = source[a]-source[a-1];
-      }
-      t0 = _mm_cvtsi32_si64(source[align_shift-1]);
-   }
-
-   for(a=align_shift; a<width; a+=8)
-   {
-      __m64 x = *(__m64*)&source[a];
-      t0 = _mm_or_si64(t0,_mm_slli_si64(x,8));
-      *(__m64*)&dest[a]=_mm_sub_pi8(x,t0);
-      t0 = _mm_srli_si64(x,7*8);
-   }
-
-   if ( width==length )
-   {
-      _mm_empty();
-      return;
-   }
-
-   __m64 z = _mm_setzero_si64();
-   __m64 x = _mm_setzero_si64();
-
-   // make sure that source[a] is a multiple of 8 so that only source[a-width]
-   // will be unaligned if width is not a multiple of 8
-   a = width;
-   {
-      __m64 srcs = *(__m64 *)&source[a];
-      __m64 y = *(__m64 *)&source[a-width];
-
-      x = _mm_slli_si64(srcs,8);
-      z = _mm_slli_si64(y,8);
-      z = _mm_add_pi8(_mm_sub_pi8(x,z),y);
-
-      __m64 i = _mm_min_pu8(x,y);
-      x = _mm_max_pu8(x,y);
-      i = _mm_max_pu8(i,z);
-      x = _mm_min_pu8(x,i);
-
-      srcs = _mm_sub_pi8(srcs, x);
-      *(__m64*)&dest[a] = srcs;
-   }
-
-   if ( align_shift )
-   {
-      a = ALIGN_ROUND(a,8);
-      a += align_shift;
-      if(a > width + 8)
-      {
-         a -= 8;
-      }
-   } 
-   else 
-   {
-      a+=8;
-      a&=(~7);
-   }
-
-   x = _mm_cvtsi32_si64(source[a-1]);
-   z = _mm_cvtsi32_si64(source[a-width-1]);
-
-   const unsigned int end = (length)&(~7);
-
-   // main prediction loop, source[a] will be a multiple of 8
-   for ( ;a<end;a+=8)
-   {
-      __m64 srcs = *(__m64 *)&source[a];
-      __m64 y = *(__m64 *)&source[a-width];
-
-      x = _mm_or_si64(x,_mm_slli_si64(srcs, 8));
-      z = _mm_or_si64(z,_mm_slli_si64(y, 8));
-      z = _mm_add_pi8(_mm_sub_pi8(x, z), y);
-
-      __m64 i = _mm_min_pu8(x, y);
-      x = _mm_max_pu8(x,y);
-      i = _mm_max_pu8(i,z);
-      x = _mm_min_pu8(x,i);
-
-      i = _mm_srli_si64(srcs, 7*8);
-
-      srcs = _mm_sub_pi8(srcs, x);
-
-      z = _mm_srli_si64(y,7*8);
-      x = i;
-
-      *(__m64*)&dest[a]=srcs;
-   }
-   _mm_empty();
-
-   int x2, y2;
-   for ( ; a<length; a++ )
-   {
-      x2 = source[a-1];
-      y2 = source[a-width];
-      dest[a] = source[a]-median(x2, y2, (x2+y2-source[a-width-1])&255);
-   }
-
-   if ( is_y )
-   {
-      dest[1]=source[1];
-   }
-   dest[width] = source[width]-source[width-1];
-   dest[width+1] = source[width+1]-source[width];
-
-   if ( is_y )
-   {
-      dest[width+2] = source[width+2]-source[width+1];
-      dest[width+3] = source[width+3]-source[width+2];
-   }
-}
-
-void Block_Predict_YUV16( const BYTE * __restrict source, BYTE * __restrict dest, const size_t width, const size_t length, const bool is_y)
-{
-   if ( SSE2 ){
-      SSE2_Block_Predict_YUV16(source, dest, width, length, is_y);
-   } else {
-      SSE_Block_Predict_YUV16(source, dest, width, length, is_y);
-   }
-}
-
 void Interleave_And_Restore_YUY2( unsigned char * __restrict output, unsigned char * __restrict ysrc, const unsigned char * __restrict usrc, const unsigned char * __restrict vsrc, const unsigned int width, const unsigned int height){
 
    output[0]=ysrc[0];
@@ -721,144 +449,71 @@ void Interleave_And_Restore_YUY2( unsigned char * __restrict output, unsigned ch
    const __m64 mask = _mm_setr_pi8(0,0,0,0,-1,0,0,0);
 
    // restore all the remaining pixels using median prediction
-   if ( SSE ){
-      // 54
-      // 50
-      // 49
-      const __m64 mask2 = _mm_setr_pi8(0,0,-1,0,0,-1,0,-1);
-      for ( ; a<(height*width)/2; a+=2){
-         __m64 srcs = _mm_cvtsi32_si64( *(unsigned int *)&ysrc[a*2]);
-         __m64 temp0 = _mm_insert_pi16(_mm_setzero_si64(),*(int*)&usrc[a],0);
-         __m64 temp1 = _mm_insert_pi16(_mm_setzero_si64(),*(int*)&vsrc[a],0);
-         srcs = _mm_unpacklo_pi8(srcs,_mm_unpacklo_pi8(temp0,temp1));
+   // 54
+   // 50
+   // 49
+   const __m64 mask2 = _mm_setr_pi8(0,0,-1,0,0,-1,0,-1);
+   for ( ; a<(height*width)/2; a+=2){
+      __m64 srcs = _mm_cvtsi32_si64( *(unsigned int *)&ysrc[a*2]);
+      __m64 temp0 = _mm_insert_pi16(_mm_setzero_si64(),*(int*)&usrc[a],0);
+      __m64 temp1 = _mm_insert_pi16(_mm_setzero_si64(),*(int*)&vsrc[a],0);
+      srcs = _mm_unpacklo_pi8(srcs,_mm_unpacklo_pi8(temp0,temp1));
 
-         __m64 y = *(__m64 *)&output[a*4-stride];
+      __m64 y = *(__m64 *)&output[a*4-stride];
 
-         z = _mm_or_si64(z,_mm_slli_si64(y,24)); // z=uyvyuyvy
-         z = _mm_or_si64(_mm_srli_pi16(z,8),_mm_slli_pi16(z,8));// z = yuyvyuyv
-         z = _mm_sub_pi8(_mm_add_pi8(x,y),z);
+      z = _mm_or_si64(z,_mm_slli_si64(y,24)); // z=uyvyuyvy
+      z = _mm_or_si64(_mm_srli_pi16(z,8),_mm_slli_pi16(z,8));// z = yuyvyuyv
+      z = _mm_sub_pi8(_mm_add_pi8(x,y),z);
 
-         __m64 i = _mm_min_pu8(x,y);//min
-         __m64 j = _mm_max_pu8(x,y);//max
-         i = _mm_max_pu8(i,z);//max
-         j = _mm_min_pu8(i,j);//min
-         j = _mm_add_pi8(j,srcs); // yu-v----
-         // mask and shift j (yuv)
-         j = _mm_shuffle_pi16(j,(0<<0)+(0<<2)+(0<<4)+(1<<6));
-         j = _mm_and_si64(j,mask2);
-         x = _mm_or_si64(x,j);
-         z = _mm_add_pi8(z,j);
+      __m64 i = _mm_min_pu8(x,y);//min
+      __m64 j = _mm_max_pu8(x,y);//max
+      i = _mm_max_pu8(i,z);//max
+      j = _mm_min_pu8(i,j);//min
+      j = _mm_add_pi8(j,srcs); // yu-v----
+      // mask and shift j (yuv)
+      j = _mm_shuffle_pi16(j,(0<<0)+(0<<2)+(0<<4)+(1<<6));
+      j = _mm_and_si64(j,mask2);
+      x = _mm_or_si64(x,j);
+      z = _mm_add_pi8(z,j);
 
-         i = _mm_min_pu8(x,y);//min
-         j = _mm_max_pu8(x,y);//max
-         i = _mm_max_pu8(i,z);//max
-         j = _mm_min_pu8(i,j);//min
-         j = _mm_add_pi8(j,srcs); // yuyv----
+      i = _mm_min_pu8(x,y);//min
+      j = _mm_max_pu8(x,y);//max
+      i = _mm_max_pu8(i,z);//max
+      j = _mm_min_pu8(i,j);//min
+      j = _mm_add_pi8(j,srcs); // yuyv----
 
-         // mask and shift j (y only)
-         j = _mm_slli_si64(j,5*8);
-         j = _mm_srli_pi32(j,3*8);
+      // mask and shift j (y only)
+      j = _mm_slli_si64(j,5*8);
+      j = _mm_srli_pi32(j,3*8);
 
-         x = _mm_or_si64(x,j);
-         z = _mm_add_pi8(z,j);
+      x = _mm_or_si64(x,j);
+      z = _mm_add_pi8(z,j);
 
-         i = _mm_min_pu8(x,y);//min
-         j = _mm_max_pu8(x,y);//max
-         i = _mm_max_pu8(i,z);//max
-         j = _mm_min_pu8(i,j);//min
-         j = _mm_add_pi8(j,srcs); // yuyvyu-v
-         // mask and shift j (y only)
-         j = _mm_and_si64(j,mask);
-         j = _mm_slli_si64(j,2*8);
-         x = _mm_or_si64(x,j);
-         z = _mm_add_pi8(z,j);
+      i = _mm_min_pu8(x,y);//min
+      j = _mm_max_pu8(x,y);//max
+      i = _mm_max_pu8(i,z);//max
+      j = _mm_min_pu8(i,j);//min
+      j = _mm_add_pi8(j,srcs); // yuyvyu-v
+      // mask and shift j (y only)
+      j = _mm_and_si64(j,mask);
+      j = _mm_slli_si64(j,2*8);
+      x = _mm_or_si64(x,j);
+      z = _mm_add_pi8(z,j);
 
-         i = _mm_min_pu8(x,y);//min
-         x = _mm_max_pu8(x,y);//max
-         i = _mm_max_pu8(i,z);//max
-         x = _mm_min_pu8(i,x);//min
-         x = _mm_add_pi8(x,srcs);
-         *(__m64*)&output[a*4] = x;
-         j = x;
-         x = _mm_slli_si64(x,1*8);
-         x = _mm_srli_si64(x,7*8);
-         j = _mm_srli_pi16(j,1*8);
-         j = _mm_srli_si64(j,3*8);
-         x = _mm_or_si64(x,j);
+      i = _mm_min_pu8(x,y);//min
+      x = _mm_max_pu8(x,y);//max
+      i = _mm_max_pu8(i,z);//max
+      x = _mm_min_pu8(i,x);//min
+      x = _mm_add_pi8(x,srcs);
+      *(__m64*)&output[a*4] = x;
+      j = x;
+      x = _mm_slli_si64(x,1*8);
+      x = _mm_srli_si64(x,7*8);
+      j = _mm_srli_pi16(j,1*8);
+      j = _mm_srli_si64(j,3*8);
+      x = _mm_or_si64(x,j);
 
-         z = _mm_srli_si64(y,5*8);
-      }
-   } else {
-      // 88
-      // 64
-      __declspec(align(8)) unsigned char temp[8]={0,0,0,0,0,0,0,0};
-      for ( ; a<(height*width)/2; a+=2){
-         __m64 srcs = _mm_cvtsi32_si64( *(unsigned int *)&ysrc[a*2]);
-         temp[0]=usrc[a];
-         temp[1]=vsrc[a];
-         temp[2]=usrc[a+1];
-         temp[3]=vsrc[a+1];
-         srcs = _mm_unpacklo_pi8(srcs,_mm_cvtsi32_si64(*(int*)&temp[0]));
-
-         __m64 y = *(__m64 *)&output[a*4-stride];
-
-         z = _mm_or_si64(z,_mm_slli_si64(y,24)); // z=uyvyuyvy
-         z = _mm_or_si64(_mm_srli_pi16(z,8),_mm_slli_pi16(z,8));// z = yuyvyuyv
-         z = _mm_sub_pi8(_mm_add_pi8(x,y),z);
-
-         __m64 i = _mm_sub_pi8(x,_mm_subs_pu8(x,y));//min
-         __m64 j = _mm_add_pi8(y,_mm_subs_pu8(x,y));//max
-         i = _mm_add_pi8(z,_mm_subs_pu8(i,z));//max
-         j = _mm_sub_pi8(i,_mm_subs_pu8(i,j));//min
-         j = _mm_add_pi8(j,srcs); // yu-v----
-         // mask and shift j (y only)
-         j = _mm_slli_si64(j,7*8);
-         j = _mm_srli_si64(j,5*8);
-         x = _mm_or_si64(x,j);
-         z = _mm_add_pi8(z,j);
-
-         i = _mm_sub_pi8(x,_mm_subs_pu8(x,y));//min
-         j = _mm_add_pi8(y,_mm_subs_pu8(x,y));//max
-         i = _mm_add_pi8(z,_mm_subs_pu8(i,z));//max
-         j = _mm_sub_pi8(i,_mm_subs_pu8(i,j));//min
-         j = _mm_add_pi8(j,srcs); // yuyv----
-
-         // mask and shift j (yuv)
-         i = _mm_slli_si64(j,3*8);
-         i = _mm_slli_pi16(i,1*8);
-         j = _mm_slli_si64(j,5*8);
-         j = _mm_srli_pi32(j,3*8);
-         j = _mm_or_si64(i,j);
-
-         x = _mm_or_si64(x,j);
-         z = _mm_add_pi8(z,j);
-
-         i = _mm_sub_pi8(x,_mm_subs_pu8(x,y));//min
-         j = _mm_add_pi8(y,_mm_subs_pu8(x,y));//max
-         i = _mm_add_pi8(z,_mm_subs_pu8(i,z));//max
-         j = _mm_sub_pi8(i,_mm_subs_pu8(i,j));//min
-         j = _mm_add_pi8(j,srcs); // yuyvyu-v
-         // mask and shift j (y only)
-         j = _mm_and_si64(j,mask);
-         j = _mm_slli_si64(j,2*8);
-         x = _mm_or_si64(x,j);
-         z = _mm_add_pi8(z,j);
-
-         i = _mm_sub_pi8(x,_mm_subs_pu8(x,y));//min
-         x = _mm_add_pi8(y,_mm_subs_pu8(x,y));//max
-         i = _mm_add_pi8(z,_mm_subs_pu8(i,z));//max
-         x = _mm_sub_pi8(i,_mm_subs_pu8(i,x));//min
-         x = _mm_add_pi8(x,srcs);
-         *(__m64*)&output[a*4] = x;
-         j = x;
-         x = _mm_slli_si64(x,1*8);
-         x = _mm_srli_si64(x,7*8);
-         j = _mm_srli_pi16(j,1*8);
-         j = _mm_srli_si64(j,3*8);
-         x = _mm_or_si64(x,j);
-
-         z = _mm_srli_si64(y,5*8);
-      }
+      z = _mm_srli_si64(y,5*8);
    }
 
    _mm_empty();

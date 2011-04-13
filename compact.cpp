@@ -17,7 +17,7 @@
 //}
 
 template <typename T>
-static unsigned int COUNT_BITS(T v)
+static inline unsigned int COUNT_BITS(T v)
 {
    v = v - ((v >> 1) & (T)~(T)0/3);
    v = (v & (T)~(T)0/15*3) + ((v >> 2) & (T)~(T)0/15*3);
@@ -25,24 +25,7 @@ static unsigned int COUNT_BITS(T v)
    return ((T)(v * ((T)~(T)0/255)) >> (sizeof(T) - 1) * CHAR_BIT);
 }
 
-static void MMX_Fast_Add(BYTE* __restrict dest, const BYTE* __restrict src1, const BYTE* __restrict src2, const size_t len) 
-{
-   _mm_empty();
-   __m64* mxSrc1 = (__m64*) src1;
-   __m64* mxSrc2 = (__m64*) src2;
-   __m64* mxDest = (__m64*) dest;
-   const int end = EIGHTH(len);
-
-   #pragma omp parallel for
-   for(int i = 0; i < end; i++)
-   {
-      mxDest[i] = _mm_add_pi8(mxSrc1[i], mxSrc2[i]);
-   }
-
-   _mm_empty();
-}
-
-static void SSE2_Fast_Add(BYTE* __restrict dest, const BYTE* __restrict src1, const BYTE* __restrict src2, const size_t len) 
+void Fast_Add(BYTE* __restrict dest, const BYTE* __restrict src1, const BYTE* __restrict src2, const size_t len) 
 {
    __m128i* mxSrc1 = (__m128i*) src1;
    __m128i* mxSrc2 = (__m128i*) src2;
@@ -56,72 +39,61 @@ static void SSE2_Fast_Add(BYTE* __restrict dest, const BYTE* __restrict src1, co
    }
 }
 
-void Fast_Add(BYTE* __restrict dest, const BYTE* __restrict src1, const BYTE* __restrict src2, const size_t len) 
+//bool Fast_Sub_Count(BYTE* __restrict dest, const BYTE* __restrict src1, const BYTE* __restrict src2, const size_t len, const unsigned __int64 minDelta)
+//{
+//   unsigned __int64 oldTotalBits = 0;
+//   unsigned __int64 totalBits = 0;
+//
+//   __m128i* mxDest = (__m128i*) dest;
+//   __m128i* mxSrc1 = (__m128i*) src1;
+//   __m128i* mxSrc2 = (__m128i*) src2;
+//
+//   const unsigned __int64* src = (unsigned __int64*)src1;
+//   const unsigned __int64* out = (unsigned __int64*)dest;
+//
+//   const int end = len / 16;
+//
+//   //TODO: Optimize bit counting with SSE
+//   #pragma omp parallel for reduction(+: oldTotalBits, totalBits)
+//   for(int i = 0; i < end; i++)
+//   {
+//      const int d = DOUBLE(i);
+//      oldTotalBits += COUNT_BITS(src[d]) + COUNT_BITS(src[d + 1]);
+//      mxDest[i] = _mm_sub_epi8(mxSrc1[i], mxSrc2[i]);
+//      totalBits += COUNT_BITS(out[d]) + COUNT_BITS(out[d + 1]);
+//   }
+//
+//   return oldTotalBits - totalBits < minDelta;
+//}
+//} 
+//} 
+bool Fast_Sub_Count(BYTE* __restrict dest, const BYTE* __restrict src1, const BYTE* __restrict src2, const size_t len, const unsigned __int64 minDelta)
 {
-   if(SSE2)
-   {
-      SSE2_Fast_Add(dest, src1, src2, len);
-   }
-   else
-   {
-      MMX_Fast_Add(dest, src1, src2, len);
-   }
-}
-
-static bool MMX_Fast_Sub_Count(unsigned __int64* __restrict dest, const unsigned __int64* __restrict src1, const unsigned __int64* __restrict src2, const size_t len, const unsigned __int64 minDelta)
-{
-   unsigned __int64 oldTotalBits = 0;
-   unsigned __int64 totalBits = 0;
-
-   const int end = EIGHTH(len);
-
-   _mm_empty();
-
-   __m64* mxDest = (__m64*) dest;
-   __m64* mxSrc1 = (__m64*) src1;
-   __m64* mxSrc2 = (__m64*) src2;
-
-   #pragma omp parallel for reduction(+: oldTotalBits, totalBits)
-   for(int i = 0; i < end; i++ )
-   {
-      oldTotalBits += COUNT_BITS(src1[i]);
-      mxDest[i] = _mm_sub_pi8(mxSrc1[i], mxSrc2[i]);
-      totalBits += COUNT_BITS(dest[i]);
-   }
-
-   _mm_empty();
-
-   return oldTotalBits - totalBits < minDelta;
-}
-
-static bool SSE2_Fast_Sub_Count(unsigned __int64* __restrict dest, const unsigned __int64* __restrict src1, const unsigned __int64* __restrict src2, const size_t len, const unsigned __int64 minDelta)
-{
-   unsigned __int64 oldTotalBits = 0;
-   unsigned __int64 totalBits = 0;
+   unsigned __int64 sad = 0;
+   //unsigned __int64 totalBits = 0;
 
    __m128i* mxDest = (__m128i*) dest;
    __m128i* mxSrc1 = (__m128i*) src1;
    __m128i* mxSrc2 = (__m128i*) src2;
+
+   const unsigned __int64* src = (unsigned __int64*)src1;
+   const unsigned __int64* out = (unsigned __int64*)dest;
+
    const int end = len / 16;
 
-   //TODO: Optimize bit counting with SSE
-   #pragma omp parallel for reduction(+: oldTotalBits, totalBits)
+#pragma omp parallel for reduction(+: sad)
    for(int i = 0; i < end; i++)
    {
-      const int d = DOUBLE(i);
-      oldTotalBits += COUNT_BITS(src1[d]) + COUNT_BITS(src1[d + 1]);
-      mxDest[i] = _mm_sub_epi8(mxSrc1[i], mxSrc2[i]);
-      totalBits += COUNT_BITS(dest[d]) + COUNT_BITS(dest[d + 1]);
+      __m128i mx1 = _mm_loadu_si128(mxSrc1 + i);
+      __m128i mx2 = _mm_loadu_si128(mxSrc2 + i);
+      __m128i mxs = _mm_sad_epu8(mx1,  mx2);
+      sad += _mm_extract_epi16(mxs, 0) + _mm_extract_epi16(mxs, 4);
+      mxDest[i] = _mm_sub_epi8(mx1, mx2);
    }
 
-   return oldTotalBits - totalBits < minDelta;
+   return sad < minDelta;
 }
 
-bool Fast_Sub_Count(BYTE* __restrict dest, const BYTE* __restrict src1, const BYTE* __restrict src2, const size_t len, const unsigned __int64 minDelta)
-{
-   return (SSE2) ? SSE2_Fast_Sub_Count((unsigned __int64*)dest, (unsigned __int64*)src1, (unsigned __int64*)src2, len, minDelta) 
-                  : MMX_Fast_Sub_Count((unsigned __int64*)dest, (unsigned __int64*)src1, (unsigned __int64*)src2, len, minDelta);
-}
 
 // scale the byte probabilities so the cumulative
 // probability is equal to a power of 2

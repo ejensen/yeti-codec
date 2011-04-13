@@ -189,8 +189,9 @@ DWORD CodecInst::CompressQuery(LPBITMAPINFOHEADER lpbiIn, LPBITMAPINFOHEADER lpb
          RETURN_ERROR();
    }
 
-   DetectFlags(&SSE2, &SSE);
-   if(!SSE)
+   bool SSE2;
+   DetectFlags(&SSE2);
+   if(!SSE2)
    {
       RETURN_ERROR()
    }
@@ -292,8 +293,9 @@ DWORD CodecInst::DecompressQuery(const LPBITMAPINFOHEADER lpbiIn, const LPBITMAP
       RETURN_ERROR();
    }
 
-   DetectFlags(&SSE2, &SSE);
-   if(!SSE)
+   bool SSE2;
+   DetectFlags(&SSE2);
+   if(!SSE2)
    {
       RETURN_ERROR();
    }
@@ -400,7 +402,7 @@ DWORD Close(CodecInst* pinst)
    return 1;
 }
 
-void __stdcall DetectFlags(bool* SSE2, bool* SSE)
+void __stdcall DetectFlags(bool* SSE2)
 {
    int flags;
    __asm{
@@ -408,12 +410,8 @@ void __stdcall DetectFlags(bool* SSE2, bool* SSE)
          cpuid
          mov			flags,edx
    }
-   if(flags & (1 << 25))
+   if(flags & (1 << 26))
    {
-      *SSE = true;
-      if(flags & (1 << 26))
-      {
-         *SSE2 = true;
-      }
+      *SSE2 = true;
    }
 }

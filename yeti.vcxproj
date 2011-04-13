@@ -25,20 +25,15 @@
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <InterproceduralOptimization>true</InterproceduralOptimization>
     <UseIntelIPP>true</UseIntelIPP>
-    <InstrumentIntelTBB>false</InstrumentIntelTBB>
     <UseIntelMKL>Parallel</UseIntelMKL>
-    <UseIntelTBB>true</UseIntelTBB>
     <ParallelDebugEnvironment>Disabled</ParallelDebugEnvironment>
-    <PlatformToolset>Intel C++ Compiler XE 12.0</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
-    <PlatformToolset>Intel C++ Compiler XE 12.0</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Profiling|Win32'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
     <WholeProgramOptimization>true</WholeProgramOptimization>
-    <PlatformToolset>Intel C++ Compiler XE 12.0</PlatformToolset>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
@@ -173,6 +168,7 @@
       <WholeProgramOptimization>true</WholeProgramOptimization>
       <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
       <OpenMPSupport>true</OpenMPSupport>
+      <EnableEnhancedInstructionSet>StreamingSIMDExtensions2</EnableEnhancedInstructionSet>
     </ClCompile>
     <ResourceCompile>
       <PreprocessorDefinitions>_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -183,7 +179,7 @@
       </Command>
     </PreLinkEvent>
     <Link>
-      <AdditionalDependencies>winmm.lib;shell32.lib;comctl32.lib;User32.lib;Kernel32.lib;LIBCMT.LIB;VCOMP.LIB;libircmt.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>winmm.lib;shell32.lib;comctl32.lib;User32.lib;Kernel32.lib;LIBCMT.LIB;VCOMP.LIB;%(AdditionalDependencies)</AdditionalDependencies>
       <IgnoreAllDefaultLibraries>true</IgnoreAllDefaultLibraries>
       <ModuleDefinitionFile>drvproc.def</ModuleDefinitionFile>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -296,7 +292,6 @@
     <ClInclude Include="codec_inst.h" />
     <ClInclude Include="common.h" />
     <ClInclude Include="convert.h" />
-    <ClInclude Include="convert_yuy2.h" />
     <ClInclude Include="golomb.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="compact.h" />
@@ -312,7 +307,6 @@
     <ClCompile Include="compact.cpp" />
     <ClCompile Include="compression.cpp" />
     <ClCompile Include="convert.cpp" />
-    <ClCompile Include="convert_yuy2.cpp" />
     <ClCompile Include="convert_yv12.cpp" />
     <ClCompile Include="decompression.cpp" />
     <ClCompile Include="drvproc.cpp">

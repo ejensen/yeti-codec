@@ -4,7 +4,6 @@
 #include "threading.h"
 #include "convert.h"
 #include "huffyuv_a.h"
-#include "convert_yuy2.h"
 #include "convert_yv12.h"
 
 DWORD CodecInst::CompressBegin(LPBITMAPINFOHEADER lpbiIn, LPBITMAPINFOHEADER lpbiOut)
@@ -118,61 +117,30 @@ DWORD CodecInst::Compress(ICCOMPRESS* icinfo, DWORD /*dwSize*/)
    unsigned int upos = ALIGN_ROUND(pixels + 16, 16);
    unsigned int vpos = ALIGN_ROUND(pixels * 3/2 + 32, 16);
 
-   if ( SSE2 )
+   if(m_compressFormat == YV12)
    {
-      if(m_compressFormat == YV12)
+      if(m_format == RGB24)
       {
-         if(m_format == RGB24)
-         {
-            ConvertRGB24toYV12_SSE2(m_in, m_colorTransBuffer, m_colorTransBuffer + upos, m_colorTransBuffer + vpos, m_width, m_height);
-         } 
-         else if(m_format == RGB32)
-         {
-            ConvertRGB32toYV12_SSE2(m_in, m_colorTransBuffer, m_colorTransBuffer + upos, m_colorTransBuffer + vpos, m_width, m_height);
-         }
-         else 
-         {
-            isse_yuy2_to_yv12(m_in, m_width*2 , m_width*2, m_colorTransBuffer, m_colorTransBuffer + upos, m_colorTransBuffer + vpos, m_width, m_width/2, m_height);
-         }
+         ConvertRGB24toYV12_SSE2(m_in, m_colorTransBuffer, m_colorTransBuffer + upos, m_colorTransBuffer + vpos, m_width, m_height);
+      } 
+      else if(m_format == RGB32)
+      {
+         ConvertRGB32toYV12_SSE2(m_in, m_colorTransBuffer, m_colorTransBuffer + upos, m_colorTransBuffer + vpos, m_width, m_height);
       }
       else 
       {
-         if ( m_format == RGB24 )
-         {
-            ConvertRGB24toYV16_SSE2(m_in,m_colorTransBuffer,m_colorTransBuffer+upos,m_colorTransBuffer+vpos, m_width, m_height);
-         } 
-         else 
-         {
-            ConvertRGB32toYV16_SSE2(m_in,m_colorTransBuffer,m_colorTransBuffer+upos,m_colorTransBuffer+vpos, m_width, m_height);
-         }
+         isse_yuy2_to_yv12(m_in, m_width*2 , m_width*2, m_colorTransBuffer, m_colorTransBuffer + upos, m_colorTransBuffer + vpos, m_width, m_width/2, m_height);
       }
    }
    else 
    {
-      if(m_compressFormat == YV12)
+      if ( m_format == RGB24 )
       {
-         if(m_format == RGB24)
-         {
-            mmx_ConvertRGB24toYUY2(m_in,m_buffer,m_width*3,m_width*2,m_width,m_height);
-         } 
-         else if(m_format == RGB32)
-         {
-            mmx_ConvertRGB32toYUY2(m_in,m_buffer,m_width*4,m_width*2,m_width,m_height);
-         }
-         const BYTE* src = (m_format>=RGB24)?m_buffer:m_in;
-         isse_yuy2_to_yv12(src,m_width*2,m_width*2,m_colorTransBuffer,m_colorTransBuffer+upos,m_colorTransBuffer+vpos,m_width,m_width/2,m_height);
+         ConvertRGB24toYV16_SSE2(m_in,m_colorTransBuffer,m_colorTransBuffer+upos,m_colorTransBuffer+vpos, m_width, m_height);
       } 
-      else
+      else 
       {
-         if(m_format == RGB24)
-         {
-            mmx_ConvertRGB24toYUY2(m_in,m_buffer,m_width*3,m_width*2,m_width,m_height);
-         } 
-         else if(m_format == RGB32 )
-         {
-            mmx_ConvertRGB32toYUY2(m_in,m_buffer,m_width*4,m_width*2,m_width,m_height);
-         }
-         Split_YUY2(m_buffer, m_colorTransBuffer, m_colorTransBuffer+upos, m_colorTransBuffer+vpos,m_width,m_height);
+         ConvertRGB32toYV16_SSE2(m_in,m_colorTransBuffer,m_colorTransBuffer+upos,m_colorTransBuffer+vpos, m_width, m_height);
       }
    }
 
@@ -206,7 +174,7 @@ DWORD CodecInst::CompressYUV16(ICCOMPRESS* icinfo)
    if(m_deltaframes 
       && icinfo->dwFlags != ICCOMPRESS_KEYFRAME 
       && icinfo->lFrameNum > 0 
-      && Fast_Sub_Count(m_deltaBuffer, m_in, m_prevFrame, len, len * 3) == false)
+      && Fast_Sub_Count(m_deltaBuffer, m_in, m_prevFrame, len, DOUBLE(len)))
    {
       *icinfo->lpdwFlags |= AVIIF_LASTPART;
       frameType = YUY2_DELTAFRAME;
@@ -323,7 +291,7 @@ DWORD CodecInst::CompressYV12(ICCOMPRESS* icinfo)
    if(m_deltaframes 
       && icinfo->dwFlags != ICCOMPRESS_KEYFRAME 
       && icinfo->lFrameNum > 0 
-      && Fast_Sub_Count(source, m_in, m_prevFrame, len, len * 3) == false)
+      && Fast_Sub_Count(source, m_in, m_prevFrame, len, DOUBLE(len)))
    {
       *icinfo->lpdwFlags |= AVIIF_LASTPART;
       frameType = YV12_DELTAFRAME;

@@ -4,7 +4,6 @@
 #include "prediction.h"
 #include "threading.h"
 
-#include "convert_yuy2.h"
 #include "convert_yv12.h"
 #include "huffyuv_a.h"
 
@@ -25,8 +24,6 @@ DWORD CodecInst::DecompressBegin(LPBITMAPINFOHEADER lpbiIn, LPBITMAPINFOHEADER l
 
    m_width = lpbiIn->biWidth;
    m_height = lpbiIn->biHeight;
-
-   DetectFlags(&SSE2, &SSE);
 
    m_format = lpbiOut->biBitCount;
 

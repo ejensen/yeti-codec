@@ -7,9 +7,6 @@
 #include <memory.h>
 #include <assert.h>
 
-extern bool SSE;
-extern bool SSE2;
-
 #define align_round(x,y) ((((unsigned int)(x))+(y-1))&(~(y-1)))
 
 void ConvertRGB24toYV16_SSE2(const unsigned char *src, unsigned char *ydst, unsigned char *udst, unsigned char *vdst, unsigned int w, unsigned int h) {

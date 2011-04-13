@@ -13,6 +13,3 @@ typedef unsigned char BYTE;
 
 #define DOUBLE(x) (x<<1)
 #define QUADRUPLE(x) (x<<2)
-
-extern bool SSE;
-extern bool	SSE2;

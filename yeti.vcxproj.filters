@@ -42,9 +42,6 @@
     <ClInclude Include="threading.h">
       <Filter>Headers</Filter>
     </ClInclude>
-    <ClInclude Include="convert_yuy2.h">
-      <Filter>Headers</Filter>
-    </ClInclude>
     <ClInclude Include="golomb.h">
       <Filter>Headers</Filter>
     </ClInclude>
@@ -70,7 +67,6 @@
     <ClCompile Include="range.cpp" />
     <ClCompile Include="threading.cpp" />
     <ClCompile Include="zerorle.cpp" />
-    <ClCompile Include="convert_yuy2.cpp" />
     <ClCompile Include="convert_yv12.cpp" />
     <ClCompile Include="golomb.cpp" />
     <ClCompile Include="bit_manager.cpp" />

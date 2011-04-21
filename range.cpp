@@ -3,7 +3,7 @@
 
 #define TOP_VALUE		0x80000000
 #define BOTTOM_VALUE	0x00800000
-#define SHIFT_BITS		23
+#define SHIFT_BITS	23
 
 const unsigned int dist_restore[]={0,2,4,6,8,10,12,14,16,18,20,22,24,26,28,30,32,
    34,36,38,40,42,44,46,48,50,52,54,56,58,60,62,64,66,68,70,72,74,76,78,80,82,84,
@@ -52,14 +52,14 @@ size_t CompressClass::RangeEncode(const BYTE* in, BYTE* out, const size_t length
          low <<= 8;
          low &= (TOP_VALUE-1);
 
-         if ( shifted == 255 )
+         if(shifted == 255)
          {
             help++;
          } 
          else 
          {
             out[-1]+=val;
-            for ( ; help != 0 ; help-- )
+            for( ; help != 0 ; help--)
             {
                *out = val-1;
                out++;
@@ -71,15 +71,15 @@ size_t CompressClass::RangeEncode(const BYTE* in, BYTE* out, const size_t length
    }
 
    // flush the encoder
-   if ( (low >> SHIFT_BITS) > 255 )
+   if ((low >> SHIFT_BITS) > 255)
    {
       out[-1]++;
-      while ( help-- )
+      while (help--)
          *out++=0;
    } 
    else 
    {
-      while ( help-- )
+      while (help--)
          *out++=255;
    }
 

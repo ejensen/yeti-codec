@@ -15,15 +15,15 @@
 //   v = (v & 0x33333333) + ((v >> 2) & 0x33333333);
 //   return ((v + (v >> 4) & 0xF0F0F0F) * 0x1010101) >> 24;
 //}
-
-template <typename T>
-static inline unsigned int COUNT_BITS(T v)
-{
-   v = v - ((v >> 1) & (T)~(T)0/3);
-   v = (v & (T)~(T)0/15*3) + ((v >> 2) & (T)~(T)0/15*3);
-   v = (v + (v >> 4)) & (T)~(T)0/255*15;
-   return ((T)(v * ((T)~(T)0/255)) >> (sizeof(T) - 1) * CHAR_BIT);
-}
+//
+//template <typename T>
+//static inline unsigned int COUNT_BITS(T v)
+//{
+//   v = v - ((v >> 1) & (T)~(T)0/3);
+//   v = (v & (T)~(T)0/15*3) + ((v >> 2) & (T)~(T)0/15*3);
+//   v = (v + (v >> 4)) & (T)~(T)0/255*15;
+//   return ((T)(v * ((T)~(T)0/255)) >> (sizeof(T) - 1) * CHAR_BIT);
+//}
 
 void Fast_Add(BYTE* __restrict dest, const BYTE* __restrict src1, const BYTE* __restrict src2, const size_t len) 
 {
@@ -70,7 +70,6 @@ void Fast_Add(BYTE* __restrict dest, const BYTE* __restrict src1, const BYTE* __
 bool Fast_Sub_Count(BYTE* __restrict dest, const BYTE* __restrict src1, const BYTE* __restrict src2, const size_t len, const unsigned __int64 minDelta)
 {
    unsigned __int64 sad = 0;
-   //unsigned __int64 totalBits = 0;
 
    __m128i* mxDest = (__m128i*) dest;
    __m128i* mxSrc1 = (__m128i*) src1;

@@ -57,6 +57,9 @@
     <ClInclude Include="convert.h">
       <Filter>Headers</Filter>
     </ClInclude>
+    <ClInclude Include="reciprocal_table.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="compact.cpp" />

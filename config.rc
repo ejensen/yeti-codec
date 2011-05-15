@@ -62,7 +62,7 @@ BEGIN
     CONTROL         "16bit YUV",IDC_YUY2,"Button",BS_AUTORADIOBUTTON,15,18,86,10
     CONTROL         "12bit YUV",IDC_YV12,"Button",BS_AUTORADIOBUTTON,15,33,85,10
     CONTROL         "Null frame detection",IDC_NULLFRAMES,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,114,34,94,10
-    CONTROL         "Enable P-frames",IDC_DELTAFRAMES,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,114,18,94,10
+    CONTROL         "Enable inter-frame coding",IDC_DELTAFRAMES,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,114,18,94,10
 END
 
 
@@ -90,8 +90,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 0,4,0,0
- PRODUCTVERSION 0,4,0,0
+ FILEVERSION 0,5,0,0
+ PRODUCTVERSION 0,5,0,0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -107,12 +107,12 @@ BEGIN
         BLOCK "040904b0"
         BEGIN
             VALUE "FileDescription", "Yeti video codec"
-            VALUE "FileVersion", "0.4.0.0"
+            VALUE "FileVersion", "0.5.0.0"
             VALUE "InternalName", "Yeti"
             VALUE "LegalCopyright", "Copyright © 2011 Eric Jensen"
             VALUE "OriginalFilename", "Yeti.dll"
             VALUE "ProductName", "Yeti Codec"
-            VALUE "ProductVersion", "0.4.0.0"
+            VALUE "ProductVersion", "0.5.0.0"
         END
     END
     BLOCK "VarFileInfo"

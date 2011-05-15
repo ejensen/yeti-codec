@@ -7,7 +7,8 @@
 #include <memory.h>
 #include <assert.h>
 
-void ConvertRGB24toYV16_SSE2(const unsigned char *src, unsigned char *ydst, unsigned char *udst, unsigned char *vdst, unsigned int w, unsigned int h) {
+void ConvertRGB24toYV16_SSE2(const unsigned char *src, unsigned char *ydst, unsigned char *udst, unsigned char *vdst, unsigned int w, unsigned int h) 
+{
 	const __m128i fraction		= _mm_setr_epi32(0x84000,0x84000,0x84000,0x84000);    //= 0x108000/2 = 0x84000
 	const __m128i neg32			= _mm_setr_epi32(-32,-32,-32,-32);
 	const __m128i y1y2_mult		= _mm_setr_epi32(0x4A85,0x4A85,0x4A85,0x4A85);
@@ -15,8 +16,10 @@ void ConvertRGB24toYV16_SSE2(const unsigned char *src, unsigned char *ydst, unsi
 	const __m128i fpix_mul		= _mm_setr_epi32(0x1fb,0x282,0x1fb,0x282);
 	const __m128i cybgr_64		= _mm_setr_epi16(0,0x0c88,0x4087,0x20DE,0x0c88,0x4087,0x20DE,0);
 
-	for ( unsigned int y=0;y<h;y++){
-		for ( unsigned int x=0;x<w;x+=4){
+	for ( unsigned int y=0;y<h;y++)
+	{
+		for ( unsigned int x=0;x<w;x+=4)
+		{
 			__m128i rgb0 = _mm_cvtsi32_si128(*(int*)&src[y*w*3+x*3]);
 			__m128i rgb1 = _mm_loadl_epi64((__m128i*)&src[y*w*3+x*3+4]);
 			rgb0 = _mm_unpacklo_epi32(rgb0,rgb1);
@@ -148,7 +151,8 @@ void ConvertRGB32toYV16_SSE2(const unsigned char *src, unsigned char *ydst, unsi
 	}
 }
 
-void ConvertRGB32toYV12_SSE2(const unsigned char *src, unsigned char *ydest, unsigned char *udest, unsigned char *vdest, unsigned int w, unsigned int h) {
+void ConvertRGB32toYV12_SSE2(const unsigned char *src, unsigned char *ydest, unsigned char *udest, unsigned char *vdest, unsigned int w, unsigned int h) 
+{
 	const __m128i fraction		= _mm_setr_epi32(0x84000,0x84000,0x84000,0x84000);    //= 0x108000/2 = 0x84000
 	const __m128i neg32			= _mm_setr_epi32(-32,-32,-32,-32);
 	const __m128i y1y2_mult		= _mm_setr_epi32(0x4A85,0x4A85,0x4A85,0x4A85);
@@ -156,7 +160,8 @@ void ConvertRGB32toYV12_SSE2(const unsigned char *src, unsigned char *ydest, uns
 	const __m128i fpix_mul		= _mm_setr_epi32(0x1fb,0x282,0x1fb,0x282);
 	const __m128i cybgr_64		= _mm_setr_epi16(0x0c88,0x4087,0x20DE,0,0x0c88,0x4087,0x20DE,0);
 
-	for ( unsigned int y=0;y<h;y+=2){
+	for ( unsigned int y=0;y<h;y+=2)
+	{
 		unsigned char *ydst=ydest+(h-y-1)*w;
 		unsigned char *udst=udest+(h-y-2)/2*w/2;
 		unsigned char *vdst=vdest+(h-y-2)/2*w/2;
@@ -242,7 +247,7 @@ void ConvertRGB32toYV12_SSE2(const unsigned char *src, unsigned char *ydest, uns
 			chroma0 = _mm_packus_epi16(chroma0,chroma0);
 			
 			//if ( *(unsigned short *)&udst[x/2]!=_mm_extract_epi16(chroma0,0) ||
- 			//	*(unsigned short *)&vdst[x/2]!=_mm_extract_epi16(chroma0,1)){
+			//	*(unsigned short *)&vdst[x/2]!=_mm_extract_epi16(chroma0,1)){
 			//	__asm int 3;
 			//}
 
@@ -252,7 +257,8 @@ void ConvertRGB32toYV12_SSE2(const unsigned char *src, unsigned char *ydest, uns
 	}
 }
 
-void ConvertRGB24toYV12_SSE2(const unsigned char *src, unsigned char *ydest, unsigned char *udest, unsigned char *vdest, unsigned int w, unsigned int h) {
+void ConvertRGB24toYV12_SSE2(const unsigned char *src, unsigned char *ydest, unsigned char *udest, unsigned char *vdest, unsigned int w, unsigned int h)
+{
 	const __m128i fraction		= _mm_setr_epi32(0x84000,0x84000,0x84000,0x84000);    //= 0x108000/2 = 0x84000
 	const __m128i neg32			= _mm_setr_epi32(-32,-32,-32,-32);
 	const __m128i y1y2_mult		= _mm_setr_epi32(0x4A85,0x4A85,0x4A85,0x4A85);
@@ -260,7 +266,8 @@ void ConvertRGB24toYV12_SSE2(const unsigned char *src, unsigned char *ydest, uns
 	const __m128i fpix_mul		= _mm_setr_epi32(0x1fb,0x282,0x1fb,0x282);
 	const __m128i cybgr_64		= _mm_setr_epi16(0,0x0c88,0x4087,0x20DE,0x0c88,0x4087,0x20DE,0);
 
-	for ( unsigned int y=0;y<h;y+=2){
+	for ( unsigned int y=0;y<h;y+=2)
+	{
 		unsigned char *ydst=ydest+(h-y-1)*w;
 		unsigned char *udst=udest+(h-y-2)/2*w/2;
 		unsigned char *vdst=vdest+(h-y-2)/2*w/2;

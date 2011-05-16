@@ -231,7 +231,7 @@ DWORD CodecInst::CompressYUV16(ICCOMPRESS* icinfo)
 	if(m_deltaframes 
 		&& icinfo->dwFlags != ICCOMPRESS_KEYFRAME 
 		&& icinfo->lFrameNum > 0 
-		&& Fast_Sub_Count(m_deltaBuffer, m_in, m_prevFrame, len, DOUBLE(len)))
+		&& InterframeEncode(m_deltaBuffer, m_in, m_prevFrame, len, DOUBLE(len)))
 	{
 		*icinfo->lpdwFlags |= AVIIF_LASTPART;
 		frameType = YUY2_DELTAFRAME;
@@ -293,7 +293,6 @@ DWORD CodecInst::CompressYUV16(ICCOMPRESS* icinfo)
 	BYTE* ucomp = m_buffer;
 	BYTE* vcomp = m_buffer + ALIGN_ROUND(pixels + 64, 16);
 
-	//TODO: optimize array lookup
 	m_threads[0].m_source = u;
 	m_threads[0].m_dest = ucomp;
 	m_threads[0].m_length = HALF(pixels);
@@ -341,7 +340,7 @@ DWORD CodecInst::CompressYV12(ICCOMPRESS* icinfo)
 	if(m_deltaframes 
 		&& icinfo->dwFlags != ICCOMPRESS_KEYFRAME 
 		&& icinfo->lFrameNum > 0 
-		&& Fast_Sub_Count(source, m_in, m_prevFrame, len, DOUBLE(len)))
+		&& InterframeEncode(source, m_in, m_prevFrame, len, DOUBLE(len)))
 	{
 		*icinfo->lpdwFlags |= AVIIF_LASTPART;
 		frameType = YV12_DELTAFRAME;
@@ -365,7 +364,7 @@ DWORD CodecInst::CompressYV12(ICCOMPRESS* icinfo)
 	const BYTE* vsrc = ysrc + pixels;
 	const BYTE* usrc = vsrc + c_len;
 
-	if ( icinfo->lpbiInput->biBitCount != YV12 )
+	if(icinfo->lpbiInput->biBitCount != YV12)
 	{
 		usrc = ysrc + ALIGN_ROUND(pixels + 16, 16);
 		vsrc = ysrc + ALIGN_ROUND(pixels + HALF(pixels) + 32, 16);
@@ -374,7 +373,6 @@ DWORD CodecInst::CompressYV12(ICCOMPRESS* icinfo)
 	BYTE* ucomp = m_buffer2;
 	BYTE* vcomp = m_buffer2 + ALIGN_ROUND( HALF(pixels) + 64, 16);
 
-	//TODO: optimize array lookup
 	m_threads[0].m_source = vsrc;
 	m_threads[0].m_dest = vcomp;
 	m_threads[0].m_length = FOURTH(pixels);

@@ -9,7 +9,7 @@
 #include "zerorle.h"
 #include "golomb.h"
 
-void Fast_Add(BYTE* __restrict dest, const BYTE* __restrict src1, const BYTE* __restrict src2, const size_t len) 
+void InterframeDecode(BYTE* __restrict dest, const BYTE* __restrict src1, const BYTE* __restrict src2, const size_t len) 
 {
 	__m128i* mxSrc1 = (__m128i*) src1;
 	__m128i* mxSrc2 = (__m128i*) src2;
@@ -23,7 +23,7 @@ void Fast_Add(BYTE* __restrict dest, const BYTE* __restrict src1, const BYTE* __
 	}
 }
 
-bool Fast_Sub_Count(BYTE* __restrict dest, const BYTE* __restrict src1, const BYTE* __restrict src2, const size_t len, const unsigned __int64 minDelta)
+bool InterframeEncode(BYTE* __restrict dest, const BYTE* __restrict src1, const BYTE* __restrict src2, const size_t len, const unsigned __int64 minDelta)
 {
 	unsigned __int64 sad = 0;
 

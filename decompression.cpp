@@ -148,7 +148,7 @@ void CodecInst::YUY2Decompress(DWORD flags)
 	if((flags & ICDECOMPRESS_NOTKEYFRAME) == ICDECOMPRESS_NOTKEYFRAME)
 	{
 		//MessageBox(HWND_DESKTOP, "DeltaFrame", "Info", MB_OK);
-		Fast_Add(dst2, dst2, m_prevFrame, DOUBLE(pixels));
+		InterframeDecode(dst2, dst2, m_prevFrame, DOUBLE(pixels));
 	}
 
 	memcpy(m_prevFrame, dst2, DOUBLE(pixels));
@@ -192,7 +192,7 @@ void CodecInst::YV12Decompress(DWORD flags)
 	const size_t length = EIGHTH(pixels * YV12);
 	if((flags & ICDECOMPRESS_NOTKEYFRAME) == ICDECOMPRESS_NOTKEYFRAME)
 	{
-		Fast_Add(dst, dst, m_prevFrame, length);
+		InterframeDecode(dst, dst, m_prevFrame, length);
 	}
 
 	memcpy(m_prevFrame, dst, length);

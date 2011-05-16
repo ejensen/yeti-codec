@@ -4,13 +4,12 @@ static void UnsignedGolombEncode(const unsigned int in, BitOutputManager& bitMan
 {
     unsigned int M = 0;
     unsigned int info;
-    unsigned int val2 = in;
+    unsigned int val2 = in + 1;
 
-    val2++;
     while (val2>1) //get the log base 2 of val.
     {
         val2 >>= 1;
-        M++;        
+        ++M;        
     }
 
     info = in - (1<<M) + 1;

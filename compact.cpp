@@ -81,19 +81,11 @@ void CompressClass::ScaleBitProbability(size_t length)
 			if(m_probRanges[b+1])
 			{
 				m_probRanges[b+1]++;
-				newlen--;
+				--newlen;
 			}
-
-			if((b & 0x80) == 0)
-			{
-				b =- (signed int) b;
-				b &= 0xFF;
-			} 
-			else
-			{
-				b++;
-				b &= 0x7f;
-			}
+			
+			++b;
+			b &= 0x7f;
 		}
 	}
 
@@ -178,7 +170,7 @@ size_t CompressClass::CalcBitProbability(const BYTE* const in, size_t length, BY
 			int scaled_val = (int)temp[a];
 			if (scaled_val == 0 && m_probRanges[a+1])
 			{
-				scaled_val++;
+				++scaled_val;
 			}
 			total += scaled_val;
 			m_probRanges[a+1] = scaled_val;
@@ -193,7 +185,7 @@ size_t CompressClass::CalcBitProbability(const BYTE* const in, size_t length, BY
 				m_probRanges[a+1] += adjust;
 				total += adjust;
 			}
-			a++;
+			++a;
 			a&=255;
 		}
 		length = clamp_size;

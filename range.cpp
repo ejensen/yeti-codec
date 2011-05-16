@@ -47,7 +47,7 @@ size_t CompressClass::RangeEncode(const BYTE* in, BYTE* out, const size_t length
 
 	do{
 		int in_val = *in;
-		in++;
+		++in;
 		int r = range >> m_scale;
 
 		// Set range to zero if the value is not 255
@@ -76,16 +76,16 @@ size_t CompressClass::RangeEncode(const BYTE* in, BYTE* out, const size_t length
 				while (out[pos]==255)
 				{
 					out[pos]=0;
-					pos--;
+					--pos;
 				}
-				out[pos]++;
+				++out[pos];
 			}
 			do {
 				range <<= 8;
 				*out = low>>SHIFT_BITS;
 				low <<= 8;
 				low &= (TOP_VALUE-1);
-				out++;
+				++out;
 			} while (range <= BOTTOM_VALUE);
 		}
 	} while ( in < ending );
@@ -97,7 +97,7 @@ size_t CompressClass::RangeEncode(const BYTE* in, BYTE* out, const size_t length
 		while(out[pos] == 255)
 		{
 			out[pos] = 0;
-			pos--;
+			--pos;
 		}
 		out[pos]++;
 	} 
@@ -118,7 +118,7 @@ while ( range <= BOTTOM_VALUE){\
 	range <<= 8;\
 	low += buffer;\
 	buffer = ((in[0]&1)<<7) + (in[1]>>1);\
-	in++;\
+	++in;\
 	assert(range>0);\
 }
 
@@ -212,9 +212,9 @@ void CompressClass::Decode_And_DeRLE(const BYTE * __restrict in, BYTE * __restri
 			indexed_ranges[a][0] = m_probRanges[a];
 			if ( next <= a)
 			{
-				next++;
-				for ( ;m_probRanges[next] == m_probRanges[a];next++){};
-				next--;
+				++next;
+				for ( ;m_probRanges[next] == m_probRanges[a]; next++){};
+				--next;
 			}
 			indexed_ranges[a][1]=next;
 		}
@@ -232,7 +232,7 @@ void CompressClass::Decode_And_DeRLE(const BYTE * __restrict in, BYTE * __restri
 	unsigned int hash_range = range_top-range_bottom;
 	while ( hash_range > ((unsigned int)1<<(12 + hs)) )
 	{
-		hs++;
+		++hs;
 	}
 
 	const unsigned int hash_shift = hs;
@@ -288,7 +288,8 @@ void CompressClass::Decode_And_DeRLE(const BYTE * __restrict in, BYTE * __restri
 					// If the value is too large for the r_table,
 					// do roughly (low/(help>>x))>>x, where x is how many
 					// places help got shifted to make it fall in the range.
-					while ( s >= 2048){
+					while ( s >= 2048)
+					{
 						s+=3;// Round up divisor so result will be <= low/help.
 						s>>=2; // Shifting 2 places gave best performance in testing.
 						rb+=rb; // Shift up range_bottom so hash_shift can be merged with
@@ -346,19 +347,19 @@ void CompressClass::Decode_And_DeRLE(const BYTE * __restrict in, BYTE * __restri
 		{
 Level_3_Zero_Decode:
 			range = help * range_bottom;
-			out++;
+			++out;
 			CheckForRead();
 			help = range >> shift;
 			if ( low < help*range_bottom )
 			{
 				range = help * range_bottom;
-				out++;
+				++out;
 				CheckForRead();
 				help = range >> shift;
 				if ( low < help*range_bottom )
 				{
 					range = help * range_bottom;
-					out++;
+					++out;
 					CheckForRead();
 					help = range >> shift;
 
@@ -408,7 +409,7 @@ Level_3_Nonzero_Decode:
 		do {
 Level_1_Zero_Decode:
 			range = help * range_bottom;
-			out++;
+			++out;
 			CheckForRead();
 			help = range >> shift;
 			// a zero run was reached
@@ -465,8 +466,8 @@ Level_1_Nonzero_Decode:
 				range = help * range_bottom;
 				if ( run < 2)
 				{
-					out++;
-					run++;
+					++out;
+					++run;
 				} 
 				else 
 				{

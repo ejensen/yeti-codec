@@ -55,7 +55,7 @@ bool BitInputManager::InputBit()
       ++m_num_bytes_read;
    }
 
-   m_input_bits_left--;
+   --m_input_bits_left;
 
    return bool((m_current_byte >> m_input_bits_left) & 1);
 }

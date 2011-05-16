@@ -49,7 +49,7 @@ static const BYTE lvl3_lookup[] =  {8,8,8,8,8,8,8,0,8,8,8,8,8,8,1,0,8,8,8,8,8,
 
 // This function encodes zero runs longer than 256 bytes;
 // This is rare and takes a variable amount of bytes per level
-void Encode_Long_Run( BYTE ** l1, BYTE ** l3, size_t count)
+void Encode_Long_Run(BYTE** l1, BYTE** l3, size_t count)
 {
 	BYTE* lvl1 = l1[0];
 	BYTE* lvl3 = l3[0];
@@ -78,9 +78,9 @@ void Encode_Long_Run( BYTE ** l1, BYTE ** l3, size_t count)
 	if ( count == 1)
 	{
 		lvl3[0]=0;
-		lvl3++;
+		++lvl3;
 	} 
-	else if ( count == 2 )
+	else if (count == 2)
 	{
 		lvl3[0]=0;
 		lvl3[1]=0;
@@ -98,7 +98,7 @@ void Encode_Long_Run( BYTE ** l1, BYTE ** l3, size_t count)
 	l3[0]=lvl3;
 }
 
-void TestAndRLE_SSE2(unsigned char * const __restrict in, unsigned char ** const __restrict out1, unsigned char ** const __restrict out3, const size_t length);
+void TestAndRLE_SSE2(BYTE* const __restrict in, BYTE** const __restrict out1, BYTE** const __restrict out3, const size_t length);
 
 /*
 This function takes the input data and performs RLE on runs of zeros.
@@ -113,7 +113,7 @@ first is zero, in this case the function will return -1, and only
 the first byte needs to be saved.
 */
 
-size_t TestAndRLE(BYTE * const __restrict in, BYTE * const __restrict out1, BYTE * const __restrict out3, const size_t length, char& level)
+size_t TestAndRLE(BYTE* const __restrict in, BYTE* const __restrict out1, BYTE* const __restrict out3, const size_t length, char& level)
 {
 	BYTE * lvl1 = out1;
 	BYTE * lvl3 = out3;
@@ -179,7 +179,7 @@ size_t TestAndRLE(BYTE * const __restrict in, BYTE * const __restrict out1, BYTE
 	return len3;
 }
 
-void TestAndRLE_SSE2(unsigned char * const __restrict in, unsigned char ** const __restrict out1, unsigned char ** const __restrict out3, const size_t length)
+void TestAndRLE_SSE2(BYTE* const __restrict in, BYTE** const __restrict out1, BYTE** const __restrict out3, const size_t length)
 {
 	unsigned int a = 0;
 	unsigned char * lvl3 = *out3;
@@ -246,7 +246,7 @@ void TestAndRLE_SSE2(unsigned char * const __restrict in, unsigned char ** const
 	}
 	if(a > length)
 	{
-		lvl3--;
+		--lvl3;
 	}
 
 	// if level 3 RLE is > 32% of no RLE (length), then level 1 RLE will not
@@ -308,7 +308,7 @@ RLE_lvl1_0_start_SSE2:
 		}
 		if ( a > length)
 		{
-			lvl1--;
+			--lvl1;
 		}
 	} 
 	else
@@ -327,7 +327,7 @@ RLE_lvl1_0_start_SSE2:
 // 0 bytes to output. This routine is only used in the rare occurrence
 // where RLE compression is better than header + range coding
 
-size_t deRLE(const BYTE * in, BYTE * out, const size_t length, const BYTE level)
+size_t deRLE(const BYTE* in, BYTE* out, const size_t length, const BYTE level)
 {
 	unsigned int a = 0;
 	unsigned int b = 0;

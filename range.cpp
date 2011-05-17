@@ -375,7 +375,8 @@ Level_3_Zero_Decode:
 					// see if there is another zero run following
 					CheckForRead();
 					help = range >> shift;
-					if ( low < help*range_bottom && out < ending){
+					if ( low < help*range_bottom && out < ending)
+					{
 						goto Level_3_Zero_Decode;
 					}
 				}

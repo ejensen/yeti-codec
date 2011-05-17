@@ -115,36 +115,39 @@ DWORD CodecInst::Compress(ICCOMPRESS* icinfo, DWORD /*dwSize*/)
 
 	const size_t pixels = m_width * m_height;
 	unsigned int upos = ALIGN_ROUND(pixels + 16, 16);
-	unsigned int vpos = ALIGN_ROUND(pixels * 3/2 + 32, 16);
+	unsigned int vpos = ALIGN_ROUND(pixels + HALF(pixels) + 32, 16);
 
 	if(m_compressFormat == YV12)
 	{
 		if(m_format == RGB24)
 		{
 			ConvertRGB24toYV12_SSE2(m_in, m_colorTransBuffer, m_colorTransBuffer + upos, m_colorTransBuffer + vpos, m_width, m_height);
+			m_in = m_colorTransBuffer;
 		} 
 		else if(m_format == RGB32)
 		{
 			ConvertRGB32toYV12_SSE2(m_in, m_colorTransBuffer, m_colorTransBuffer + upos, m_colorTransBuffer + vpos, m_width, m_height);
+			m_in = m_colorTransBuffer;
 		}
-		else 
+		else if (m_format == YUY2)
 		{
 			isse_yuy2_to_yv12(m_in, m_width*2 , m_width*2, m_colorTransBuffer, m_colorTransBuffer + upos, m_colorTransBuffer + vpos, m_width, m_width/2, m_height);
+			m_in = m_colorTransBuffer;
 		}
 	}
 	else 
 	{
-		if ( m_format == RGB24 )
+		if(m_format == RGB24)
 		{
 			ConvertRGB24toYV16_SSE2(m_in,m_colorTransBuffer,m_colorTransBuffer+upos,m_colorTransBuffer+vpos, m_width, m_height);
+			m_in = m_colorTransBuffer;
 		} 
-		else 
+		else if(m_format == RGB32)
 		{
 			ConvertRGB32toYV16_SSE2(m_in,m_colorTransBuffer,m_colorTransBuffer+upos,m_colorTransBuffer+vpos, m_width, m_height);
+			m_in = m_colorTransBuffer;
 		}
 	}
-
-	m_in = m_colorTransBuffer;
 
 	return m_compressFormat == YV12 ? CompressYV12(icinfo) : CompressYUV16(icinfo);
 }
@@ -249,7 +252,7 @@ DWORD CodecInst::CompressYUV16(ICCOMPRESS* icinfo)
 		memcpy(m_prevFrame, m_in, len);
 	}
 
-	BYTE* ysrc  = m_buffer;
+	BYTE* ysrc  = (source != m_deltaBuffer) ? m_deltaBuffer :m_colorTransBuffer;
 	BYTE* usrc  = ysrc + y_stride;
 	BYTE* vsrc  = usrc + c_stride;
 
@@ -277,13 +280,13 @@ DWORD CodecInst::CompressYUV16(ICCOMPRESS* icinfo)
 	} 
 	else 
 	{
-		if (icinfo->lpbiInput->biCompression == FOURCC_UYVY)
+		if (icinfo->lpbiInput->biCompression == FOURCC_YUY2)
 		{
-			Split_UYVY(source, ysrc, usrc, vsrc, m_width, m_height);
+			Split_YUY2(source, ysrc, usrc, vsrc, m_width, m_height);
 		} 
 		else
 		{
-			Split_YUY2(source, ysrc, usrc, vsrc, m_width, m_height);
+			Split_UYVY(source, ysrc, usrc, vsrc, m_width, m_height);
 		}
 		y = ysrc;
 		u = usrc;
@@ -355,9 +358,7 @@ DWORD CodecInst::CompressYV12(ICCOMPRESS* icinfo)
 
 	if(m_nullframes || m_deltaframes)
 	{
-		BYTE* temp = m_prevFrame;
-		m_prevFrame = m_colorTransBuffer;
-		m_colorTransBuffer = temp;
+		memcpy(m_prevFrame, m_in, len);
 	}
 
 	const BYTE* ysrc = source;

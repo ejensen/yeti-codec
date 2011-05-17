@@ -200,14 +200,14 @@ size_t CompressClass::Compact(BYTE* in, BYTE* out, const size_t length)
 	size_t bytes_used = 0;
 
 	BYTE* const buffer_1 = m_buffer;
-	BYTE* const buffer_2 = m_buffer + ALIGN_ROUND(length * 3/2 + 16, 16);
+	BYTE* const buffer_2 = m_buffer + ALIGN_ROUND(length + HALF(length) + 16, 16);
 	short rle = 0;
 	size_t size = TestAndRLE(in, buffer_1, buffer_2, length, rle);
 
 	out[0] = rle;
 	if ( rle )
 	{
-		if (rle == -1 )
+		if(rle == -1)
 		{ // solid run of 0s, only 1st byte is needed
 			out[0] = 0xFF;
 			out[1] = in[0];
@@ -252,7 +252,7 @@ void CompressClass::Uncompact(const BYTE* in, BYTE* out, const size_t length)
 	{
 #endif
 		BYTE rle = in[0];
-		if(rle && ( rle < 8 || rle == 0xff ))
+		if(rle && (rle < 8 || rle == 0xFF))
 		{
 			if(rle < 4)
 			{
@@ -267,7 +267,7 @@ void CompressClass::Uncompact(const BYTE* in, BYTE* out, const size_t length)
 			}
 			else
 			{
-				if ( rle == 0xFF )  // solid run of 0s, only need to set 1 byte
+				if(rle == 0xFF)  // solid run of 0s, only need to set 1 byte
 				{
 					//MessageBox (HWND_DESKTOP, "ZerosOut", "Info", MB_OK);
 					ZeroMemory(out, length);
@@ -276,7 +276,7 @@ void CompressClass::Uncompact(const BYTE* in, BYTE* out, const size_t length)
 				else 
 				{
 					rle -= 4;
-					if ( rle )
+					if (rle)
 						deRLE(in+1, out, length, rle);
 					else // uncompressed length is smallest...
 						memcpy((void*)(in+1), out, length);
@@ -301,7 +301,7 @@ void CompressClass::Uncompact(const BYTE* in, BYTE* out, const size_t length)
 
 bool CompressClass::InitCompressBuffers(const size_t length)
 {
-	m_buffer = (BYTE*)ALIGNED_MALLOC(m_buffer, length * 3/2 + length * 5/4 + 32, 8, "Compress::buffer");
+	m_buffer = (BYTE*)ALIGNED_MALLOC(m_buffer, length + HALF(length) + length * 5/4 + 32, 8, "Compress::buffer");
 
 	if (!m_buffer)
 	{

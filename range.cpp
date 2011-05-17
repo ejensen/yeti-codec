@@ -356,7 +356,7 @@ Level_3_Zero_Decode:
 				++out;
 				CheckForRead();
 				help = range >> shift;
-				if ( low < help*range_bottom )
+				if (low < help*range_bottom )
 				{
 					range = help * range_bottom;
 					++out;

@@ -244,10 +244,8 @@ void TestAndRLE_SSE2(BYTE* const __restrict in, BYTE** const __restrict out1, BY
 			lvl3+=(count>=3)?4:count;
 		}
 	}
-	if(a > length)
-	{
-		--lvl3;
-	}
+
+	lvl3 -= (a > length);
 
 	// if level 3 RLE is > 32% of no RLE (length), then level 1 RLE will not
 	// be used and does not need to be calculated.
@@ -306,14 +304,11 @@ RLE_lvl1_0_start_SSE2:
 			lvl1[1]=dist_match[count+1];
 			lvl1+=2;
 		}
-		if ( a > length)
-		{
-			--lvl1;
-		}
+		lvl1 -= (a > length);
 	} 
 	else
 	{
-		lvl1+=length;
+		lvl1 += length;
 	}
 
 	*out1=lvl1;

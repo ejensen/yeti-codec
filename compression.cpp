@@ -74,7 +74,7 @@ DWORD CodecInst::CompressBegin(LPBITMAPINFOHEADER lpbiIn, LPBITMAPINFOHEADER lpb
 // 105% of image size + 1KB should be plenty even for random static
 DWORD CodecInst::CompressGetSize(LPBITMAPINFOHEADER lpbiIn, LPBITMAPINFOHEADER lpbiOut)
 {
-	return (DWORD)(ALIGN_ROUND(lpbiIn->biWidth, 16) * lpbiIn->biHeight * lpbiIn->biBitCount / 8 * 1.05 + 1024); // TODO: Optimize
+	return (DWORD)(ALIGN_ROUND(lpbiIn->biWidth, 16) * lpbiIn->biHeight * lpbiIn->biBitCount / 8 * 1.05 + 1024); // TODO: Correct?
 }
 
 // release resources when compression is done
@@ -182,21 +182,21 @@ unsigned int CodecInst::HandleTwoCompressionThreads(unsigned int chan_size)
 	memcpy(m_out+current_size, (unsigned char*)finished->m_dest, channel_sizes[pos+1]);
 	current_size += finished->m_size;
 
-	if ( channel_sizes[0] >= channel_sizes[1] && channel_sizes[0] >= channel_sizes[2] && m_threads[0].m_priority != THREAD_PRIORITY_BELOW_NORMAL) 
+	if (channel_sizes[0] >= channel_sizes[1] && channel_sizes[0] >= channel_sizes[2] && m_threads[0].m_priority != THREAD_PRIORITY_BELOW_NORMAL) 
 	{
 		SetThreadPriority(m_threads[0].m_thread,THREAD_PRIORITY_BELOW_NORMAL);
 		SetThreadPriority(m_threads[1].m_thread,THREAD_PRIORITY_BELOW_NORMAL);
 		m_threads[0].m_priority=THREAD_PRIORITY_BELOW_NORMAL;
 		m_threads[1].m_priority=THREAD_PRIORITY_BELOW_NORMAL;
 	} 
-	else if ( channel_sizes[1] >= channel_sizes[2] &&  m_threads[0].m_priority != THREAD_PRIORITY_ABOVE_NORMAL )
+	else if (channel_sizes[1] >= channel_sizes[2] &&  m_threads[0].m_priority != THREAD_PRIORITY_ABOVE_NORMAL)
 	{
 		SetThreadPriority(m_threads[0].m_thread,THREAD_PRIORITY_ABOVE_NORMAL);
 		SetThreadPriority(m_threads[1].m_thread,THREAD_PRIORITY_NORMAL);
 		m_threads[0].m_priority=THREAD_PRIORITY_ABOVE_NORMAL;
 		m_threads[0].m_priority=THREAD_PRIORITY_NORMAL;
 	}
-	else if ( m_threads[1].m_priority != THREAD_PRIORITY_ABOVE_NORMAL )
+	else if (m_threads[1].m_priority != THREAD_PRIORITY_ABOVE_NORMAL)
 	{
 		SetThreadPriority(m_threads[0].m_thread,THREAD_PRIORITY_NORMAL);
 		SetThreadPriority(m_threads[1].m_thread,THREAD_PRIORITY_ABOVE_NORMAL);
@@ -226,19 +226,19 @@ DWORD CodecInst::CompressYUV16(ICCOMPRESS* icinfo)
 	}
 
 	BYTE frameType;
-	BYTE* source = m_deltaBuffer;
+	BYTE* source = m_in;
 
 	if(m_deltaframes 
-		&& icinfo->dwFlags != ICCOMPRESS_KEYFRAME 
+		&& (icinfo->dwFlags & ICCOMPRESS_KEYFRAME) != ICCOMPRESS_KEYFRAME
 		&& icinfo->lFrameNum > 0 
 		&& InterframeEncode(m_deltaBuffer, m_in, m_prevFrame, len, DOUBLE(len)))
 	{
+		source = m_deltaBuffer;
 		*icinfo->lpdwFlags |= AVIIF_LASTPART;
 		frameType = YUY2_DELTAFRAME;
 	}
 	else
 	{
-		source = m_in;
 		*icinfo->lpdwFlags |= AVIIF_KEYFRAME;
 		icinfo->dwFlags |= ICCOMPRESS_KEYFRAME;
 		frameType = YUY2_KEYFRAME;
@@ -334,20 +334,20 @@ DWORD CodecInst::CompressYV12(ICCOMPRESS* icinfo)
 		}
 	}
 
-	BYTE* source = m_deltaBuffer;
+	BYTE* source = m_in;
 	BYTE frameType;
 
 	if(m_deltaframes 
-		&& icinfo->dwFlags != ICCOMPRESS_KEYFRAME 
+		&& (icinfo->dwFlags & ICCOMPRESS_KEYFRAME) != ICCOMPRESS_KEYFRAME
 		&& icinfo->lFrameNum > 0 
-		&& InterframeEncode(source, m_in, m_prevFrame, len, DOUBLE(len)))
+		&& InterframeEncode(m_deltaBuffer, m_in, m_prevFrame, len, DOUBLE(len)))
 	{
+		source = m_deltaBuffer;
 		*icinfo->lpdwFlags |= AVIIF_LASTPART;
 		frameType = YV12_DELTAFRAME;
 	}
 	else
 	{
-		source = m_in;
 		*icinfo->lpdwFlags |= AVIIF_KEYFRAME;
 		icinfo->dwFlags |= ICCOMPRESS_KEYFRAME;
 		frameType = YV12_KEYFRAME;
@@ -371,16 +371,16 @@ DWORD CodecInst::CompressYV12(ICCOMPRESS* icinfo)
 	}
 
 	BYTE* ucomp = m_buffer2;
-	BYTE* vcomp = m_buffer2 + ALIGN_ROUND( HALF(pixels) + 64, 16);
+	BYTE* vcomp = m_buffer2 + ALIGN_ROUND(HALF(pixels) + 64, 16);
 
 	m_threads[0].m_source = vsrc;
 	m_threads[0].m_dest = vcomp;
-	m_threads[0].m_length = FOURTH(pixels);
+	m_threads[0].m_length = c_len;
 	SetEvent(m_threads[0].m_startEvent);
 
 	m_threads[1].m_source = usrc;
 	m_threads[1].m_dest = ucomp;
-	m_threads[1].m_length = FOURTH(pixels);
+	m_threads[1].m_length = c_len;
 	SetEvent(m_threads[1].m_startEvent);
 
 	BYTE* ydest = m_buffer;

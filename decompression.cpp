@@ -152,7 +152,6 @@ void CodecInst::YUY2Decompress(DWORD flags)
 	}
 
 	memcpy(m_prevFrame, dst2, DOUBLE(pixels));
-
 	if(m_format == YUY2 || (flags & ICDECOMPRESS_PREROLL) == ICDECOMPRESS_PREROLL)
 	{
 		return;
@@ -189,7 +188,7 @@ void CodecInst::YV12Decompress(DWORD flags)
 
 	Restore_YV12(ydst, udst, vdst, m_width, m_height);
 
-	const size_t length = EIGHTH(pixels * YV12);
+	const size_t length = pixels + HALF(pixels);
 	if((flags & ICDECOMPRESS_NOTKEYFRAME) == ICDECOMPRESS_NOTKEYFRAME)
 	{
 		InterframeDecode(dst, dst, m_prevFrame, length);

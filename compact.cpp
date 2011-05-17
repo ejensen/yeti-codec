@@ -62,12 +62,12 @@ void CompressClass::ScaleBitProbability(size_t length)
 
 	if ( temp != length )
 	{
-		const double factor = temp / (double)length;
+		const double factor = (int)temp / ((double)(int)length);
 		unsigned int newlen = 0;
 
 		for(int i = 1; i < 257; i++)
 		{
-			m_probRanges[i] = (unsigned int)((m_probRanges[i]) * factor);
+			m_probRanges[i] = (unsigned int)(((int)m_probRanges[i]) * factor);
 			newlen += m_probRanges[i];
 		}
 	
@@ -204,7 +204,7 @@ size_t CompressClass::Compact(BYTE* in, BYTE* out, const size_t length)
 
 	BYTE* const buffer_1 = m_buffer;
 	BYTE* const buffer_2 = m_buffer + ALIGN_ROUND(length * 3/2 + 16, 16);
-	char rle = 0;
+	short rle = 0;
 	size_t size = TestAndRLE(in, buffer_1, buffer_2, length, rle);
 
 	out[0] = rle;
@@ -212,6 +212,7 @@ size_t CompressClass::Compact(BYTE* in, BYTE* out, const size_t length)
 	{
 		if (rle == -1 )
 		{ // solid run of 0s, only 1st byte is needed
+			out[0] = 0xFF;
 			out[1] = in[0];
 			bytes_used = 2;
 		} 
@@ -269,8 +270,9 @@ void CompressClass::Uncompact(const BYTE* in, BYTE* out, const size_t length)
 			}
 			else
 			{
-				if ( rle == 0xff )  // solid run of 0s, only need to set 1 byte
+				if ( rle == 0xFF )  // solid run of 0s, only need to set 1 byte
 				{
+					//MessageBox (HWND_DESKTOP, "ZerosOut", "Info", MB_OK);
 					ZeroMemory(out, length);
 					out[0] = in[1];
 				}

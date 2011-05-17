@@ -31,7 +31,7 @@ extern const unsigned int* dist_rest;
 
 // this table is used in performing RLE; it is used to look up how
 // many leading zeros or non-zeros were found in an eight-byte block
-static const BYTE countlookup[] =  {8,0,1,0,2,0,1,0,3,0,1,0,2,0,1,0,4,0,1,0,2,
+static const unsigned int countlookup[] =  {8,0,1,0,2,0,1,0,3,0,1,0,2,0,1,0,4,0,1,0,2,
 	0,1,0,3,0,1,0,2,0,1,0,5,0,1,0,2,0,1,0,3,0,1,0,2,0,1,0,4,0,1,0,2,0,1,0,3,0,1,0,2,0,
 	1,0,6,0,1,0,2,0,1,0,3,0,1,0,2,0,1,0,4,0,1,0,2,0,1,0,3,0,1,0,2,0,1,0,5,0,1,0,2,0,1,
 	0,3,0,1,0,2,0,1,0,4,0,1,0,2,0,1,0,3,0,1,0,2,0,1,0,7,0,1,0,2,0,1,0,3,0,1,0,2,0,1,0,
@@ -39,7 +39,7 @@ static const BYTE countlookup[] =  {8,0,1,0,2,0,1,0,3,0,1,0,2,0,1,0,4,0,1,0,2,
 	0,1,0,2,0,1,0,6,0,1,0,2,0,1,0,3,0,1,0,2,0,1,0,4,0,1,0,2,0,1,0,3,0,1,0,2,0,1,0,5,0,
 	1,0,2,0,1,0,3,0,1,0,2,0,1,0,4,0,1,0,2,0,1,0,3,0,1,0,2,0,1,0,8};
 
-static const BYTE lvl3_lookup[] =  {8,8,8,8,8,8,8,0,8,8,8,8,8,8,1,0,8,8,8,8,8,
+static const unsigned int lvl3_lookup[] =  {8,8,8,8,8,8,8,0,8,8,8,8,8,8,1,0,8,8,8,8,8,
 	8,8,0,8,8,8,8,2,2,1,0,8,8,8,8,8,8,8,0,8,8,8,8,8,8,1,0,8,8,8,8,8,8,8,0,3,3,3,3,2,2,
 	1,0,8,8,8,8,8,8,8,0,8,8,8,8,8,8,1,0,8,8,8,8,8,8,8,0,8,8,8,8,2,2,1,0,8,8,8,8,8,8,8,
 	0,8,8,8,8,8,8,1,0,4,4,4,4,4,4,4,0,3,3,3,3,2,2,1,0,7,7,7,7,7,7,7,0,7,7,7,7,7,7,1,0,
@@ -113,10 +113,10 @@ first is zero, in this case the function will return -1, and only
 the first byte needs to be saved.
 */
 
-size_t TestAndRLE(BYTE* const __restrict in, BYTE* const __restrict out1, BYTE* const __restrict out3, const size_t length, char& level)
+size_t TestAndRLE(BYTE* const __restrict in, BYTE* const __restrict out1, BYTE* const __restrict out3, const size_t length, short& level)
 {
-	BYTE * lvl1 = out1;
-	BYTE * lvl3 = out3;
+	BYTE* lvl1 = out1;
+	BYTE* lvl3 = out3;
 
 	// end marker values to prevent overrunning
 	in[length]=255;
@@ -126,7 +126,7 @@ size_t TestAndRLE(BYTE* const __restrict in, BYTE* const __restrict out1, BYTE* 
 
 	unsigned int a=0;
 	
-	TestAndRLE_SSE2(in ,&lvl1, &lvl3, length);
+	TestAndRLE_SSE2(in, &lvl1, &lvl3, length);
 
 	unsigned int len1 = (int)(lvl1-out1);
 	unsigned int len3 = (int)(lvl3-out3);

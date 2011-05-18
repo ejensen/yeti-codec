@@ -275,8 +275,8 @@ DWORD CodecInst::CompressYUV16(ICCOMPRESS* icinfo)
 	else if (icinfo->lpbiInput->biBitCount > YUY2)
 	{
 		y = source;
-		u = source + ALIGN_ROUND(m_width * m_height + 16, 16);
-		v = source + ALIGN_ROUND(m_width * m_height * 3/2 + 32, 16);
+		u = source + ALIGN_ROUND(pixels + 16, 16);
+		v = source + ALIGN_ROUND(pixels + HALF(pixels) + 32, 16);
 	} 
 	else 
 	{

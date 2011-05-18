@@ -9,6 +9,7 @@ DWORD WINAPI EncodeWorkerTread(LPVOID i)
 	ThreadData* threadData = (ThreadData *)i;
 
 	WaitForSingleObject(threadData->m_startEvent, INFINITE);
+	BYTE* const buffer = (BYTE*)threadData->m_buffer;
 	while(true)
 	{
 		unsigned int length = threadData->m_length;
@@ -19,8 +20,7 @@ DWORD WINAPI EncodeWorkerTread(LPVOID i)
 		else if ( length > 0 )
 		{
 			BYTE* src = (BYTE*)threadData->m_source;
-			BYTE* dest = (BYTE*)threadData->m_dest;
-			BYTE* dst = dest + ((unsigned int)src&15);
+			BYTE* dst = buffer + ((unsigned int)src&15);
 
 			if ( threadData->m_format == YUY2 )
 			{
@@ -31,6 +31,7 @@ DWORD WINAPI EncodeWorkerTread(LPVOID i)
 				Block_Predict(src, dst, threadData->m_width, length );
 			}
 
+			BYTE* dest = (BYTE*)threadData->m_dest;
 			threadData->m_size = threadData->m_compressWorker.Compact(dst, dest, length);
 			assert( *(__int64*)dest != 0 );
 			threadData->m_length = 0;

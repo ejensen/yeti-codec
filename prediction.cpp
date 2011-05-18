@@ -21,7 +21,7 @@ inline int median(int x,int y,int z )
 	return  x+delta;	// min
 }
 
-void Block_Predict(const BYTE * __restrict source, BYTE * __restrict dest, const size_t width, const size_t length)
+void Block_Predict(const BYTE* __restrict source, BYTE* __restrict dest, const size_t width, const size_t length)
 {
 	unsigned int align_shift = (16 - ((unsigned int)source&15))&15;
 
@@ -352,10 +352,10 @@ void Split_YUY2(const BYTE * __restrict src, BYTE * __restrict ydst, BYTE * __re
 
 	for ( ;a<align;a+=2)
 	{
-		ydst[a+0] = src[a*2+0];
-		vdst[a/2] = src[a*2+1];
-		ydst[a+1] = src[a*2+2];
-		udst[a/2] = src[a*2+3];
+		ydst[a]			= src[DOUBLE(a)];
+		vdst[HALF(a)]	= src[DOUBLE(a)+1];
+		ydst[a+1]		= src[DOUBLE(a)+2];
+		udst[HALF(a)]	= src[DOUBLE(a)+3];
 	}
 
 	const unsigned int end = (width*height-align)&(~15);
@@ -386,10 +386,10 @@ void Split_YUY2(const BYTE * __restrict src, BYTE * __restrict ydst, BYTE * __re
 
 	for ( ;a<height*width;a+=2)
 	{
-		ydst[a+0] = src[a*2+0];
-		vdst[a/2] = src[a*2+1];
-		ydst[a+1] = src[a*2+2];
-		udst[a/2] = src[a*2+3];
+		ydst[a]			= src[DOUBLE(a)];
+		vdst[HALF(a)]	= src[DOUBLE(a)+1];
+		ydst[a+1]		= src[DOUBLE(a)+2];
+		udst[HALF(a)]	= src[DOUBLE(a)+3];
 	}
 }
 
@@ -400,10 +400,10 @@ void Split_UYVY(const BYTE * __restrict src, BYTE * __restrict ydst, BYTE * __re
 
 	for ( ;a<align;a+=2)
 	{
-		vdst[a/2] = src[a*2+0];
-		ydst[a+0] = src[a*2+1];
-		udst[a/2] = src[a*2+2];
-		ydst[a+1] = src[a*2+3];
+		vdst[HALF(a)]	= src[DOUBLE(a)];
+		ydst[a]			= src[DOUBLE(a)+1];
+		udst[HALF(a)]	= src[DOUBLE(a)+2];
+		ydst[a+1]		= src[DOUBLE(a)+3];
 	}
 
 	const __m128i cmask = _mm_set_epi32(0x000000FF,0x000000FF,0x000000FF,0x000000FF);
@@ -436,10 +436,10 @@ void Split_UYVY(const BYTE * __restrict src, BYTE * __restrict ydst, BYTE * __re
 
 	for ( ;a<height*width;a+=2)
 	{
-		vdst[a/2] = src[a*2+0];
-		ydst[a+0] = src[a*2+1];
-		udst[a/2] = src[a*2+2];
-		ydst[a+1] = src[a*2+3];
+		vdst[a/2]	= src[DOUBLE(a)];
+		ydst[a]		= src[DOUBLE(a)+1];
+		udst[a/2]	= src[DOUBLE(a)+2];
+		ydst[a+1]	= src[DOUBLE(a)+3];
 	}
 }
 
@@ -455,9 +455,9 @@ void Interleave_And_Restore_YUY2(BYTE* __restrict output, BYTE* __restrict ysrc,
 
 		for ( unsigned int a=1;a<width/2+2;a++)
 		{
-			output[a*4+0]=y+=ysrc[a*2+0];
+			output[a*4]=y+=ysrc[DOUBLE(a)];
 			output[a*4+1]=u+=usrc[a];
-			output[a*4+2]=y+=ysrc[a*2+1];
+			output[a*4+2]=y+=ysrc[DOUBLE(a)+1];
 			output[a*4+3]=v+=vsrc[a];
 		}
 	}
@@ -738,22 +738,23 @@ void Restore_YV12(BYTE * __restrict ysrc, BYTE * __restrict usrc, BYTE * __restr
 		z = _mm_srli_si128(y,8);
 	}
 
-	for ( ;a<width*height/4 + width/2;a++)
+	const size_t halfWidth = HALF(width);
+	for ( ;a<width*height/4 + halfWidth;a++)
 	{
 		int i = ysrc[a-1];
 		int j = ysrc[a-width];
 		int k = i+j-ysrc[a-width-1];
 		ysrc[a]+=median(i,j,k);
 
-		i = usrc[a-width/2-1];
-		j = usrc[a-width/2-width/2];
-		k = i+j-usrc[a-width/2-width/2-1];
+		i = usrc[a-halfWidth-1];
+		j = usrc[a-halfWidth-halfWidth];
+		k = i+j-usrc[a-halfWidth-halfWidth-1];
 		usrc[a-width/2]+=median(i,j,k);
 
-		i = vsrc[a-width/2-1];
-		j = vsrc[a-width/2-width/2];
-		k = i+j-vsrc[a-width/2-width/2-1];
-		vsrc[a-width/2]+=median(i,j,k);
+		i = vsrc[a-halfWidth-1];
+		j = vsrc[a-halfWidth-halfWidth];
+		k = i+j-vsrc[a-halfWidth-halfWidth-1];
+		vsrc[a-halfWidth]+=median(i,j,k);
 	}
 
 	for ( ;a&7;a++){

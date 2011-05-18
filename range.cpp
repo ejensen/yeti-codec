@@ -78,7 +78,7 @@ size_t CompressClass::RangeEncode(const BYTE* in, BYTE* out, const size_t length
 					out[pos]=0;
 					--pos;
 				}
-				++out[pos];
+				out[pos]++;
 			}
 			do {
 				range <<= 8;
@@ -213,7 +213,9 @@ void CompressClass::Decode_And_DeRLE(const BYTE * __restrict in, BYTE * __restri
 			if ( next <= a)
 			{
 				++next;
-				for ( ;m_probRanges[next] == m_probRanges[a]; next++){};
+				while (m_probRanges[next] == m_probRanges[a]){
+					++next;
+				}
 				--next;
 			}
 			indexed_ranges[a][1]=next;
@@ -229,7 +231,7 @@ void CompressClass::Decode_And_DeRLE(const BYTE * __restrict in, BYTE * __restri
 	// well-predictable conditional.
 	BYTE range_hash[1<<12];
 	unsigned int hs=0;
-	unsigned int hash_range = range_top-range_bottom;
+	const unsigned int hash_range = range_top-range_bottom;
 	while ( hash_range > ((unsigned int)1<<(12 + hs)) )
 	{
 		++hs;
@@ -339,10 +341,8 @@ void CompressClass::Decode_And_DeRLE(const BYTE * __restrict in, BYTE * __restri
 		{
 			goto Level_3_Zero_Decode;
 		} 
-		else 
-		{
-			goto Level_3_Nonzero_Decode;
-		}
+		goto Level_3_Nonzero_Decode;
+
 		do 
 		{
 Level_3_Zero_Decode:
@@ -402,11 +402,8 @@ Level_3_Nonzero_Decode:
 		if ( low < help*range_bottom )
 		{
 			goto Level_1_Zero_Decode;
-		} 
-		else 
-		{
-			goto Level_1_Nonzero_Decode;
 		}
+		goto Level_1_Nonzero_Decode;
 		do {
 Level_1_Zero_Decode:
 			range = help * range_bottom;

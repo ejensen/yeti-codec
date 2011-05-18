@@ -2,6 +2,7 @@
 #include "yeti.h"
 #include "reciprocal_table.h"
 #include <intrin.h>
+#include <limits.h>
 
 #define TOP_VALUE		0x80000000
 #define BOTTOM_VALUE	0x00800000
@@ -43,7 +44,7 @@ size_t CompressClass::RangeEncode(const BYTE* in, BYTE* out, const size_t length
 
 	unsigned int mask255[256];
 	ZeroMemory(&mask255[0], 255*sizeof(mask255[0]));
-	mask255[255] = 0xffffffff;
+	mask255[255] = UINT_MAX;
 
 	do{
 		int in_val = *in;

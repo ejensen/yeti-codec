@@ -36,8 +36,8 @@ bool InterframeEncode(BYTE* __restrict dest, const BYTE* __restrict src1, const 
 #pragma omp parallel for reduction(+: sad)
 	for(int i = 0; i < end; i++)
 	{
-		__m128i mx1 = _mm_loadu_si128(mxSrc1 + i);
-		__m128i mx2 = _mm_loadu_si128(mxSrc2 + i);
+		__m128i mx1 = _mm_load_si128(mxSrc1 + i);
+		__m128i mx2 = _mm_load_si128(mxSrc2 + i);
 		__m128i mxs = _mm_sad_epu8(mx1,  mx2);
 		sad += _mm_extract_epi16(mxs, 0) + _mm_extract_epi16(mxs, 4);
 		mxDest[i] = _mm_sub_epi8(mx1, mx2);
